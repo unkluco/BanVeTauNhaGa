@@ -1,0 +1,12 @@
+LƯU Ý : 
+- TUYỆT ĐỐI KHÔNG XÓA BẤT KỲ FILE NÀO MÀ KHÔNG PHẢI BẠN TẠO RA !!
+- 
+
+Các nhiệm vụ của dự án BanVeTauNhaGa:
+1. Đọc và hiểu các yêu cầu nhiệm vụ của dự án BanVeTauNhaGa: Trước khi bắt đầu, hãy đảm bảo rằng bạn đã đọc và hiểu rõ các yêu cầu của nhiệm vụ. Điều này sẽ giúp bạn xác định được mục tiêu và các bước cần thiết để hoàn thành nhiệm vụ.
+2. Tham khảo cấu trúc dự án và lệnh query SQL của dự án mẫu KVStore
+3. tạo các class gồm đầy đủ các thuộc tính và phương thức cần thiết dựa vào folder data và folder document trong dự án này.
+4. tạo các class DAO của các thực thể dựa vào các class đã tạo, folder data và folder document. Tham khảo dự án KVStore về các câu lệnh query vì phần nào lệnh vầ ip cơ sở dữ liệu là giống nhau.
+5. tạo một class Main để chạy thử tất cả các class của bước 3 và các phương thức của các class DAO đã tạo ở bước 4. Bạn có thể tạo một số dữ liệu mẫu để kiểm tra xem các phương thức và đối tượng có hoạt động đúng không.
+6. Kiểm tra và sửa lỗi: Sau khi hoàn thành các bước trên, chạy thử class Main để kiểm tra xem tất cả các class và phương thức có hoạt động đúng không. Nếu có lỗi, hãy sửa chúng và chạy lại cho đến khi mọi thứ hoạt động như mong đợi.
+7. Viết báo cáo: Cuối cùng, hãy viết một báo cáo ngắn gọn về kết quả và quá trình thực hiện nhiệm vụ, những khó khăn bạn gặp phải và cách bạn đã giải quyết chúng.
