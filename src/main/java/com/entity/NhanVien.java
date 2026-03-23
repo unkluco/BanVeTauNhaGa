@@ -1,5 +1,6 @@
 package com.entity;
 
+import com.enums.TrangThaiNhanVien;
 import com.enums.VaiTro;
 
 public class NhanVien {
@@ -8,6 +9,7 @@ public class NhanVien {
     private String password;
     private VaiTro vaiTro;
     private String soDienThoai;
+    private TrangThaiNhanVien trangThai;
 
     public NhanVien() {
         super();
@@ -17,12 +19,13 @@ public class NhanVien {
         this.maNV = maNV;
     }
 
-    public NhanVien(String maNV, String hoTen, String password, VaiTro vaiTro, String soDienThoai) {
+    public NhanVien(String maNV, String hoTen, String password, VaiTro vaiTro, String soDienThoai, TrangThaiNhanVien trangThai) {
         this.maNV = maNV;
         this.hoTen = hoTen;
         this.password = password;
         this.vaiTro = vaiTro;
         this.soDienThoai = soDienThoai;
+        this.trangThai = trangThai;
     }
 
     public String getMaNV() { return maNV; }
@@ -35,6 +38,8 @@ public class NhanVien {
     public void setVaiTro(VaiTro vaiTro) { this.vaiTro = vaiTro; }
     public String getSoDienThoai() { return soDienThoai; }
     public void setSoDienThoai(String soDienThoai) { this.soDienThoai = soDienThoai; }
+    public TrangThaiNhanVien getTrangThai() { return trangThai; }
+    public void setTrangThai(TrangThaiNhanVien trangThai) { this.trangThai = trangThai; }
 
     @Override
     public String toString() {
@@ -43,6 +48,7 @@ public class NhanVien {
                 ", hoTen='" + hoTen + '\'' +
                 ", vaiTro=" + vaiTro +
                 ", soDienThoai='" + soDienThoai + '\'' +
+                ", trangThai=" + trangThai +
                 '}';
     }
 }

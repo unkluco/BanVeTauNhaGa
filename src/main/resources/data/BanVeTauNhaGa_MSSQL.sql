@@ -30,7 +30,8 @@ CREATE TABLE NhanVien (
     hoTen NVARCHAR(100) NOT NULL,
     [password] VARCHAR(255) NOT NULL,
     vaiTro VARCHAR(20) NOT NULL CHECK (vaiTro IN ('BAN_VE', 'DIEU_PHOI', 'ADMIN')),
-    soDienThoai VARCHAR(15) NOT NULL
+    soDienThoai VARCHAR(15) NOT NULL,
+    trangThai VARCHAR(20) NOT NULL DEFAULT 'DANG_LAM' CHECK (trangThai IN ('DANG_LAM', 'NGHI_PHEP', 'DA_NGHI'))
 );
 
 -- 2. Ga
@@ -191,10 +192,30 @@ GO
 -- ============================================================
 
 -- ==================== 1. NhanVien ====================
-INSERT INTO NhanVien VALUES ('NV-0000', N'ADMIN', 'ADMIN', 'ADMIN', '0000000000');
-INSERT INTO NhanVien VALUES ('NV-0001', N'Nguyễn Văn An', 'Pass@123', 'BAN_VE', '0901234567');
-INSERT INTO NhanVien VALUES ('NV-0002', N'Trần Thị Bình', 'Pass@456', 'BAN_VE', '0912345678');
-INSERT INTO NhanVien VALUES ('NV-0003', N'Lê Hoàng Cường', 'Pass@789', 'DIEU_PHOI', '0923456789');
+INSERT INTO NhanVien VALUES ('NV-0000', N'ADMIN', 'ADMIN', 'ADMIN', '0000000000', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0001', N'Nguyễn Văn An', 'Pass@123', 'BAN_VE', '0901234567', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0002', N'Trần Thị Bình', 'Pass@456', 'BAN_VE', '0912345678', 'NGHI_PHEP');
+INSERT INTO NhanVien VALUES ('NV-0003', N'Lê Hoàng Cường', 'Pass@789', 'DIEU_PHOI', '0923456789', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0004', N'Phạm Minh Đức', 'Pass@101', 'BAN_VE', '0934567890', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0005', N'Hoàng Thị Elysa', 'Pass@102', 'BAN_VE', '0945678901', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0006', N'Võ Văn Phúc', 'Pass@103', 'DIEU_PHOI', '0956789012', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0007', N'Đặng Thùy Giang', 'Pass@104', 'BAN_VE', '0967890123', 'NGHI_PHEP');
+INSERT INTO NhanVien VALUES ('NV-0008', N'Bùi Quốc Huy', 'Pass@105', 'BAN_VE', '0978901234', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0009', N'Ngô Thanh Inh', 'Pass@106', 'DIEU_PHOI', '0989012345', 'DA_NGHI');
+INSERT INTO NhanVien VALUES ('NV-0010', N'Lý Thị Kim', 'Pass@107', 'BAN_VE', '0990123456', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0011', N'Trương Đình Lâm', 'Pass@108', 'BAN_VE', '0901122334', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0012', N'Phan Thị Mai', 'Pass@109', 'DIEU_PHOI', '0912233445', 'NGHI_PHEP');
+INSERT INTO NhanVien VALUES ('NV-0013', N'Hồ Trọng Nam', 'Pass@110', 'BAN_VE', '0923344556', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0014', N'Dương Thị Oanh', 'Pass@111', 'BAN_VE', '0934455667', 'DA_NGHI');
+INSERT INTO NhanVien VALUES ('NV-0015', N'Tạ Minh Phong', 'Pass@112', 'DIEU_PHOI', '0945566778', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0016', N'Vũ Thị Quỳnh', 'Pass@113', 'BAN_VE', '0956677889', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0017', N'Đinh Công Sơn', 'Pass@114', 'BAN_VE', '0967788990', 'NGHI_PHEP');
+INSERT INTO NhanVien VALUES ('NV-0018', N'Mai Thị Tâm', 'Pass@115', 'BAN_VE', '0978899001', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0019', N'Lương Văn Uy', 'Pass@116', 'DIEU_PHOI', '0989900112', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0020', N'Cao Thị Vân', 'Pass@117', 'BAN_VE', '0990011223', 'DA_NGHI');
+INSERT INTO NhanVien VALUES ('NV-0021', N'Châu Quốc Xuân', 'Pass@118', 'BAN_VE', '0901233210', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0022', N'Kiều Thị Yến', 'Pass@119', 'DIEU_PHOI', '0912344321', 'DANG_LAM');
+INSERT INTO NhanVien VALUES ('NV-0023', N'Trịnh Đức Zũng', 'Pass@120', 'BAN_VE', '0923455432', 'NGHI_PHEP');
 
 -- ==================== 2. Ga ====================
 INSERT INTO Ga VALUES ('GA-001', N'Ga Hà Nội', N'120 Lê Duẩn, Hoàn Kiếm, Hà Nội');

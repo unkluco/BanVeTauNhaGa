@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.connectDB.ConnectDB;
 import com.entity.NhanVien;
+import com.enums.TrangThaiNhanVien;
 import com.enums.VaiTro;
 
 public class DAO_NhanVien {
@@ -55,13 +56,14 @@ public class DAO_NhanVien {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, trangThai) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, nv.getMaNV());
             ps.setNString(2, nv.getHoTen());
             ps.setString(3, nv.getPassword());
             ps.setString(4, nv.getVaiTro().toDbValue());
             ps.setString(5, nv.getSoDienThoai());
+            ps.setString(6, nv.getTrangThai() != null ? nv.getTrangThai().toDbValue() : TrangThaiNhanVien.DANG_LAM.toDbValue());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi thêm nhân viên: " + e.getMessage());
@@ -74,13 +76,14 @@ public class DAO_NhanVien {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "UPDATE NhanVien SET hoTen = ?, [password] = ?, vaiTro = ?, soDienThoai = ? WHERE maNV = ?";
+        String sql = "UPDATE NhanVien SET hoTen = ?, [password] = ?, vaiTro = ?, soDienThoai = ?, trangThai = ? WHERE maNV = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setNString(1, nv.getHoTen());
             ps.setString(2, nv.getPassword());
             ps.setString(3, nv.getVaiTro().toDbValue());
             ps.setString(4, nv.getSoDienThoai());
-            ps.setString(5, nv.getMaNV());
+            ps.setString(5, nv.getTrangThai() != null ? nv.getTrangThai().toDbValue() : TrangThaiNhanVien.DANG_LAM.toDbValue());
+            ps.setString(6, nv.getMaNV());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi cập nhật nhân viên: " + e.getMessage());
@@ -139,6 +142,8 @@ public class DAO_NhanVien {
         String password = rs.getString("password");
         VaiTro vaiTro = VaiTro.fromAny(rs.getString("vaiTro"));
         String soDienThoai = rs.getString("soDienThoai");
-        return new NhanVien(maNV, hoTen, password, vaiTro, soDienThoai);
+        TrangThaiNhanVien trangThai = TrangThaiNhanVien.fromAny(rs.getString("trangThai"));
+        if (trangThai == null) trangThai = TrangThaiNhanVien.DANG_LAM;
+        return new NhanVien(maNV, hoTen, password, vaiTro, soDienThoai, trangThai);
     }
 }
