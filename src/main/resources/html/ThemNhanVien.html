@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Azure Rail - Quản lý nhân viên</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary-container": "#0077b6",
+                "secondary-fixed": "#cfe6f2",
+                "on-error": "#ffffff",
+                "on-primary-container": "#f3f7ff",
+                "inverse-on-surface": "#eff1f3",
+                "tertiary-container": "#a95f00",
+                "primary-fixed-dim": "#94ccff",
+                "on-tertiary": "#ffffff",
+                "on-tertiary-fixed": "#2e1600",
+                "secondary-container": "#cfe6f2",
+                "outline-variant": "#bfc7d1",
+                "on-secondary-fixed-variant": "#354a53",
+                "surface-variant": "#e0e3e5",
+                "error-container": "#ffdad6",
+                "on-secondary": "#ffffff",
+                "surface-dim": "#d8dadc",
+                "on-surface": "#191c1e",
+                "on-background": "#191c1e",
+                "surface-container-low": "#f2f4f6",
+                "on-secondary-fixed": "#071e27",
+                "inverse-primary": "#94ccff",
+                "surface": "#f7f9fb",
+                "outline": "#707881",
+                "on-primary-fixed": "#001d32",
+                "on-error-container": "#93000a",
+                "tertiary-fixed-dim": "#ffb877",
+                "primary-fixed": "#cde5ff",
+                "primary": "#005d90",
+                "surface-container-lowest": "#ffffff",
+                "error": "#ba1a1a",
+                "secondary-fixed-dim": "#b4cad6",
+                "surface-tint": "#006399",
+                "tertiary-fixed": "#ffdcc0",
+                "on-primary-fixed-variant": "#004b74",
+                "on-primary": "#ffffff",
+                "surface-container-high": "#e6e8ea",
+                "on-secondary-container": "#526772",
+                "surface-container-highest": "#e0e3e5",
+                "tertiary": "#864a00",
+                "on-tertiary-fixed-variant": "#6c3a00",
+                "background": "#f7f9fb",
+                "surface-container": "#eceef0",
+                "secondary": "#4c616c",
+                "on-surface-variant": "#404850",
+                "surface-bright": "#f7f9fb",
+                "on-tertiary-container": "#fff6f1",
+                "inverse-surface": "#2d3133"
+              },
+              fontFamily: {
+                "headline": ["Manrope"],
+                "body": ["Inter"],
+                "label": ["Inter"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-0 h-full flex flex-col z-40 bg-slate-50 dark:bg-slate-900 h-screen w-64 border-r-0">
+<div class="text-xl font-black text-sky-800 dark:text-sky-300 px-4 py-6 font-headline">
+            Azure Rail
+            <p class="text-xs font-medium text-slate-500 tracking-wider uppercase mt-1">Hệ thống quản lý</p>
+</div>
+<nav class="flex-1 flex flex-col space-y-1 mt-4">
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 mx-2 px-4 py-3 transition-colors flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="confirmation_number">confirmation_number</span>
+<span class="font-medium text-sm">Đặt vé mới</span>
+</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 mx-2 px-4 py-3 transition-colors flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-medium text-sm">Tổng quan</span>
+</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 mx-2 px-4 py-3 transition-colors flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-medium text-sm">Doanh thu</span>
+</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 mx-2 px-4 py-3 transition-colors flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="sell">sell</span>
+<span class="font-medium text-sm">Quản lý giá</span>
+</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 mx-2 px-4 py-3 transition-colors flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="loyalty">loyalty</span>
+<span class="font-medium text-sm">Quản lý Khuyến mãi</span>
+</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 mx-2 px-4 py-3 transition-colors flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-medium text-sm">Quản lý vé &amp; hóa đơn</span>
+</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 mx-2 px-4 py-3 transition-colors flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="train">train</span>
+<span class="font-medium text-sm">Quản lý đoàn tàu &amp; toa</span>
+</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 mx-2 px-4 py-3 transition-colors flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+<span class="font-medium text-sm">Quản lý tuyến &amp; lịch chạy</span>
+</a>
+<!-- Active Navigation Item -->
+<a class="bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-100 font-semibold rounded-lg mx-2 px-4 py-3 flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="badge" style="font-variation-settings: 'FILL' 1;">badge</span>
+<span class="font-semibold text-sm">Quản lý nhân viên</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-slate-200/50 pt-4 pb-6">
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 mx-2 px-4 py-3 transition-colors flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-medium text-sm">Cài đặt</span>
+</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 mx-2 px-4 py-3 transition-colors flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-medium text-sm">Đăng xuất</span>
+</a>
+</div>
+</aside>
+<!-- TopAppBar Shell -->
+<header class="flex justify-between items-center h-20 pl-72 pr-8 w-full z-30 fixed top-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
+<h1 class="font-headline font-bold text-2xl text-slate-900 dark:text-slate-100">Quản lý nhân viên</h1>
+<div class="flex items-center gap-4">
+<div class="relative group">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline">search</span>
+<input class="bg-surface-container-highest border-none rounded-full pl-10 pr-4 py-2 w-64 focus:ring-2 focus:ring-primary focus:bg-white transition-all text-sm outline-none" placeholder="Tìm kiếm nhân viên..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+</button>
+<button class="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="help_outline">help_outline</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant mx-2"></div>
+<button class="flex items-center gap-2 pl-2 pr-4 py-2 bg-secondary-container text-on-secondary-container rounded-full text-sm font-semibold hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="filter_list">filter_list</span>
+                    Lọc dữ liệu
+                </button>
+<button class="flex items-center gap-2 pl-3 pr-5 py-2 bg-primary text-white rounded-full text-sm font-bold shadow-lg shadow-primary/20 hover:scale-105 active:opacity-70 transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="add">add</span>
+                    Thêm nhân viên
+                </button>
+<img alt="Profile" class="h-10 w-10 rounded-full border-2 border-white shadow-sm object-cover" data-alt="Admin user profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBP233_hCN-9ZkzhdslEN5leBiXlenmoZpPXwzS-_5adnD_oScem6gRnr4QXrH59TFHEegKD_3Go4VD3RqectCxB4on7a_gzjY1nfye7MAlm_avYMMO9LToQq-oQenyrDOHw0arTnhzpDHW5o55k0j0EcVWfcUA1aT5q6s0FE-uBlV-HmyIA8Fc1motcTd-6qzHVG3xIRE4DvuKIoo5LiJvmjfiNuNlJOry5H2XLAc_gC5jFBuGr2VA3kkr_lYujBd3pTD1HjOtkBp7"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 pl-72 pr-8 pb-12 bg-surface min-h-screen">
+<!-- Summary Cards (Bento style hint) -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-transparent">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+</div>
+<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">+12%</span>
+</div>
+<p class="text-on-surface-variant text-sm font-medium">Tổng nhân sự</p>
+<h3 class="text-2xl font-bold font-headline mt-1">1,284</h3>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-transparent">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-amber-50 text-amber-600 rounded-lg">
+<span class="material-symbols-outlined" data-icon="confirmation_number">confirmation_number</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm font-medium">Nhân viên quầy vé</p>
+<h3 class="text-2xl font-bold font-headline mt-1">842</h3>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-transparent">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-sky-50 text-sky-600 rounded-lg">
+<span class="material-symbols-outlined" data-icon="route">route</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm font-medium">Người điều phối</p>
+<h3 class="text-2xl font-bold font-headline mt-1">442</h3>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-transparent">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
+<span class="material-symbols-outlined" data-icon="event_available">event_available</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm font-medium">Đang làm việc</p>
+<h3 class="text-2xl font-bold font-headline mt-1">1,120</h3>
+</div>
+</div>
+<!-- Employee Table -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<div class="px-6 py-4 border-b border-surface-variant flex justify-between items-center">
+<h2 class="font-headline font-bold text-lg">Danh sách nhân viên</h2>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="material-symbols-outlined text-outline" data-icon="download">download</span>
+</button>
+<button class="p-2 hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="material-symbols-outlined text-outline" data-icon="print">print</span>
+</button>
+</div>
+</div>
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low">
+<tr>
+<th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Mã NV</th>
+<th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Họ và tên</th>
+<th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Email &amp; SĐT</th>
+<th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Bộ phận</th>
+<th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Ngày vào làm</th>
+<th class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Thao tác</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant">
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-6 py-4 font-mono text-xs font-bold text-primary">AR-00124</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-primary font-bold text-xs">NL</div>
+<span class="font-semibold text-sm">Nguyễn Linh</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<p class="text-sm font-medium">linh.n@azureraill.vn</p>
+<p class="text-xs text-on-surface-variant">0901 234 567</p>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase">Nhân viên quầy vé</span>
+</td>
+<td class="px-6 py-4 text-sm">12/04/2023</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-6 py-4 font-mono text-xs font-bold text-primary">AR-00156</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-xs">PV</div>
+<span class="font-semibold text-sm">Phạm Văn Vũ</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<p class="text-sm font-medium">vu.pv@azureraill.vn</p>
+<p class="text-xs text-on-surface-variant">0982 445 667</p>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded-full bg-sky-50 text-sky-700 text-[10px] font-bold uppercase">Người điều phối</span>
+</td>
+<td class="px-6 py-4 text-sm">05/01/2024</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-6 py-4 font-mono text-xs font-bold text-primary">AR-00189</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs">TH</div>
+<span class="font-semibold text-sm">Trần Hoa</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<p class="text-sm font-medium">hoa.t@azureraill.vn</p>
+<p class="text-xs text-on-surface-variant">0912 334 112</p>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase">Nhân viên quầy vé</span>
+</td>
+<td class="px-6 py-4 text-sm">20/02/2024</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="px-6 py-4 bg-surface-container-low/30 border-t border-surface-variant flex justify-between items-center">
+<p class="text-xs text-on-surface-variant font-medium">Hiển thị 1-10 trên 1,284 nhân viên</p>
+<div class="flex gap-1">
+<button class="w-8 h-8 rounded flex items-center justify-center hover:bg-white text-on-surface-variant"><span class="material-symbols-outlined text-sm">chevron_left</span></button>
+<button class="w-8 h-8 rounded flex items-center justify-center bg-primary text-white text-xs font-bold">1</button>
+<button class="w-8 h-8 rounded flex items-center justify-center hover:bg-white text-xs">2</button>
+<button class="w-8 h-8 rounded flex items-center justify-center hover:bg-white text-xs">3</button>
+<button class="w-8 h-8 rounded flex items-center justify-center hover:bg-white text-on-surface-variant"><span class="material-symbols-outlined text-sm">chevron_right</span></button>
+</div>
+</div>
+</div>
+</main>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+<!-- Modal Content (JDialog inspired) -->
+<div class="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+<!-- Modal Header -->
+<div class="px-8 py-6 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+<div>
+<h2 class="font-headline font-bold text-xl text-primary flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="person_add">person_add</span>
+                        Thêm nhân viên mới
+                    </h2>
+<p class="text-sm text-on-surface-variant mt-1">Vui lòng điền đầy đủ thông tin bên dưới để tạo tài khoản mới.</p>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-200/50 transition-colors">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<!-- Modal Body (Form) -->
+<div class="p-8">
+<form class="space-y-6">
+<!-- Row 1 -->
+<div class="grid grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant ml-1">Mã nhân viên</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm font-mono font-bold text-primary cursor-not-allowed" readonly="" type="text" value="AR-00190"/>
+<p class="text-[10px] text-on-surface-variant italic">* Mã số này được hệ thống tạo tự động</p>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant ml-1">Họ và tên <span class="text-error">*</span></label>
+<input class="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Nhập họ và tên đầy đủ" type="text"/>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-3 gap-6">
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant ml-1">Ngày sinh</label>
+<div class="relative">
+<span class="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-lg">calendar_today</span>
+<input class="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all appearance-none" type="date"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant ml-1">Số CCCD <span class="text-error">*</span></label>
+<input class="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Nhập số CCCD" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant ml-1">Số điện thoại <span class="text-error">*</span></label>
+<input class="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="09xx xxx xxx" type="tel"/>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant ml-1">Địa chỉ Email <span class="text-error">*</span></label>
+<input class="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="example@azurerail.vn" type="email"/>
+</div><div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant ml-1">Địa chỉ nhà</label>
+<input class="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Nhập địa chỉ cư trú hiện tại" type="text"/>
+</div>
+<!-- Row 4 -->
+<div class="grid grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant ml-1">Bộ phận</label>
+<select class="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+<option value="counter">Nhân viên quầy vé</option>
+<option value="coordinator">Người điều phối</option>
+</select>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-bold text-on-surface-variant ml-1">Ngày vào làm</label>
+<div class="relative">
+<span class="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-lg">event</span>
+<input class="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all appearance-none" type="date"/>
+</div>
+</div>
+</div>
+</form>
+</div>
+<!-- Modal Footer -->
+<div class="px-8 py-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3">
+<button class="px-6 py-2.5 rounded-xl text-sm font-bold text-on-surface-variant hover:bg-slate-200/50 transition-all">
+                    Hủy bỏ
+                </button>
+<button class="px-8 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                    Lưu nhân viên
+                </button>
+</div>
+</div>
+</div>
+</body></html>

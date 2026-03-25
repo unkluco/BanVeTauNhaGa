@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn clean:*)",
+      "Bash(javac -version)",
+      "Bash(wc -l /c/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa/src/main/java/com/modules/*.java)",
+      "Bash(mvn compile:*)",
+      "Bash(where mvn:*)",
+      "Bash(ls \"C:\\\\Users\\\\ADMIN\\\\Desktop\\\\code\\\\ptud\\\\projects\\\\BanVeTauNhaGa\\\\mvnw\"*)",
+      "Bash(where gradle:*)"
+    ]
+  }
+}
