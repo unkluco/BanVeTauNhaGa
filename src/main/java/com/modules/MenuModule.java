@@ -111,6 +111,16 @@ public class MenuModule extends JPanel implements AppModule {
         sidebarFooter.setBackground(SIDEBAR_BG);
         sidebarFooter.setBorder(new EmptyBorder(12, 12, 16, 12));
 
+        NavItem btnThongTinCaNhan = createNavItem("Th\u00F4ng tin c\u00E1 nh\u00E2n");
+        btnThongTinCaNhan.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                openThongTinCaNhan();
+            }
+        });
+        sidebarFooter.add(btnThongTinCaNhan);
+        sidebarFooter.add(Box.createVerticalStrut(2));
+
         NavItem btnCaiDat = createNavItem("C\u00E0i \u0111\u1EB7t");
         sidebarFooter.add(btnCaiDat);
         sidebarFooter.add(Box.createVerticalStrut(2));
@@ -200,6 +210,13 @@ public class MenuModule extends JPanel implements AppModule {
 
         userPanel.add(userInfo);
         userPanel.add(avatar);
+        userPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        userPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                openThongTinCaNhan();
+            }
+        });
 
         header.add(lblPageTitle, BorderLayout.WEST);
         header.add(userPanel, BorderLayout.EAST);
@@ -440,6 +457,17 @@ public class MenuModule extends JPanel implements AppModule {
                     "Ch\u1EE9c n\u0103ng \"" + label
                             + "\" s\u1EBD \u0111\u01B0\u1EE3c tri\u1EC3n khai t\u1EA1i \u0111\u00E2y.");
         }
+    }
+
+    private void openThongTinCaNhan() {
+        setActive(null);
+        lblPageTitle.setText("Th\u00F4ng tin c\u00E1 nh\u00E2n");
+        ThongTinCaNhanModule module = new ThongTinCaNhanModule(currentUser);
+        module.setOnResult(null);
+        contentPanel.removeAll();
+        contentPanel.add(module.getView(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
     }
 
     private void showPlaceholder(String title, String message) {

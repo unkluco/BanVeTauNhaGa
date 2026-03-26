@@ -142,6 +142,40 @@ public class DAO_NhanVien {
         return null;
     }
 
+    // ========================= ĐỔI MẬT KHẨU =========================
+    public boolean updatePassword(String maNV, String newPassword) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return false;
+
+        String sql = "UPDATE NhanVien SET [password] = ? WHERE maNV = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, newPassword);
+            ps.setString(2, maNV);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi đổi mật khẩu: " + e.getMessage());
+        }
+        return false;
+    }
+
+    // ========================= CẬP NHẬT THÔNG TIN LIÊN LẠC =========================
+    public boolean updateContactInfo(String maNV, String soDienThoai, String email, String diaChiThuongTru) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return false;
+
+        String sql = "UPDATE NhanVien SET soDienThoai = ?, email = ?, diaChiThuongTru = ? WHERE maNV = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, soDienThoai);
+            ps.setString(2, email);
+            ps.setNString(3, diaChiThuongTru);
+            ps.setString(4, maNV);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi cập nhật thông tin liên lạc: " + e.getMessage());
+        }
+        return false;
+    }
+
     // ========================= TÌM KIẾM =========================
     public List<NhanVien> search(String keyword) {
         List<NhanVien> ds = new ArrayList<>();

@@ -11,6 +11,10 @@ import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
 
 public class SuaNhanVienDialog extends JDialog {
 
@@ -36,19 +40,29 @@ public class SuaNhanVienDialog extends JDialog {
     private static final Font FONT_ERR    = new Font("Segoe UI", Font.PLAIN, 11);
 
     // === Form fields ===
-    private JTextField     txtMaNV;
-    private JTextField     txtHoTen;
-    private JTextField     txtSoDienThoai;
-    private JPasswordField txtPassword;
-    private JTextField     txtCccd;
-    private JTextField     txtDiaChiTamTru;
+    private JTextField        txtMaNV;
+    private JTextField        txtHoTen;
+    private JTextField        txtSoDienThoai;
+    private JPasswordField    txtPassword;
+    private JTextField        txtCccd;
+    private JTextField        txtDiaChiTamTru;
     private JComboBox<String> cboBoPhan;
     private JComboBox<String> cboTrangThai;
+
+    // new fields
+    private JTextField        txtEmail;
+    private JComboBox<String> cboGaLamViec;
+    private JTextField        txtDiaChiThuongTru;
+    private JTextField        txtNgaySinh;
+    private JComboBox<String> cboGioiTinh;
+    private JTextField        txtQuocTich;
+    private String[]          gaKeys;
 
     // === Error labels ===
     private JLabel lblErrHoTen;
     private JLabel lblErrSoDienThoai;
     private JLabel lblErrCccd;
+    private JLabel lblErrNgaySinh;
 
     private final NhanVien original;
     private Runnable onSaved;
@@ -57,13 +71,40 @@ public class SuaNhanVienDialog extends JDialog {
         super(owner, "S\u1EEDa th\u00F4ng tin nh\u00E2n vi\u00EAn", ModalityType.APPLICATION_MODAL);
         this.original = nv;
         this.onSaved = onSaved;
+        loadGaOptions();
         setUndecorated(true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setResizable(false);
         initUI();
         pack();
-        setMinimumSize(new Dimension(540, getPreferredSize().height));
+        setMinimumSize(new Dimension(760, getPreferredSize().height));
         setLocationRelativeTo(owner);
+    }
+
+    private void loadGaOptions() {
+        List<String[]> gaList = new DAO_NhanVien().getAllGa();
+        gaKeys = new String[gaList.size() + 1];
+        gaKeys[0] = null;
+        String[] gaDisplayItems = new String[gaList.size() + 1];
+        gaDisplayItems[0] = "-- Ch\u01B0a ph\u00E2n c\u00F4ng --";
+        for (int i = 0; i < gaList.size(); i++) {
+            gaKeys[i + 1] = gaList.get(i)[0];
+            gaDisplayItems[i + 1] = gaList.get(i)[1];
+        }
+        cboGaLamViec = new JComboBox<>(gaDisplayItems);
+        cboGaLamViec.setFont(FONT_INPUT);
+        cboGaLamViec.setBackground(CARD_BG);
+        cboGaLamViec.setPreferredSize(new Dimension(0, 36));
+        cboGaLamViec.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        // Pre-select current ga
+        if (original.getGaLamViec() != null) {
+            for (int i = 1; i < gaKeys.length; i++) {
+                if (original.getGaLamViec().equals(gaKeys[i])) {
+                    cboGaLamViec.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
     }
 
     private void initUI() {
@@ -114,12 +155,12 @@ public class SuaNhanVienDialog extends JDialog {
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setBackground(CARD_BG);
-        form.setBorder(new EmptyBorder(24, 28, 8, 28));
+        form.setBorder(new EmptyBorder(20, 24, 12, 24));
 
-        // --- Row 1: M\u00E3 NV (readonly) + H\u1ECD t\u00EAn ---
-        JPanel row1 = new JPanel(new GridLayout(1, 2, 20, 0));
+        // --- Row 1 (1x2): Ma NV (readonly) | Ho va ten * ---
+        JPanel row1 = new JPanel(new GridLayout(1, 2, 16, 0));
         row1.setOpaque(false);
-        row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
         txtMaNV = createReadonlyField();
         txtMaNV.setText(original.getMaNV());
@@ -131,12 +172,12 @@ public class SuaNhanVienDialog extends JDialog {
         row1.add(buildFieldGroup("H\u1ECD v\u00E0 t\u00EAn", txtHoTen, null, true, lblErrHoTen));
 
         form.add(row1);
-        form.add(Box.createVerticalStrut(12));
+        form.add(Box.createVerticalStrut(10));
 
-        // --- Row 2: S\u0110T + S\u1ED1 CCCD ---
-        JPanel row2 = new JPanel(new GridLayout(1, 2, 20, 0));
+        // --- Row 2 (1x3): So dien thoai * | So CCCD * | Email ---
+        JPanel row2 = new JPanel(new GridLayout(1, 3, 16, 0));
         row2.setOpaque(false);
-        row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
         txtSoDienThoai = createTextField();
         txtSoDienThoai.setText(original.getSoDienThoai() != null ? original.getSoDienThoai() : "");
@@ -148,18 +189,51 @@ public class SuaNhanVienDialog extends JDialog {
         lblErrCccd = createErrorLabel();
         row2.add(buildFieldGroup("S\u1ED1 CCCD", txtCccd, null, true, lblErrCccd));
 
-        form.add(row2);
-        form.add(Box.createVerticalStrut(12));
+        txtEmail = createTextField();
+        txtEmail.setText(original.getEmail() != null ? original.getEmail() : "");
+        row2.add(buildFieldGroup("Email", txtEmail, null, false, null));
 
-        // --- Row 3: B\u1ED9 ph\u1EADn + Tr\u1EA1ng th\u00E1i ---
-        JPanel row3 = new JPanel(new GridLayout(1, 2, 20, 0));
+        form.add(row2);
+        form.add(Box.createVerticalStrut(10));
+
+        // --- Row 3 (1x3): Ngay sinh | Gioi tinh | Quoc tich ---
+        JPanel row3 = new JPanel(new GridLayout(1, 3, 16, 0));
         row3.setOpaque(false);
-        row3.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        row3.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+
+        txtNgaySinh = createTextField();
+        if (original.getNgaySinh() != null) {
+            txtNgaySinh.setText(original.getNgaySinh().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        }
+        lblErrNgaySinh = createErrorLabel();
+        row3.add(buildFieldGroup("Ng\u00E0y sinh", txtNgaySinh, null, false, lblErrNgaySinh));
+
+        cboGioiTinh = new JComboBox<>(new String[]{"-- Kh\u00F4ng ch\u1ECDn --", "Nam", "N\u1EEF"});
+        cboGioiTinh.setFont(FONT_INPUT);
+        cboGioiTinh.setBackground(CARD_BG);
+        cboGioiTinh.setPreferredSize(new Dimension(0, 36));
+        cboGioiTinh.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        if ("NAM".equalsIgnoreCase(original.getGioiTinh())) cboGioiTinh.setSelectedIndex(1);
+        else if ("NU".equalsIgnoreCase(original.getGioiTinh())) cboGioiTinh.setSelectedIndex(2);
+        row3.add(buildFieldGroup("Gi\u1EDBi t\u00EDnh", cboGioiTinh, null, false, null));
+
+        txtQuocTich = createTextField();
+        txtQuocTich.setText(original.getQuocTich() != null ? original.getQuocTich() : "Vi\u1EC7t Nam");
+        row3.add(buildFieldGroup("Qu\u1ED1c t\u1ECBch", txtQuocTich, null, false, null));
+
+        form.add(row3);
+        form.add(Box.createVerticalStrut(10));
+
+        // --- Row 4 (1x3): Bo phan | Trang thai | Ga lam viec ---
+        JPanel row4 = new JPanel(new GridLayout(1, 3, 16, 0));
+        row4.setOpaque(false);
+        row4.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
         cboBoPhan = new JComboBox<>(new String[]{"B\u00E1n v\u00E9", "\u0110i\u1EC1u ph\u1ED1i", "Admin"});
         cboBoPhan.setFont(FONT_INPUT);
         cboBoPhan.setBackground(CARD_BG);
-        cboBoPhan.setPreferredSize(new Dimension(0, 40));
+        cboBoPhan.setPreferredSize(new Dimension(0, 36));
+        cboBoPhan.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         if (original.getVaiTro() != null) {
             cboBoPhan.setSelectedIndex(switch (original.getVaiTro()) {
                 case BAN_VE -> 0;
@@ -167,12 +241,13 @@ public class SuaNhanVienDialog extends JDialog {
                 case ADMIN -> 2;
             });
         }
-        row3.add(buildFieldGroup("B\u1ED9 ph\u1EADn", cboBoPhan, null, false, null));
+        row4.add(buildFieldGroup("B\u1ED9 ph\u1EADn", cboBoPhan, null, false, null));
 
         cboTrangThai = new JComboBox<>(new String[]{"\u0110ang l\u00E0m", "Ngh\u1EC9 ph\u00E9p", "\u0110\u00E3 ngh\u1EC9"});
         cboTrangThai.setFont(FONT_INPUT);
         cboTrangThai.setBackground(CARD_BG);
-        cboTrangThai.setPreferredSize(new Dimension(0, 40));
+        cboTrangThai.setPreferredSize(new Dimension(0, 36));
+        cboTrangThai.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         if (original.getTrangThai() != null) {
             cboTrangThai.setSelectedIndex(switch (original.getTrangThai()) {
                 case DANG_LAM -> 0;
@@ -180,31 +255,54 @@ public class SuaNhanVienDialog extends JDialog {
                 case DA_NGHI -> 2;
             });
         }
-        row3.add(buildFieldGroup("Tr\u1EA1ng th\u00E1i", cboTrangThai, null, false, null));
+        row4.add(buildFieldGroup("Tr\u1EA1ng th\u00E1i", cboTrangThai, null, false, null));
 
-        form.add(row3);
-        form.add(Box.createVerticalStrut(12));
+        row4.add(buildFieldGroup("Ga l\u00E0m vi\u1EC7c", cboGaLamViec, null, false, null));
 
-        // --- Row 4: M\u1EADt kh\u1EA9u + \u0110\u1ECBa ch\u1EC9 t\u1EA1m tr\u00FA ---
-        JPanel row4 = new JPanel(new GridLayout(1, 2, 20, 0));
-        row4.setOpaque(false);
-        row4.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        form.add(row4);
+        form.add(Box.createVerticalStrut(10));
+
+        // --- Row 5 (full width): Mat khau ---
+        JPanel row5 = new JPanel(new GridLayout(1, 1, 0, 0));
+        row5.setOpaque(false);
+        row5.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
         txtPassword = new JPasswordField();
         txtPassword.setFont(FONT_INPUT);
-        txtPassword.setPreferredSize(new Dimension(0, 40));
+        txtPassword.setPreferredSize(new Dimension(0, 36));
+        txtPassword.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         txtPassword.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1, true),
                 new EmptyBorder(8, 12, 8, 12)
         ));
         addFocusBorderEffect(txtPassword);
-        row4.add(buildFieldGroup("M\u1EADt kh\u1EA9u m\u1EDBi", txtPassword, "* \u0110\u1EC3 tr\u1ED1ng n\u1EBFu kh\u00F4ng \u0111\u1ED5i", false, null));
+        row5.add(buildFieldGroup("M\u1EADt kh\u1EA9u m\u1EDBi", txtPassword, "* \u0110\u1EC3 tr\u1ED1ng n\u1EBFu kh\u00F4ng \u0111\u1ED5i", false, null));
+
+        form.add(row5);
+        form.add(Box.createVerticalStrut(10));
+
+        // --- Row 6 (full width): Dia chi tam tru ---
+        JPanel row6 = new JPanel(new GridLayout(1, 1, 0, 0));
+        row6.setOpaque(false);
+        row6.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
         txtDiaChiTamTru = createTextField();
         txtDiaChiTamTru.setText(original.getDiaChiTamTru() != null ? original.getDiaChiTamTru() : "");
-        row4.add(buildFieldGroup("\u0110\u1ECBa ch\u1EC9 t\u1EA1m tr\u00FA", txtDiaChiTamTru, null, false, null));
+        row6.add(buildFieldGroup("\u0110\u1ECBa ch\u1EC9 t\u1EA1m tr\u00FA", txtDiaChiTamTru, null, false, null));
 
-        form.add(row4);
+        form.add(row6);
+        form.add(Box.createVerticalStrut(10));
+
+        // --- Row 7 (full width): Dia chi thuong tru ---
+        JPanel row7 = new JPanel(new GridLayout(1, 1, 0, 0));
+        row7.setOpaque(false);
+        row7.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+
+        txtDiaChiThuongTru = createTextField();
+        txtDiaChiThuongTru.setText(original.getDiaChiThuongTru() != null ? original.getDiaChiThuongTru() : "");
+        row7.add(buildFieldGroup("\u0110\u1ECBa ch\u1EC9 th\u01B0\u1EDDng tr\u00FA", txtDiaChiThuongTru, null, false, null));
+
+        form.add(row7);
 
         return form;
     }
@@ -236,9 +334,14 @@ public class SuaNhanVienDialog extends JDialog {
         String hoTen = txtHoTen.getText().trim();
         String sdt = txtSoDienThoai.getText().trim();
         String cccd = txtCccd.getText().trim();
-        String diaChi = txtDiaChiTamTru.getText().trim();
+        String email = txtEmail.getText().trim();
+        String ngaySinhStr = txtNgaySinh.getText().trim();
+        String diaChiThuongTru = txtDiaChiThuongTru.getText().trim();
+        String diaChiTamTru = txtDiaChiTamTru.getText().trim();
         String password = new String(txtPassword.getPassword()).trim();
+        String quocTich = txtQuocTich.getText().trim();
 
+        // Validation
         if (hoTen.isEmpty()) {
             showFieldError(txtHoTen, lblErrHoTen, "Vui l\u00F2ng nh\u1EADp h\u1ECD v\u00E0 t\u00EAn");
             return;
@@ -260,6 +363,17 @@ public class SuaNhanVienDialog extends JDialog {
             return;
         }
 
+        // Parse ngaySinh
+        LocalDate ngaySinh = null;
+        if (!ngaySinhStr.isEmpty()) {
+            try {
+                ngaySinh = LocalDate.parse(ngaySinhStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            } catch (DateTimeParseException ex) {
+                showFieldError(txtNgaySinh, lblErrNgaySinh, "Ng\u00E0y sinh kh\u00F4ng h\u1EE3p l\u1EC7 (dd/MM/yyyy)");
+                return;
+            }
+        }
+
         VaiTro vaiTro = switch (cboBoPhan.getSelectedIndex()) {
             case 0 -> VaiTro.BAN_VE;
             case 1 -> VaiTro.DIEU_PHOI;
@@ -271,11 +385,28 @@ public class SuaNhanVienDialog extends JDialog {
             default -> TrangThaiNhanVien.DANG_LAM;
         };
 
+        // Resolve gaLamViec
+        int gaIdx = cboGaLamViec.getSelectedIndex();
+        String gaLamViec = (gaIdx >= 0 && gaIdx < gaKeys.length) ? gaKeys[gaIdx] : null;
+
+        // Resolve gioiTinh
+        String gioiTinh = switch (cboGioiTinh.getSelectedIndex()) {
+            case 1 -> "NAM";
+            case 2 -> "NU";
+            default -> null;
+        };
+
         // Use existing password if not changed
         String finalPassword = password.isEmpty() ? original.getPassword() : password;
 
         NhanVien nv = new NhanVien(original.getMaNV(), hoTen, finalPassword, vaiTro, sdt,
-                cccd, diaChi.isEmpty() ? null : diaChi, trangThai);
+                cccd, diaChiTamTru.isEmpty() ? null : diaChiTamTru, trangThai);
+        nv.setEmail(email.isEmpty() ? null : email);
+        nv.setGaLamViec(gaLamViec);
+        nv.setDiaChiThuongTru(diaChiThuongTru.isEmpty() ? null : diaChiThuongTru);
+        nv.setNgaySinh(ngaySinh);
+        nv.setGioiTinh(gioiTinh);
+        nv.setQuocTich(quocTich.isEmpty() ? null : quocTich);
 
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new SwingWorker<Boolean, Void>() {
@@ -315,12 +446,12 @@ public class SuaNhanVienDialog extends JDialog {
     }
 
     private void clearAllErrors() {
-        JLabel[] errs = {lblErrHoTen, lblErrSoDienThoai, lblErrCccd};
-        JComponent[] fields = {txtHoTen, txtSoDienThoai, txtCccd};
+        JLabel[] errs     = {lblErrHoTen, lblErrSoDienThoai, lblErrCccd, lblErrNgaySinh};
+        JComponent[] flds = {txtHoTen, txtSoDienThoai, txtCccd, txtNgaySinh};
         for (int i = 0; i < errs.length; i++) {
             errs[i].setText("");
             errs[i].setVisible(false);
-            fields[i].setBorder(BorderFactory.createCompoundBorder(
+            flds[i].setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(OUTLINE, 1, true),
                     new EmptyBorder(8, 12, 8, 12)
             ));
@@ -361,7 +492,7 @@ public class SuaNhanVienDialog extends JDialog {
         group.add(Box.createVerticalStrut(6));
 
         input.setAlignmentX(Component.LEFT_ALIGNMENT);
-        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         group.add(input);
 
         if (hint != null && !hint.isEmpty()) {
@@ -387,7 +518,8 @@ public class SuaNhanVienDialog extends JDialog {
         f.setForeground(PRIMARY);
         f.setBackground(SURFACE);
         f.setEditable(false);
-        f.setPreferredSize(new Dimension(0, 40));
+        f.setPreferredSize(new Dimension(0, 36));
+        f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         f.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1, true),
                 new EmptyBorder(8, 12, 8, 12)
@@ -399,7 +531,8 @@ public class SuaNhanVienDialog extends JDialog {
         JTextField f = new JTextField();
         f.setFont(FONT_INPUT);
         f.setForeground(ON_SURFACE);
-        f.setPreferredSize(new Dimension(0, 40));
+        f.setPreferredSize(new Dimension(0, 36));
+        f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         f.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1, true),
                 new EmptyBorder(8, 12, 8, 12)

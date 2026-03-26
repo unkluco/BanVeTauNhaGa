@@ -2,10 +2,9 @@
 .env
 
 # Maven build output
-target/
-
-# Compiled class files
+target/**
 *.class
+
 
 # Eclipse
 bin/

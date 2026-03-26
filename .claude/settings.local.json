@@ -15,7 +15,12 @@
       "Bash(ls C:/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa/*.bat)",
       "Bash(ls C:/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa/*.cmd)",
       "Read(//c//**)",
-      "Bash(java -version)"
+      "Bash(java -version)",
+      "Bash(cmd //c \"mvn compile -q\")",
+      "Bash(ls \"C:\\\\Users\\\\ADMIN\\\\Desktop\\\\code\\\\ptud\\\\projects\\\\BanVeTauNhaGa\"/*.bat)",
+      "Bash(cmd //c \"where javac\")",
+      "Bash(cmd //c \"where mvn\")",
+      "Bash(ls C:UsersADMINDesktopcodeptudprojectsBanVeTauNhaGa/target/lib/*.jar)"
     ]
   }
 }

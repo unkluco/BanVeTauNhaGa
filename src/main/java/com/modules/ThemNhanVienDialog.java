@@ -261,8 +261,8 @@ public class ThemNhanVienDialog extends JDialog {
         form.add(row4);
         form.add(Box.createVerticalStrut(10));
 
-        // --- Row 5 (1x2): Mat khau * | Dia chi thuong tru ---
-        JPanel row5 = new JPanel(new GridLayout(1, 2, 16, 0));
+        // --- Row 5 (full width): Mat khau * ---
+        JPanel row5 = new JPanel(new GridLayout(1, 1, 0, 0));
         row5.setOpaque(false);
         row5.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
@@ -278,9 +278,6 @@ public class ThemNhanVienDialog extends JDialog {
         lblErrPassword = createErrorLabel();
         row5.add(buildFieldGroup("M\u1EADt kh\u1EA9u", txtPassword, "* M\u1EADt kh\u1EA9u \u0111\u0103ng nh\u1EADp ban \u0111\u1EA7u", true, lblErrPassword));
 
-        txtDiaChiThuongTru = createInputField("Nh\u1EADp \u0111\u1ECBa ch\u1EC9 th\u01B0\u1EDDng tr\u00FA");
-        row5.add(buildFieldGroup("\u0110\u1ECBa ch\u1EC9 th\u01B0\u1EDDng tr\u00FA", txtDiaChiThuongTru, null, false, null));
-
         form.add(row5);
         form.add(Box.createVerticalStrut(10));
 
@@ -293,6 +290,17 @@ public class ThemNhanVienDialog extends JDialog {
         row6.add(buildFieldGroup("\u0110\u1ECBa ch\u1EC9 t\u1EA1m tr\u00FA", txtDiaChiTamTru, null, false, null));
 
         form.add(row6);
+        form.add(Box.createVerticalStrut(10));
+
+        // --- Row 7 (full width): Dia chi thuong tru ---
+        JPanel row7 = new JPanel(new GridLayout(1, 1, 0, 0));
+        row7.setOpaque(false);
+        row7.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+
+        txtDiaChiThuongTru = createInputField("Nh\u1EADp \u0111\u1ECBa ch\u1EC9 th\u01B0\u1EDDng tr\u00FA");
+        row7.add(buildFieldGroup("\u0110\u1ECBa ch\u1EC9 th\u01B0\u1EDDng tr\u00FA", txtDiaChiThuongTru, null, false, null));
+
+        form.add(row7);
 
         return form;
     }
