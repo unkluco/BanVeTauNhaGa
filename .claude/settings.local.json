@@ -7,7 +7,15 @@
       "Bash(mvn compile:*)",
       "Bash(where mvn:*)",
       "Bash(ls \"C:\\\\Users\\\\ADMIN\\\\Desktop\\\\code\\\\ptud\\\\projects\\\\BanVeTauNhaGa\\\\mvnw\"*)",
-      "Bash(where gradle:*)"
+      "Bash(where gradle:*)",
+      "Read(//c/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa/Roaming/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(ls -d \"C:/apache-maven\"*)",
+      "Bash(ls mvnw*)",
+      "Bash(ls C:/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa/*.bat)",
+      "Bash(ls C:/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa/*.cmd)",
+      "Read(//c//**)",
+      "Bash(java -version)"
     ]
   }
 }

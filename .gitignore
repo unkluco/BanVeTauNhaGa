@@ -1,0 +1,49 @@
+# Thông tin nhạy cảm
+.env
+
+# Maven build output
+target/
+
+# Compiled class files
+*.class
+
+# Eclipse
+bin/
+.project
+.classpath
+.settings/
+*.launch
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+nbdist/
+nb-configuration.xml
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Log files
+*.log
+
+# Package files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+skills/

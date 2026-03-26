@@ -61,6 +61,14 @@ src/main/java/com/
 - Main frame: MAXIMIZED_BOTH, min size 1024x700
 - Tất cả module dùng chung design token (PRIMARY=#005D90, SURFACE, OUTLINE...)
 
+## Lưu ý thiết kế UI bổ sung
+- Dialog có nút "Hủy"/"Đăng xuất" → KHÔNG thêm nút X (tránh trùng lặp).
+- Validation form: hiển thị lỗi inline (JLabel đỏ dưới ô) + viền đỏ + auto-focus. KHÔNG dùng JOptionPane.
+- Nút action trong bảng: bọc JButton trong JPanel(GridBagLayout) để click area chính xác.
+- Canh giữa dọc: dùng GridBagLayout hoặc FlowLayout có vgap, tránh FlowLayout(..., 0).
+- Icons: `src/main/resources/icons/` (placeholder, cần thay ảnh thật). Ảnh lớn: `src/main/resources/images/`.
+
 ## Cập nhật gần nhất
+- **2026-03-26**: Thêm SuaNhanVienDialog (sửa nhân viên). Sửa ThemNhanVienDialog: bỏ nút X (đã có nút Hủy), thêm inline validation. Fix canh giữa dọc header/filter bar. Fix edit button click area chỉ trigger trên nút. Tạo thư mục placeholder icons/images. Tăng kích thước nút "Bỏ lọc".
 - **2026-03-25 (2)**: Đổi tab "Quản lý vé và hóa đơn" → "Quản lý vé". Fix pagination auto-fit rows (recalcRowsPerPage dùng fixed height + guard flag chống loop). Thêm min size 1024x700 cho JFrame.
 - **2026-03-25**: Cập nhật entity/DAO theo schema v2 (xóa ChiTietVe, thêm KhachHang + ChiTietHoaDon, sửa Ve/HoaDon/ApDungKM/Lich/ChiTietGia/KhuyenMai).
