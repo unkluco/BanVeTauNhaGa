@@ -9,13 +9,13 @@ import java.util.List;
 
 import com.connectDB.ConnectDB;
 import com.entity.ApDungKM;
-import com.entity.KhuyenMai;
-import com.entity.Ve;
+import com.entity.ChiTietHoaDon;
+import com.entity.ChiTietKhuyenMai;
 
 public class DAO_ApDungKM {
 
-    private DAO_Ve daoVe = new DAO_Ve();
-    private DAO_KhuyenMai daoKM = new DAO_KhuyenMai();
+    private DAO_ChiTietHoaDon daoCTHD = new DAO_ChiTietHoaDon();
+    private DAO_ChiTietKhuyenMai daoCTKM = new DAO_ChiTietKhuyenMai();
 
     public List<ApDungKM> getAll() {
         List<ApDungKM> ds = new ArrayList<>();
@@ -35,23 +35,23 @@ public class DAO_ApDungKM {
     }
 
     /**
-     * Lấy danh sách khuyến mãi áp dụng cho một vé
+     * Lấy danh sách khuyến mãi áp dụng cho một chi tiết hóa đơn
      */
-    public List<ApDungKM> findByVe(String maVe) {
+    public List<ApDungKM> findByChiTietHD(String maChiTietHD) {
         List<ApDungKM> ds = new ArrayList<>();
         Connection con = ConnectDB.getCon();
         if (con == null) return ds;
 
-        String sql = "SELECT * FROM ApDungKM WHERE maVe = ?";
+        String sql = "SELECT * FROM ApDungKM WHERE maChiTietHD = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, maVe);
+            ps.setString(1, maChiTietHD);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     ds.add(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Lỗi khi tìm áp dụng KM theo vé: " + e.getMessage());
+            System.err.println("Lỗi khi tìm áp dụng KM theo chi tiết hóa đơn: " + e.getMessage());
         }
         return ds;
     }
@@ -60,11 +60,11 @@ public class DAO_ApDungKM {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "INSERT INTO ApDungKM (maApDung, maVe, maKhuyenMai) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO ApDungKM (maApDung, maChiTietHD, maChiTietKM) VALUES (?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, adkm.getMaApDung());
-            ps.setString(2, adkm.getVe().getMaVe());
-            ps.setString(3, adkm.getKhuyenMai().getMaKhuyenMai());
+            ps.setString(2, adkm.getChiTietHoaDon().getMaChiTietHD());
+            ps.setString(3, adkm.getChiTietKhuyenMai().getMaChiTietKM());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi thêm áp dụng KM: " + e.getMessage());
@@ -88,8 +88,8 @@ public class DAO_ApDungKM {
 
     private ApDungKM mapRow(ResultSet rs) throws SQLException {
         String maApDung = rs.getString("maApDung");
-        Ve ve = daoVe.findById(rs.getString("maVe"));
-        KhuyenMai km = daoKM.findById(rs.getString("maKhuyenMai"));
-        return new ApDungKM(maApDung, ve, km);
+        ChiTietHoaDon cthd = daoCTHD.findById(rs.getString("maChiTietHD"));
+        ChiTietKhuyenMai ctkm = daoCTKM.findById(rs.getString("maChiTietKM"));
+        return new ApDungKM(maApDung, cthd, ctkm);
     }
 }

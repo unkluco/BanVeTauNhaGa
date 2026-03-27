@@ -50,37 +50,36 @@ public class DAO_KhuyenMai {
     }
 
     /**
-     * Lấy danh sách khuyến mãi đang còn hiệu lực tại thời điểm hiện tại
+     * Lấy kỳ khuyến mãi đang áp dụng (trangThai = true)
      */
-    public List<KhuyenMai> getKhuyenMaiHienHanh() {
-        List<KhuyenMai> ds = new ArrayList<>();
+    public KhuyenMai getKhuyenMaiHienHanh() {
         Connection con = ConnectDB.getCon();
-        if (con == null) return ds;
+        if (con == null) return null;
 
-        String sql = "SELECT * FROM KhuyenMai WHERE thoiGianBatDau <= GETDATE() AND thoiGianKetThuc >= GETDATE()";
+        String sql = "SELECT * FROM KhuyenMai WHERE trangThai = 1";
         try (PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                ds.add(mapRow(rs));
+            if (rs.next()) {
+                return mapRow(rs);
             }
         } catch (SQLException e) {
             System.err.println("Lỗi khi lấy khuyến mãi hiện hành: " + e.getMessage());
         }
-        return ds;
+        return null;
     }
 
     public boolean insert(KhuyenMai km) {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "INSERT INTO KhuyenMai (maKhuyenMai, tenKhuyenMai, phanTramGiam, dieuKien, thoiGianBatDau, thoiGianKetThuc) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO KhuyenMai (maKhuyenMai, tenKhuyenMai, thoiGianBatDau, thoiGianKetThuc, moTa, trangThai) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, km.getMaKhuyenMai());
             ps.setNString(2, km.getTenKhuyenMai());
-            ps.setDouble(3, km.getPhanTramGiam());
-            ps.setNString(4, km.getDieuKien());
-            ps.setTimestamp(5, Timestamp.valueOf(km.getThoiGianBatDau()));
-            ps.setTimestamp(6, Timestamp.valueOf(km.getThoiGianKetThuc()));
+            ps.setTimestamp(3, Timestamp.valueOf(km.getThoiGianBatDau()));
+            ps.setTimestamp(4, Timestamp.valueOf(km.getThoiGianKetThuc()));
+            ps.setNString(5, km.getMoTa());
+            ps.setBoolean(6, km.isTrangThai());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi thêm khuyến mãi: " + e.getMessage());
@@ -92,13 +91,13 @@ public class DAO_KhuyenMai {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "UPDATE KhuyenMai SET tenKhuyenMai = ?, phanTramGiam = ?, dieuKien = ?, thoiGianBatDau = ?, thoiGianKetThuc = ? WHERE maKhuyenMai = ?";
+        String sql = "UPDATE KhuyenMai SET tenKhuyenMai = ?, thoiGianBatDau = ?, thoiGianKetThuc = ?, moTa = ?, trangThai = ? WHERE maKhuyenMai = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setNString(1, km.getTenKhuyenMai());
-            ps.setDouble(2, km.getPhanTramGiam());
-            ps.setNString(3, km.getDieuKien());
-            ps.setTimestamp(4, Timestamp.valueOf(km.getThoiGianBatDau()));
-            ps.setTimestamp(5, Timestamp.valueOf(km.getThoiGianKetThuc()));
+            ps.setTimestamp(2, Timestamp.valueOf(km.getThoiGianBatDau()));
+            ps.setTimestamp(3, Timestamp.valueOf(km.getThoiGianKetThuc()));
+            ps.setNString(4, km.getMoTa());
+            ps.setBoolean(5, km.isTrangThai());
             ps.setString(6, km.getMaKhuyenMai());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -110,12 +109,12 @@ public class DAO_KhuyenMai {
     private KhuyenMai mapRow(ResultSet rs) throws SQLException {
         String maKM = rs.getString("maKhuyenMai");
         String tenKM = rs.getNString("tenKhuyenMai");
-        double phanTramGiam = rs.getDouble("phanTramGiam");
-        String dieuKien = rs.getNString("dieuKien");
         Timestamp tsBD = rs.getTimestamp("thoiGianBatDau");
         Timestamp tsKT = rs.getTimestamp("thoiGianKetThuc");
         LocalDateTime bd = tsBD != null ? tsBD.toLocalDateTime() : null;
         LocalDateTime kt = tsKT != null ? tsKT.toLocalDateTime() : null;
-        return new KhuyenMai(maKM, tenKM, phanTramGiam, dieuKien, bd, kt);
+        String moTa = rs.getNString("moTa");
+        boolean trangThai = rs.getBoolean("trangThai");
+        return new KhuyenMai(maKM, tenKM, bd, kt, moTa, trangThai);
     }
 }

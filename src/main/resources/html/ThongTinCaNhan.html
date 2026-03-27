@@ -1,274 +1,364 @@
+<!DOCTYPE html>
+
 <html lang="vi"><head>
-<meta charset="utf-8">
-<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Quản lý Khuyến mãi - Azure Rail</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              "surface": "#f7f9fb",
-              "primary-fixed": "#cde5ff",
-              "on-tertiary": "#ffffff",
-              "inverse-surface": "#2d3133",
-              "on-secondary-fixed": "#071e27",
-              "secondary": "#4c616c",
-              "on-tertiary-container": "#fff6f1",
-              "background": "#f7f9fb",
-              "on-secondary": "#ffffff",
-              "surface-container-low": "#f2f4f6",
-              "error": "#ba1a1a",
-              "surface-container-high": "#e6e8ea",
-              "on-surface": "#191c1e",
-              "surface-container": "#eceef0",
-              "surface-bright": "#f7f9fb",
-              "on-error-container": "#93000a",
-              "secondary-fixed": "#cfe6f2",
-              "surface-container-highest": "#e0e3e5",
-              "secondary-fixed-dim": "#b4cad6",
-              "tertiary-container": "#a95f00",
-              "on-background": "#191c1e",
-              "inverse-on-surface": "#eff1f3",
-              "on-primary-container": "#f3f7ff",
-              "inverse-primary": "#94ccff",
-              "on-primary": "#ffffff",
-              "outline-variant": "#bfc7d1",
-              "on-surface-variant": "#404850",
-              "surface-dim": "#d8dadc",
-              "error-container": "#ffdad6",
-              "on-primary-fixed": "#001d32",
-              "on-error": "#ffffff",
-              "outline": "#707881",
-              "on-tertiary-fixed": "#2e1600",
-              "tertiary": "#864a00",
-              "on-primary-fixed-variant": "#004b74",
-              "surface-variant": "#e0e3e5",
-              "surface-container-lowest": "#ffffff",
-              "tertiary-fixed-dim": "#ffb877",
-              "secondary-container": "#cfe6f2",
-              "primary-fixed-dim": "#94ccff",
-              "primary": "#005d90",
-              "on-secondary-container": "#526772",
-              "primary-container": "#0077b6",
-              "on-secondary-fixed-variant": "#354a53",
-              "on-tertiary-fixed-variant": "#6c3a00",
-              "tertiary-fixed": "#ffdcc0",
-              "surface-tint": "#006399"
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-container": "#a95f00",
+                        "surface-container-high": "#e6e8ea",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#001d32",
+                        "surface-tint": "#006399",
+                        "surface-container": "#eceef0",
+                        "on-tertiary-container": "#fff6f1",
+                        "on-secondary-fixed-variant": "#354a53",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-bright": "#f7f9fb",
+                        "surface": "#f7f9fb",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb877",
+                        "secondary": "#4c616c",
+                        "secondary-fixed": "#cfe6f2",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#004b74",
+                        "surface-dim": "#d8dadc",
+                        "primary-fixed": "#cde5ff",
+                        "primary-container": "#0077b6",
+                        "on-surface": "#191c1e",
+                        "on-tertiary-fixed-variant": "#6c3a00",
+                        "tertiary": "#864a00",
+                        "inverse-surface": "#2d3133",
+                        "on-tertiary-fixed": "#2e1600",
+                        "surface-variant": "#e0e3e5",
+                        "on-secondary-fixed": "#071e27",
+                        "surface-container-low": "#f2f4f6",
+                        "secondary-fixed-dim": "#b4cad6",
+                        "inverse-primary": "#94ccff",
+                        "outline": "#707881",
+                        "on-secondary-container": "#526772",
+                        "on-error": "#ffffff",
+                        "background": "#f7f9fb",
+                        "primary-fixed-dim": "#94ccff",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#f3f7ff",
+                        "primary": "#005d90",
+                        "on-surface-variant": "#404850",
+                        "tertiary-fixed": "#ffdcc0",
+                        "secondary-container": "#cfe6f2",
+                        "outline-variant": "#bfc7d1",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "on-background": "#191c1e",
+                        "inverse-on-surface": "#eff1f3"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
             },
-            fontFamily: {
-              "headline": ["Manrope"],
-              "body": ["Inter"],
-              "label": ["Inter"]
-            },
-            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
-          },
-        },
-      }
+        }
     </script>
 <style>
-        body { font-family: 'Inter', sans-serif; }
-        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+        }
     </style>
-<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}[type='text'],input:where(:not([type])),[type='email'],[type='url'],[type='password'],[type='number'],[type='date'],[type='datetime-local'],[type='month'],[type='search'],[type='tel'],[type='time'],[type='week'],[multiple],textarea,select{-webkit-appearance:none;appearance:none;background-color:#fff;border-color:#6b7280;border-width:1px;border-radius:0px;padding-top:0.5rem;padding-right:0.75rem;padding-bottom:0.5rem;padding-left:0.75rem;font-size:1rem;line-height:1.5rem;--tw-shadow:0 0 #0000;}[type='text']:focus, input:where(:not([type])):focus, [type='email']:focus, [type='url']:focus, [type='password']:focus, [type='number']:focus, [type='date']:focus, [type='datetime-local']:focus, [type='month']:focus, [type='search']:focus, [type='tel']:focus, [type='time']:focus, [type='week']:focus, [multiple]:focus, textarea:focus, select:focus{outline:2px solid transparent;outline-offset:2px;--tw-ring-inset:var(--tw-empty,/*!*/ /*!*/);--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:#2563eb;--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);border-color:#2563eb}input::placeholder,textarea::placeholder{color:#6b7280;opacity:1}::-webkit-datetime-edit-fields-wrapper{padding:0}::-webkit-date-and-time-value{min-height:1.5em;text-align:inherit}::-webkit-datetime-edit{display:inline-flex}::-webkit-datetime-edit,::-webkit-datetime-edit-year-field,::-webkit-datetime-edit-month-field,::-webkit-datetime-edit-day-field,::-webkit-datetime-edit-hour-field,::-webkit-datetime-edit-minute-field,::-webkit-datetime-edit-second-field,::-webkit-datetime-edit-millisecond-field,::-webkit-datetime-edit-meridiem-field{padding-top:0;padding-bottom:0}select{background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");background-position:right 0.5rem center;background-repeat:no-repeat;background-size:1.5em 1.5em;padding-right:2.5rem;print-color-adjust:exact}[multiple],[size]:where(select:not([size="1"])){background-image:initial;background-position:initial;background-repeat:unset;background-size:initial;padding-right:0.75rem;print-color-adjust:unset}[type='checkbox'],[type='radio']{-webkit-appearance:none;appearance:none;padding:0;print-color-adjust:exact;display:inline-block;vertical-align:middle;background-origin:border-box;-webkit-user-select:none;user-select:none;flex-shrink:0;height:1rem;width:1rem;color:#2563eb;background-color:#fff;border-color:#6b7280;border-width:1px;--tw-shadow:0 0 #0000}[type='checkbox']{border-radius:0px}[type='radio']{border-radius:100%}[type='checkbox']:focus,[type='radio']:focus{outline:2px solid transparent;outline-offset:2px;--tw-ring-inset:var(--tw-empty,/*!*/ /*!*/);--tw-ring-offset-width:2px;--tw-ring-offset-color:#fff;--tw-ring-color:#2563eb;--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}[type='checkbox']:checked,[type='radio']:checked{border-color:transparent;background-color:currentColor;background-size:100% 100%;background-position:center;background-repeat:no-repeat}[type='checkbox']:checked{background-image:url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");}@media (forced-colors: active) {[type='checkbox']:checked{-webkit-appearance:auto;appearance:auto}}[type='radio']:checked{background-image:url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='8' cy='8' r='3'/%3e%3c/svg%3e");}@media (forced-colors: active) {[type='radio']:checked{-webkit-appearance:auto;appearance:auto}}[type='checkbox']:checked:hover,[type='checkbox']:checked:focus,[type='radio']:checked:hover,[type='radio']:checked:focus{border-color:transparent;background-color:currentColor}[type='checkbox']:indeterminate{background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 16 16'%3e%3cpath stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 8h8'/%3e%3c/svg%3e");border-color:transparent;background-color:currentColor;background-size:100% 100%;background-position:center;background-repeat:no-repeat;}@media (forced-colors: active) {[type='checkbox']:indeterminate{-webkit-appearance:auto;appearance:auto}}[type='checkbox']:indeterminate:hover,[type='checkbox']:indeterminate:focus{border-color:transparent;background-color:currentColor}[type='file']{background:unset;border-color:inherit;border-width:0;border-radius:0;padding:0;font-size:unset;line-height:inherit}[type='file']:focus{outline:1px solid ButtonText;outline:1px auto -webkit-focus-ring-color}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.bottom-6{bottom:1.5rem}.left-0{left:0px}.left-4{left:1rem}.right-0{right:0px}.top-0{top:0px}.top-1\/2{top:50%}.z-40{z-index:40}.z-50{z-index:50}.col-span-12{grid-column:span 12 / span 12}.mx-auto{margin-left:auto;margin-right:auto}.mb-10{margin-bottom:2.5rem}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}.ml-64{margin-left:16rem}.mt-1{margin-top:0.25rem}.mt-10{margin-top:2.5rem}.mt-6{margin-top:1.5rem}.mt-8{margin-top:2rem}.mt-auto{margin-top:auto}.block{display:block}.flex{display:flex}.grid{display:grid}.h-10{height:2.5rem}.h-12{height:3rem}.h-16{height:4rem}.h-32{height:8rem}.h-6{height:1.5rem}.h-full{height:100%}.h-screen{height:100vh}.min-h-screen{min-height:100vh}.w-1\.5{width:0.375rem}.w-10{width:2.5rem}.w-12{width:3rem}.w-32{width:8rem}.w-64{width:16rem}.w-\[calc\(100\%-16rem\)\]{width:calc(100% - 16rem)}.w-full{width:100%}.w-px{width:1px}.max-w-6xl{max-width:72rem}.flex-1{flex:1 1 0%}.-translate-y-1\/2{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.scale-95{--tw-scale-x:.95;--tw-scale-y:.95;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-12{grid-template-columns:repeat(12, minmax(0, 1fr))}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.gap-8{gap:2rem}.gap-x-12{column-gap:3rem}.gap-y-8{row-gap:2rem}.space-y-1 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.25rem * var(--tw-space-y-reverse))}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.space-y-6 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem * var(--tw-space-y-reverse))}.space-y-8 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(2rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(2rem * var(--tw-space-y-reverse))}.overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.rounded-l-xl{border-top-left-radius:0.75rem;border-bottom-left-radius:0.75rem}.border{border-width:1px}.border-4{border-width:4px}.border-l{border-left-width:1px}.border-r-0{border-right-width:0px}.border-r-4{border-right-width:4px}.border-t{border-top-width:1px}.border-outline-variant{--tw-border-opacity:1;border-color:rgb(191 199 209 / var(--tw-border-opacity, 1))}.border-primary\/10{border-color:rgb(0 93 144 / 0.1)}.border-sky-700{--tw-border-opacity:1;border-color:rgb(3 105 161 / var(--tw-border-opacity, 1))}.border-surface-container{--tw-border-opacity:1;border-color:rgb(236 238 240 / var(--tw-border-opacity, 1))}.border-surface-container-highest{--tw-border-opacity:1;border-color:rgb(224 227 229 / var(--tw-border-opacity, 1))}.border-transparent{border-color:transparent}.border-white{--tw-border-opacity:1;border-color:rgb(255 255 255 / var(--tw-border-opacity, 1))}.bg-primary{--tw-bg-opacity:1;background-color:rgb(0 93 144 / var(--tw-bg-opacity, 1))}.bg-primary-fixed{--tw-bg-opacity:1;background-color:rgb(205 229 255 / var(--tw-bg-opacity, 1))}.bg-primary\/5{background-color:rgb(0 93 144 / 0.05)}.bg-secondary-fixed{--tw-bg-opacity:1;background-color:rgb(207 230 242 / var(--tw-bg-opacity, 1))}.bg-sky-50{--tw-bg-opacity:1;background-color:rgb(240 249 255 / var(--tw-bg-opacity, 1))}.bg-slate-100{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.bg-surface{--tw-bg-opacity:1;background-color:rgb(247 249 251 / var(--tw-bg-opacity, 1))}.bg-surface-container-high{--tw-bg-opacity:1;background-color:rgb(230 232 234 / var(--tw-bg-opacity, 1))}.bg-surface-container-highest{--tw-bg-opacity:1;background-color:rgb(224 227 229 / var(--tw-bg-opacity, 1))}.bg-surface-container-low{--tw-bg-opacity:1;background-color:rgb(242 244 246 / var(--tw-bg-opacity, 1))}.bg-surface-container-lowest{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-tertiary-fixed{--tw-bg-opacity:1;background-color:rgb(255 220 192 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-white\/80{background-color:rgb(255 255 255 / 0.8)}.object-cover{object-fit:cover}.p-12{padding:3rem}.p-2{padding:0.5rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.px-8{padding-left:2rem;padding-right:2rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.pl-12{padding-left:3rem}.pl-6{padding-left:1.5rem}.pr-4{padding-right:1rem}.pt-16{padding-top:4rem}.pt-8{padding-top:2rem}.text-center{text-align:center}.text-right{text-align:right}.text-2xl{font-size:1.5rem;line-height:2rem}.text-5xl{font-size:3rem;line-height:1}.text-6xl{font-size:3.75rem;line-height:1}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-black{font-weight:900}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.italic{font-style:italic}.leading-none{line-height:1}.tracking-wider{letter-spacing:0.05em}.tracking-widest{letter-spacing:0.1em}.text-on-surface{--tw-text-opacity:1;color:rgb(25 28 30 / var(--tw-text-opacity, 1))}.text-on-surface-variant{--tw-text-opacity:1;color:rgb(64 72 80 / var(--tw-text-opacity, 1))}.text-primary{--tw-text-opacity:1;color:rgb(0 93 144 / var(--tw-text-opacity, 1))}.text-secondary{--tw-text-opacity:1;color:rgb(76 97 108 / var(--tw-text-opacity, 1))}.text-sky-800{--tw-text-opacity:1;color:rgb(7 89 133 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105 / var(--tw-text-opacity, 1))}.text-tertiary{--tw-text-opacity:1;color:rgb(134 74 0 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.antialiased{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.ring-4{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(4px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)}.ring-primary\/5{--tw-ring-color:rgb(0 93 144 / 0.05)}.backdrop-blur-md{--tw-backdrop-blur:blur(12px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-200{transition-duration:200ms}.hover\:scale-105:hover{--tw-scale-x:1.05;--tw-scale-y:1.05;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.hover\:bg-primary-container:hover{--tw-bg-opacity:1;background-color:rgb(0 119 182 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-200:hover{--tw-bg-opacity:1;background-color:rgb(226 232 240 / var(--tw-bg-opacity, 1))}.hover\:bg-surface-container-highest:hover{--tw-bg-opacity:1;background-color:rgb(224 227 229 / var(--tw-bg-opacity, 1))}.hover\:bg-surface-container-low:hover{--tw-bg-opacity:1;background-color:rgb(242 244 246 / var(--tw-bg-opacity, 1))}.hover\:text-error:hover{--tw-text-opacity:1;color:rgb(186 26 26 / var(--tw-text-opacity, 1))}.hover\:text-sky-600:hover{--tw-text-opacity:1;color:rgb(2 132 199 / var(--tw-text-opacity, 1))}.hover\:text-sky-700:hover{--tw-text-opacity:1;color:rgb(3 105 161 / var(--tw-text-opacity, 1))}.hover\:underline:hover{-webkit-text-decoration-line:underline;text-decoration-line:underline}.focus\:border-primary:focus{--tw-border-opacity:1;border-color:rgb(0 93 144 / var(--tw-border-opacity, 1))}.focus\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)}.focus\:ring-primary\/20:focus{--tw-ring-color:rgb(0 93 144 / 0.2)}.active\:scale-95:active{--tw-scale-x:.95;--tw-scale-y:.95;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.active\:transition-transform:active{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.dark\:border-sky-400:is(.dark *){--tw-border-opacity:1;border-color:rgb(56 189 248 / var(--tw-border-opacity, 1))}.dark\:bg-sky-900\/20:is(.dark *){background-color:rgb(12 74 110 / 0.2)}.dark\:bg-slate-900:is(.dark *){--tw-bg-opacity:1;background-color:rgb(15 23 42 / var(--tw-bg-opacity, 1))}.dark\:bg-slate-950\/80:is(.dark *){background-color:rgb(2 6 23 / 0.8)}.dark\:text-sky-100:is(.dark *){--tw-text-opacity:1;color:rgb(224 242 254 / var(--tw-text-opacity, 1))}.dark\:text-sky-200:is(.dark *){--tw-text-opacity:1;color:rgb(186 230 253 / var(--tw-text-opacity, 1))}.dark\:text-sky-300:is(.dark *){--tw-text-opacity:1;color:rgb(125 211 252 / var(--tw-text-opacity, 1))}.dark\:text-slate-400:is(.dark *){--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.dark\:hover\:bg-slate-800:hover:is(.dark *){--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.dark\:hover\:text-sky-300:hover:is(.dark *){--tw-text-opacity:1;color:rgb(125 211 252 / var(--tw-text-opacity, 1))}@media (min-width: 768px){.md\:col-span-1{grid-column:span 1 / span 1}.md\:col-span-2{grid-column:span 2 / span 2}.md\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}}@media (min-width: 1024px){.lg\:col-span-4{grid-column:span 4 / span 4}.lg\:col-span-8{grid-column:span 8 / span 8}}</style></head>
-<body class="bg-surface text-on-surface antialiased">
-<!-- SideNavBar Shell -->
-<aside class="bg-slate-100 dark:bg-slate-900 h-screen w-64 fixed left-0 top-0 border-r-0 flex flex-col py-6 z-50">
-<div class="px-6 mb-10 flex items-center gap-3">
-<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white">
-<span class="material-symbols-outlined">train</span>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex">
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed h-screen left-0 top-0 w-72 border-r-0 bg-slate-50 dark:bg-slate-900 flex flex-col py-8 z-50">
+<div class="px-8 mb-10">
+<h1 class="text-[#005d90] font-manrope font-extrabold text-2xl tracking-tight">Azure Rail</h1>
+<p class="text-slate-500 text-xs font-inter uppercase tracking-widest mt-1">Hệ thống quản lý</p>
 </div>
-<div>
-<h1 class="text-xl font-bold text-sky-800 dark:text-sky-300 leading-none">Fluid Terminal</h1>
-<p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-1">Hệ thống Bán vé</p>
-</div>
-</div>
-<nav class="flex-1 space-y-1 px-3 overflow-y-auto">
-<a class="text-slate-600 dark:text-slate-400 font-medium hover:text-sky-700 dark:hover:text-sky-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200 flex items-center gap-3 px-3 py-3 rounded-xl scale-95 active:transition-transform" href="#">
-<span class="material-symbols-outlined" data-icon="confirmation_number">confirmation_number</span>
-<span class="text-sm font-semibold">Đặt vé mới</span>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center text-slate-500 dark:text-slate-400 hover:text-[#005d90] px-8 py-3 transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-4 group-hover:scale-110">confirmation_number</span>
+<span class="font-inter text-sm font-medium">Đặt vé mới</span>
 </a>
-<a class="text-slate-600 dark:text-slate-400 font-medium hover:text-sky-700 dark:hover:text-sky-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200 flex items-center gap-3 px-3 py-3 rounded-xl scale-95 active:transition-transform" href="#">
-<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
-<span class="text-sm font-semibold">Tổng quan</span>
+<a class="flex items-center text-slate-500 dark:text-slate-400 hover:text-[#005d90] px-8 py-3 transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-4 group-hover:scale-110">dashboard</span>
+<span class="font-inter text-sm font-medium">Tổng quan</span>
 </a>
-<a class="text-slate-600 dark:text-slate-400 font-medium hover:text-sky-700 dark:hover:text-sky-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200 flex items-center gap-3 px-3 py-3 rounded-xl scale-95 active:transition-transform" href="#">
-<span class="material-symbols-outlined" data-icon="payments">payments</span>
-<span class="text-sm font-semibold">Doanh thu</span>
+<a class="flex items-center text-slate-500 dark:text-slate-400 hover:text-[#005d90] px-8 py-3 transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-4 group-hover:scale-110">payments</span>
+<span class="font-inter text-sm font-medium">Doanh thu</span>
 </a>
-<a class="text-slate-600 dark:text-slate-400 font-medium hover:text-sky-700 dark:hover:text-sky-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200 flex items-center gap-3 px-3 py-3 rounded-xl scale-95 active:transition-transform" href="#">
-<span class="material-symbols-outlined" data-icon="sell">sell</span>
-<span class="text-sm font-semibold">Quản lý giá</span>
+<a class="flex items-center text-slate-500 dark:text-slate-400 hover:text-[#005d90] px-8 py-3 transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-4 group-hover:scale-110">sell</span>
+<span class="font-inter text-sm font-medium">Quản lý giá</span>
 </a>
-<a class="text-slate-600 dark:text-slate-400 font-medium hover:text-sky-700 dark:hover:text-sky-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200 flex items-center gap-3 px-3 py-3 rounded-xl scale-95 active:transition-transform" href="#">
-<span class="material-symbols-outlined" data-icon="loyalty">loyalty</span>
-<span class="text-sm font-semibold">Quản lý Khuyến mãi</span>
+<a class="flex items-center bg-white dark:bg-slate-950 text-[#005d90] dark:text-sky-300 font-bold rounded-l-3xl ml-4 pl-4 shadow-sm py-3 transition-colors duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-4" style="font-variation-settings: 'FILL' 1;">auto_awesome_motion</span>
+<span class="font-inter text-sm">Quản lý Khuyến mãi</span>
 </a>
-<a class="text-slate-600 dark:text-slate-400 font-medium hover:text-sky-700 dark:hover:text-sky-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200 flex items-center gap-3 px-3 py-3 rounded-xl scale-95 active:transition-transform" href="#">
-<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
-<span class="text-sm font-semibold">Quản lý vé và hóa đơn</span>
+<a class="flex items-center text-slate-500 dark:text-slate-400 hover:text-[#005d90] px-8 py-3 transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-4 group-hover:scale-110">receipt_long</span>
+<span class="font-inter text-sm font-medium">Quản lý vé và hóa đơn</span>
 </a>
-<a class="text-slate-600 dark:text-slate-400 font-medium hover:text-sky-700 dark:hover:text-sky-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200 flex items-center gap-3 px-3 py-3 rounded-xl scale-95 active:transition-transform" href="#">
-<span class="material-symbols-outlined" data-icon="train">train</span>
-<span class="text-sm font-semibold">Quản lý đoàn tàu &amp; toa</span>
+<a class="flex items-center text-slate-500 dark:text-slate-400 hover:text-[#005d90] px-8 py-3 transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-4 group-hover:scale-110">train</span>
+<span class="font-inter text-sm font-medium">Quản lý đoàn tàu &amp; toa</span>
 </a>
-<a class="text-slate-600 dark:text-slate-400 font-medium hover:text-sky-700 dark:hover:text-sky-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200 flex items-center gap-3 px-3 py-3 rounded-xl scale-95 active:transition-transform" href="#">
-<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
-<span class="text-sm font-semibold">Quản lý tuyến &amp; lịch chạy</span>
+<a class="flex items-center text-slate-500 dark:text-slate-400 hover:text-[#005d90] px-8 py-3 transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-4 group-hover:scale-110">calendar_month</span>
+<span class="font-inter text-sm font-medium">Quản lý tuyến &amp; lịch chạy</span>
 </a>
-<!-- Active Navigation State: Profile/Nhân viên -->
-<a class="text-sky-800 dark:text-sky-100 font-bold border-r-4 border-sky-700 dark:border-sky-400 bg-sky-50 dark:bg-sky-900/20 flex items-center gap-3 px-3 py-3 rounded-l-xl transition-colors duration-200" href="#">
-<span class="material-symbols-outlined" data-icon="badge">badge</span>
-<span class="text-sm font-semibold">Thông tin cá nhân</span>
+<a class="flex items-center text-slate-500 dark:text-slate-400 hover:text-[#005d90] px-8 py-3 transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-4 group-hover:scale-110">badge</span>
+<span class="font-inter text-sm font-medium">Quản lý nhân viên</span>
 </a>
 </nav>
-<div class="px-6 mt-auto">
-<button class="w-full flex items-center gap-3 px-3 py-3 text-slate-500 hover:text-error transition-colors">
-<span class="material-symbols-outlined">logout</span>
-<span class="text-sm font-semibold">Đăng xuất</span>
-</button>
+<div class="mt-auto px-8 pt-6 border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold">
+                    AD
+                </div>
+<div>
+<p class="text-sm font-bold text-on-surface">Quản trị viên</p>
+<p class="text-xs text-on-surface-variant">admin@azurerail.vn</p>
+</div>
+</div>
 </div>
 </aside>
-<!-- TopAppBar Shell -->
-<header class="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md fixed top-0 right-0 w-[calc(100%-16rem)] z-40 flex justify-between items-center h-16 px-8 ml-64">
-<div class="flex items-center gap-4">
-<h2 class="text-lg font-black text-sky-800 dark:text-sky-200">Quản lý Bán vé</h2>
-<div class="h-6 w-px bg-surface-container-highest"></div>
-<span class="text-sm font-medium text-on-surface-variant">Hồ sơ nhân viên</span>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-72 min-h-screen relative">
+<!-- TopAppBar (Shared Component) -->
+<header class="fixed top-0 right-0 w-[calc(100%-18rem)] z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl flex justify-between items-center h-20 px-12">
+<div class="flex items-center flex-1 max-w-md">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">search</span>
+<input class="w-full pl-12 pr-4 py-2.5 bg-surface-container-high border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-sm font-body outline-none transition-all" placeholder="Tìm kiếm hệ thống..." type="text"/>
 </div>
-<div class="flex items-center gap-6">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-on-surface-variant hover:text-sky-600 transition-all cursor-pointer">notifications</span>
-<span class="material-symbols-outlined text-on-surface-variant hover:text-sky-600 transition-all cursor-pointer">settings</span>
 </div>
-<div class="flex items-center gap-3 border-l pl-6 border-surface-container-highest">
-<div class="text-right">
-<p class="text-sm font-bold text-sky-800">NV. Nguyễn Văn A</p>
-<p class="text-[11px] font-medium text-slate-500">Ga Hà Nội</p>
-</div>
-<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary overflow-hidden">
-<img alt="Ảnh đại diện nhân viên" class="w-full h-full object-cover" data-alt="Close-up portrait of a professional man in a clean white shirt with soft studio lighting and neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbYrTaHCJzZMiq9wiNnpbja5J-AEOrjnryYodQgkJjGKeuAw7SsW1DBCyr2lZEIQk4X-4ZcXekem9s5FW76mHYfDG5onlpc6AR9oWOqHyTb12ggaim64ce781KaRBjd0cLS1od2Wi2QWwt_bIC1l9ZRo1C4BvScQhtITknhNjDm3nlun_Y3bUhsAUqwYOKk4BjrVxm5ZrzFk91TbOFgP8xnQPyATM4vznhilpHgTCVswTeocEc7l4L5tC8rmY5bvNzYB3ptUNSsBsn">
-</div>
+<div class="flex items-center space-x-4">
+<button class="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-all relative">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant">help</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant mx-2"></div>
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full border-2 border-primary/10 object-cover" data-alt="Close-up of a professional male administrator in a blue business shirt, studio lighting, clean background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7Bpyo8tiq2HKNexEEBrxufh3fsLYTcqPJESOiDPPMjJZHP2qXkcNTARLyCtJMq76ZG_4R4t6NjG6GCdb8VHPaXrqp95r1ayVkDUQ1GQIrVBs7gDyHiSrzF8hyv_SHa_9OfTehnjfZW4z02woyndzvkYL4ok50t4j2OTdDxuRPu15IbgYziWB8eXVnMJ5D0tQDfk8m9Mfh_kKjxEHERo-RGLiRMDuNJ8ykW1z2YaXDMaelxqHRxHXVLq2h_MD5dStHSHDHbU23toI"/>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">expand_more</span>
 </div>
 </div>
 </header>
-<!-- Main Content Canvas -->
-<main class="ml-64 pt-16 min-h-screen p-12">
-<div class="max-w-6xl mx-auto">
-<!-- Breadcrumbs -->
-<nav class="flex items-center gap-2 mb-8 text-sm font-medium text-on-surface-variant">
-<span>Nhân sự</span>
-<span class="material-symbols-outlined text-sm">chevron_right</span>
-<span class="text-primary font-bold">Thông tin cá nhân</span>
-</nav>
-<div class="grid grid-cols-12 gap-8">
-<!-- Profile Summary Card (Left) -->
-<div class="col-span-12 lg:col-span-4 space-y-6">
-<div class="bg-surface-container-lowest rounded-xl p-8 flex flex-col items-center text-center shadow-sm">
-<div class="relative group">
-<div class="w-32 h-32 rounded-full bg-primary-fixed border-4 border-white flex items-center justify-center text-primary text-5xl mb-6 overflow-hidden ring-4 ring-primary/5">
-<span class="material-symbols-outlined text-6xl" style="font-variation-settings: 'FILL' 1;">person</span>
+<!-- Page Content -->
+<div class="pt-28 px-12 pb-12">
+<!-- Header Section -->
+<div class="flex justify-between items-end mb-10">
+<div>
+<h2 class="text-4xl font-manrope font-extrabold text-on-surface tracking-tight mb-2">Quản lý Khuyến mãi</h2>
+<p class="text-on-surface-variant text-lg">Tạo và quản lý các chương trình khuyến mãi cho hành khách</p>
 </div>
-<button class="absolute bottom-6 right-0 bg-primary text-white p-2 rounded-full shadow-lg hover:scale-105 transition-transform">
-<span class="material-symbols-outlined text-sm">photo_camera</span>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary-container text-on-primary px-6 py-3 rounded-xl font-bold transition-all transform hover:scale-[1.02] shadow-sm">
+<span class="material-symbols-outlined">add</span>
+                    Tạo khuyến mãi mới
+                </button>
+</div>
+<!-- Stats Row: Bento Grid Style -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+<div class="bg-surface-container-low p-6 rounded-2xl border-none">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+12%</span>
+</div>
+<p class="text-on-surface-variant font-medium mb-1">Đang hoạt động</p>
+<h3 class="text-3xl font-manrope font-bold text-on-surface">8</h3>
+</div>
+<div class="bg-surface-container-low p-6 rounded-2xl border-none">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-blue-100 text-blue-700 rounded-xl">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">schedule</span>
+</div>
+</div>
+<p class="text-on-surface-variant font-medium mb-1">Sắp diễn ra</p>
+<h3 class="text-3xl font-manrope font-bold text-on-surface">3</h3>
+</div>
+<div class="bg-surface-container-low p-6 rounded-2xl border-none">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-slate-200 text-slate-700 rounded-xl">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">history</span>
+</div>
+</div>
+<p class="text-on-surface-variant font-medium mb-1">Đã kết thúc</p>
+<h3 class="text-3xl font-manrope font-bold text-on-surface">24</h3>
+</div>
+<div class="bg-primary bg-gradient-to-br from-primary to-primary-container p-6 rounded-2xl border-none shadow-lg">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 bg-white/20 text-white rounded-xl">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">confirmation_number</span>
+</div>
+</div>
+<p class="text-white/80 font-medium mb-1">Vé đã dùng KM</p>
+<h3 class="text-3xl font-manrope font-bold text-white">1,284</h3>
+</div>
+</div>
+<!-- Filter Panel -->
+<div class="bg-surface-container-low p-6 rounded-2xl mb-8 flex flex-wrap items-center gap-4">
+<div class="flex-1 min-w-[300px] relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-12 pr-4 py-3 bg-surface-container-lowest border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-sm" placeholder="Tìm kiếm theo tên hoặc mã khuyến mãi..." type="text"/>
+</div>
+<div class="w-48">
+<select class="w-full px-4 py-3 bg-surface-container-lowest border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 cursor-pointer">
+<option value="">Loại KM</option>
+<option value="percent">Giảm % giá vé</option>
+<option value="fixed">Giảm tiền cố định</option>
+<option value="gift">Tặng chuyến</option>
+</select>
+</div>
+<div class="w-48">
+<select class="w-full px-4 py-3 bg-surface-container-lowest border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 cursor-pointer">
+<option value="">Trạng thái</option>
+<option value="active">Đang hoạt động</option>
+<option value="upcoming">Sắp diễn ra</option>
+<option value="ended">Đã kết thúc</option>
+</select>
+</div>
+<button class="bg-secondary-container text-on-secondary-container px-8 py-3 rounded-xl font-bold hover:bg-primary-fixed transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">filter_alt</span>
+                    Lọc
+                </button>
+</div>
+<!-- Promotions Table Container -->
+<div class="bg-surface-container-lowest rounded-3xl overflow-hidden shadow-sm">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+<tr>
+<th class="px-8 py-5">Mã KM</th>
+<th class="px-6 py-5">Tên Chương Trình</th>
+<th class="px-6 py-5 text-right">Giảm Giá</th>
+<th class="px-6 py-5">Ngày Bắt Đầu</th><th class="px-6 py-5">Ngày Kết Thúc</th>
+<th class="px-6 py-5">Trạng Thái</th>
+<th class="px-8 py-5 text-center">Thao Tác</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-bright transition-colors group">
+<td class="px-8 py-6 font-mono text-sm text-primary font-bold">KM-2025</td>
+<td class="px-6 py-6 font-bold text-on-surface">Tết Nguyên Đán 2025</td>
+<td class="px-6 py-6 text-right font-bold text-on-surface">30%</td>
+<td class="px-6 py-6 text-on-surface-variant text-sm">20/01/2025</td><td class="px-6 py-6 text-on-surface-variant text-sm">02/02/2025</td>
+<td class="px-6 py-6">
+<span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold inline-block">Đã kết thúc</span>
+</td>
+<td class="px-8 py-6 text-center">
+<div class="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-primary-fixed rounded-lg text-primary"><span class="material-symbols-outlined text-xl">visibility</span></button>
+<button class="p-2 hover:bg-primary-fixed rounded-lg text-primary"><span class="material-symbols-outlined text-xl">edit</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-bright transition-colors group">
+<td class="px-8 py-6 font-mono text-sm text-primary font-bold">KM-2026</td>
+<td class="px-6 py-6 font-bold text-on-surface">Hè Rực Rỡ</td>
+<td class="px-6 py-6 text-right font-bold text-on-surface">20%</td>
+<td class="px-6 py-6 text-on-surface-variant text-sm">01/06/2026</td><td class="px-6 py-6 text-on-surface-variant text-sm">31/08/2026</td>
+<td class="px-6 py-6">
+<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold inline-block">Đang hoạt động</span>
+</td>
+<td class="px-8 py-6 text-center">
+<div class="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-primary-fixed rounded-lg text-primary"><span class="material-symbols-outlined text-xl">visibility</span></button>
+<button class="p-2 hover:bg-primary-fixed rounded-lg text-primary"><span class="material-symbols-outlined text-xl">edit</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-bright transition-colors group">
+<td class="px-8 py-6 font-mono text-sm text-primary font-bold">KM-2027</td>
+<td class="px-6 py-6 font-bold text-on-surface">Khuyến mãi Sinh nhật</td>
+<td class="px-6 py-6 text-right font-bold text-on-surface">50,000đ</td>
+<td class="px-6 py-6 text-on-surface-variant text-sm">01/01/2026</td><td class="px-6 py-6 text-on-surface-variant text-sm">31/12/2026</td>
+<td class="px-6 py-6">
+<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold inline-block">Đang hoạt động</span>
+</td>
+<td class="px-8 py-6 text-center">
+<div class="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-primary-fixed rounded-lg text-primary"><span class="material-symbols-outlined text-xl">visibility</span></button>
+<button class="p-2 hover:bg-primary-fixed rounded-lg text-primary"><span class="material-symbols-outlined text-xl">edit</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-bright transition-colors group">
+<td class="px-8 py-6 font-mono text-sm text-primary font-bold">KM-2028</td>
+<td class="px-6 py-6 font-bold text-on-surface">Khai trương tuyến Bắc – Nam</td>
+<td class="px-6 py-6 text-right font-bold text-on-surface">1 chuyến miễn phí</td>
+<td class="px-6 py-6 text-on-surface-variant text-sm">15/09/2026</td><td class="px-6 py-6 text-on-surface-variant text-sm">15/10/2026</td>
+<td class="px-6 py-6">
+<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold inline-block">Sắp diễn ra</span>
+</td>
+<td class="px-8 py-6 text-center">
+<div class="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-primary-fixed rounded-lg text-primary"><span class="material-symbols-outlined text-xl">visibility</span></button>
+<button class="p-2 hover:bg-primary-fixed rounded-lg text-primary"><span class="material-symbols-outlined text-xl">edit</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-bright transition-colors group">
+<td class="px-8 py-6 font-mono text-sm text-primary font-bold">KM-2029</td>
+<td class="px-6 py-6 font-bold text-on-surface">Ưu đãi Người cao tuổi</td>
+<td class="px-6 py-6 text-right font-bold text-on-surface">15%</td>
+<td class="px-6 py-6 text-on-surface-variant text-sm">01/01/2026</td><td class="px-6 py-6 text-on-surface-variant text-sm">31/12/2026</td>
+<td class="px-6 py-6">
+<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold inline-block">Đang hoạt động</span>
+</td>
+<td class="px-8 py-6 text-center">
+<div class="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 hover:bg-primary-fixed rounded-lg text-primary"><span class="material-symbols-outlined text-xl">visibility</span></button>
+<button class="p-2 hover:bg-primary-fixed rounded-lg text-primary"><span class="material-symbols-outlined text-xl">edit</span></button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Footer: Pagination -->
+<div class="px-8 py-6 bg-surface-container-low flex justify-between items-center">
+<p class="text-sm text-on-surface-variant">Hiển thị <span class="font-bold">1-5</span> của <span class="font-bold">12</span> khuyến mãi</p>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-lg hover:bg-white disabled:opacity-30 transition-colors" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-10 h-10 rounded-lg bg-primary text-white font-bold text-sm">1</button>
+<button class="w-10 h-10 rounded-lg hover:bg-white text-on-surface-variant font-bold text-sm transition-colors">2</button>
+<button class="w-10 h-10 rounded-lg hover:bg-white text-on-surface-variant font-bold text-sm transition-colors">3</button>
+<button class="p-2 rounded-lg hover:bg-white transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
 </button>
 </div>
-<h3 class="text-2xl font-bold text-on-surface">Nguyễn Văn A</h3>
-<p class="text-sm font-semibold text-primary mt-1">Mã NV: HAN-2024-089</p>
-<div class="mt-6 w-full flex flex-col gap-3">
-<div class="bg-surface-container-low px-4 py-3 rounded-lg flex items-center justify-between">
-<span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Bộ phận</span>
-<span class="text-sm font-bold text-on-surface">Nhân viên quầy vé</span>
-</div>
-<div class="bg-surface-container-low px-4 py-3 rounded-lg flex items-center justify-between">
-<span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Khu vực</span>
-<span class="text-sm font-bold text-on-surface">Ga Hà Nội</span>
 </div>
 </div>
-<button class="mt-8 w-full py-3 px-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant font-bold rounded-xl transition-all flex items-center justify-center gap-2">
-<span class="material-symbols-outlined text-lg">lock_reset</span>
-                            Đổi mật khẩu
-                        </button>
-</div>
-
-</div>
-<!-- Profile Details Card (Right) -->
-<div class="col-span-12 lg:col-span-8 space-y-8">
-<!-- Section: Personal Information -->
-<div class="bg-surface-container-lowest rounded-xl p-8 shadow-sm">
-<div class="flex items-center justify-between mb-8">
-<h3 class="text-xl font-bold text-on-surface flex items-center gap-3">
-<span class="w-1.5 h-6 bg-primary rounded-full"></span>
-                                Thông tin định danh
-                            </h3>
-<span class="text-xs font-medium text-on-surface-variant italic">* Thông tin này do nhân sự quản lý</span>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-<div>
-<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Số CCCD / Hộ chiếu</label>
-<p class="text-base font-semibold text-on-surface bg-surface-container-low px-4 py-3 rounded-lg border border-transparent">001095012345</p>
-</div>
-<div>
-<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ngày sinh</label>
-<p class="text-base font-semibold text-on-surface bg-surface-container-low px-4 py-3 rounded-lg border border-transparent">24/10/1995</p>
-</div>
-<div>
-<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Giới tính</label>
-<p class="text-base font-semibold text-on-surface bg-surface-container-low px-4 py-3 rounded-lg border border-transparent">Nam</p>
-</div>
-<div>
-<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quốc tịch</label>
-<p class="text-base font-semibold text-on-surface bg-surface-container-low px-4 py-3 rounded-lg border border-transparent">Việt Nam</p>
-</div>
-</div>
-</div>
-<!-- Section: Editable Contact Information -->
-<div class="bg-surface-container-lowest rounded-xl p-8 shadow-sm">
-<div class="flex items-center justify-between mb-8">
-<h3 class="text-xl font-bold text-on-surface flex items-center gap-3">
-<span class="w-1.5 h-6 bg-primary rounded-full"></span>
-                                Thông tin liên lạc
-                            </h3>
-
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-<div class="md:col-span-1">
-<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Số điện thoại</label>
-<div class="relative">
-<span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant">call</span>
-<input class="w-full pl-12 pr-4 py-3 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium transition-all" type="text" value="0988 123 456">
-</div>
-</div>
-<div class="md:col-span-1">
-<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email cá nhân</label>
-<div class="relative">
-<span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant">mail</span>
-<input class="w-full pl-12 pr-4 py-3 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium transition-all" type="email" value="vana.nguyen@railway.vn">
-</div>
-</div>
-<div class="md:col-span-2">
-<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Địa chỉ thường trú</label>
-<div class="relative">
-<span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant">home</span>
-<input class="w-full pl-12 pr-4 py-3 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium transition-all" type="text" value="120 Lê Duẩn, Phường Cửa Nam, Quận Hoàn Kiếm, Hà Nội">
-</div>
-</div>
-</div>
-<div class="mt-10 pt-8 border-t border-surface-container flex justify-end gap-4">
-<button class="px-6 py-2.5 text-sm font-bold text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors">Hủy thay đổi</button>
-<button class="px-8 py-2.5 bg-primary text-white text-sm font-bold rounded-lg shadow-md hover:bg-primary-container transition-all active:scale-95">Lưu thông tin</button>
-</div>
-</div>
-<!-- Quick Info Tiles -->
-
-</div>
-</div>
+<!-- Marketing Visual Card (Bonus Editorial Touch) -->
 </div>
 </main>
 </body></html>

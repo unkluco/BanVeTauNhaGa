@@ -20,7 +20,10 @@
       "Bash(ls \"C:\\\\Users\\\\ADMIN\\\\Desktop\\\\code\\\\ptud\\\\projects\\\\BanVeTauNhaGa\"/*.bat)",
       "Bash(cmd //c \"where javac\")",
       "Bash(cmd //c \"where mvn\")",
-      "Bash(ls C:UsersADMINDesktopcodeptudprojectsBanVeTauNhaGa/target/lib/*.jar)"
+      "Bash(ls C:UsersADMINDesktopcodeptudprojectsBanVeTauNhaGa/target/lib/*.jar)",
+      "Bash(xargs grep:*)",
+      "Bash(find /c/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa -name \"ChiTietGia.class\" -exec strings {})",
+      "Bash(javap -c /c/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa/bin/com/entity/ChiTietGia.class)"
     ]
   }
 }

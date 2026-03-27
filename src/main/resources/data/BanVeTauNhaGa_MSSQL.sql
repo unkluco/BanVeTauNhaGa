@@ -80,14 +80,14 @@ CREATE TABLE Gia (
     CHECK (thoiGianKetThuc > thoiGianBatDau)
 );
 
--- 7. KhuyenMai (da doi phanTramGiam: FLOAT -> DECIMAL)
+-- 7. KhuyenMai (cau truc giong Gia: ky khuyen mai voi thoi gian, mo ta, trang thai)
 CREATE TABLE KhuyenMai (
     maKhuyenMai VARCHAR(20) PRIMARY KEY,
     tenKhuyenMai NVARCHAR(100) NOT NULL,
-    phanTramGiam DECIMAL(5,2) NOT NULL CHECK (phanTramGiam > 0 AND phanTramGiam <= 1),
-    dieuKien NVARCHAR(255),
     thoiGianBatDau DATETIME NOT NULL,
     thoiGianKetThuc DATETIME NOT NULL,
+    moTa NVARCHAR(255),
+    trangThai BIT NOT NULL DEFAULT 0,
     CHECK (thoiGianKetThuc > thoiGianBatDau)
 );
 
@@ -149,6 +149,17 @@ CREATE TABLE ChiTietGia (
     FOREIGN KEY (maTuyen) REFERENCES Tuyen(maTuyen)
 );
 
+-- 13b. ChiTietKhuyenMai (FK -> KhuyenMai, Tuyen) - cau truc giong ChiTietGia
+CREATE TABLE ChiTietKhuyenMai (
+    maChiTietKM VARCHAR(20) PRIMARY KEY,
+    maKhuyenMai VARCHAR(20) NOT NULL,
+    maTuyen VARCHAR(20) NOT NULL,
+    loaiGhe VARCHAR(20) NOT NULL CHECK (loaiGhe IN ('GHE_CUNG', 'GHE_MEM', 'GIUONG_NAM')),
+    phanTramGiam DECIMAL(5,2) NOT NULL CHECK (phanTramGiam > 0 AND phanTramGiam <= 1),
+    FOREIGN KEY (maKhuyenMai) REFERENCES KhuyenMai(maKhuyenMai),
+    FOREIGN KEY (maTuyen) REFERENCES Tuyen(maTuyen)
+);
+
 -- 14. Ve (THAY DOI LON: xoa maHoaDon/tenHanhKhach/cccd/giaTien, them maLich+maGhe)
 --     Ve bay gio dai dien cho 1 ghe tren 1 lich cu the
 CREATE TABLE Ve (
@@ -183,13 +194,13 @@ CREATE TABLE ChiTietHoaDon (
     FOREIGN KEY (maVe) REFERENCES Ve(maVe)
 );
 
--- 17. ApDungKM (DA SUA: FK tu maVe -> maChiTietHD, FK -> ChiTietHoaDon)
+-- 17. ApDungKM (DA SUA: FK -> ChiTietHoaDon + ChiTietKhuyenMai)
 CREATE TABLE ApDungKM (
     maApDung VARCHAR(20) PRIMARY KEY,
     maChiTietHD VARCHAR(20) NOT NULL,
-    maKhuyenMai VARCHAR(20) NOT NULL,
+    maChiTietKM VARCHAR(20) NOT NULL,
     FOREIGN KEY (maChiTietHD) REFERENCES ChiTietHoaDon(maChiTietHD),
-    FOREIGN KEY (maKhuyenMai) REFERENCES KhuyenMai(maKhuyenMai)
+    FOREIGN KEY (maChiTietKM) REFERENCES ChiTietKhuyenMai(maChiTietKM)
 );
 
 -- 18. GiuCho (FK -> NhanVien, Lich, Ghe) - khong doi
@@ -605,12 +616,124 @@ INSERT INTO ChiTietGia VALUES ('CTG-022', 'GIA-002', 'TUY-009', 'GHE_CUNG', 1040
 INSERT INTO ChiTietGia VALUES ('CTG-023', 'GIA-002', 'TUY-009', 'GHE_MEM', 1430000.00);
 INSERT INTO ChiTietGia VALUES ('CTG-024', 'GIA-002', 'TUY-009', 'GIUONG_NAM', 2080000.00);
 
--- ==================== 13. KhuyenMai ====================
-INSERT INTO KhuyenMai VALUES ('KM-001', N'Giảm giá trẻ em', 0.25, N'Hành khách dưới 12 tuổi', '2026-01-01 00:00:00', '2026-12-31 23:59:59');
-INSERT INTO KhuyenMai VALUES ('KM-002', N'Giảm giá sinh viên', 0.15, N'Có thẻ sinh viên hợp lệ', '2026-01-01 00:00:00', '2026-12-31 23:59:59');
-INSERT INTO KhuyenMai VALUES ('KM-003', N'Giảm giá người cao tuổi', 0.20, N'Hành khách từ 60 tuổi trở lên', '2026-01-01 00:00:00', '2026-12-31 23:59:59');
-INSERT INTO KhuyenMai VALUES ('KM-004', N'Khuyến mãi lễ 30/4', 0.10, N'Áp dụng dịp lễ 30/4 - 1/5', '2026-04-28 00:00:00', '2026-05-02 23:59:59');
-INSERT INTO KhuyenMai VALUES ('KM-005', N'Khuyến mãi hè', 0.05, N'Áp dụng mùa hè', '2026-06-01 00:00:00', '2026-08-31 23:59:59');
+-- ==================== 13. KhuyenMai (cau truc giong Gia: ky khuyen mai) ====================
+INSERT INTO KhuyenMai VALUES ('KM-001', N'Khuyến mãi đối tượng ưu tiên 2026', '2026-01-01 00:00:00', '2026-12-31 23:59:59', N'Giảm giá cho trẻ em, sinh viên, người cao tuổi cả năm 2026', 1);
+INSERT INTO KhuyenMai VALUES ('KM-002', N'Khuyến mãi lễ 30/4 - 1/5', '2026-04-28 00:00:00', '2026-05-02 23:59:59', N'Chương trình giảm giá nhân dịp lễ 30/4 - 1/5', 0);
+INSERT INTO KhuyenMai VALUES ('KM-003', N'Khuyến mãi mùa hè 2026', '2026-06-01 00:00:00', '2026-08-31 23:59:59', N'Giảm giá mùa hè khuyến khích du lịch bằng tàu hỏa', 0);
+INSERT INTO KhuyenMai VALUES ('KM-004', N'Khuyến mãi Tết Nguyên Đán 2027', '2027-01-20 00:00:00', '2027-02-05 23:59:59', N'Giảm giá dịp Tết Nguyên Đán cho hành khách về quê', 0);
+INSERT INTO KhuyenMai VALUES ('KM-005', N'Khuyến mãi Quốc khánh 2/9', '2026-08-30 00:00:00', '2026-09-03 23:59:59', N'Chương trình giảm giá nhân dịp Quốc khánh 2/9', 0);
+
+-- ==================== 13b. ChiTietKhuyenMai ====================
+-- KM-001: Uu tien - giam tuy loai ghe (ghe cung giam it, giuong nam giam nhieu hon)
+-- Tre em: giam 20-25%, Sinh vien: giam 10-15%, Nguoi cao tuoi: giam 15-20%
+-- Ap dung cho 10 tuyen express chinh (TUY-001 den TUY-010)
+-- Tre em - ghe cung 20%
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-001', 'KM-001', 'TUY-001', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-002', 'KM-001', 'TUY-002', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-003', 'KM-001', 'TUY-003', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-004', 'KM-001', 'TUY-004', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-005', 'KM-001', 'TUY-005', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-006', 'KM-001', 'TUY-006', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-007', 'KM-001', 'TUY-007', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-008', 'KM-001', 'TUY-008', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-009', 'KM-001', 'TUY-009', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-010', 'KM-001', 'TUY-010', 'GHE_CUNG', 0.20);
+-- Tre em - ghe mem 22%
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-011', 'KM-001', 'TUY-001', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-012', 'KM-001', 'TUY-002', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-013', 'KM-001', 'TUY-003', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-014', 'KM-001', 'TUY-004', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-015', 'KM-001', 'TUY-005', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-016', 'KM-001', 'TUY-006', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-017', 'KM-001', 'TUY-007', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-018', 'KM-001', 'TUY-008', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-019', 'KM-001', 'TUY-009', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-020', 'KM-001', 'TUY-010', 'GHE_MEM', 0.22);
+-- Tre em - giuong nam 25%
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-021', 'KM-001', 'TUY-001', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-022', 'KM-001', 'TUY-002', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-023', 'KM-001', 'TUY-003', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-024', 'KM-001', 'TUY-004', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-025', 'KM-001', 'TUY-005', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-026', 'KM-001', 'TUY-006', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-027', 'KM-001', 'TUY-007', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-028', 'KM-001', 'TUY-008', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-029', 'KM-001', 'TUY-009', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-030', 'KM-001', 'TUY-010', 'GIUONG_NAM', 0.25);
+
+-- KM-002: Le 30/4 - giam 10% dong deu cho cac tuyen chinh
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-031', 'KM-002', 'TUY-001', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-032', 'KM-002', 'TUY-001', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-033', 'KM-002', 'TUY-001', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-034', 'KM-002', 'TUY-002', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-035', 'KM-002', 'TUY-002', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-036', 'KM-002', 'TUY-002', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-037', 'KM-002', 'TUY-003', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-038', 'KM-002', 'TUY-003', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-039', 'KM-002', 'TUY-003', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-040', 'KM-002', 'TUY-004', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-041', 'KM-002', 'TUY-004', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-042', 'KM-002', 'TUY-004', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-043', 'KM-002', 'TUY-009', 'GHE_CUNG', 0.12);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-044', 'KM-002', 'TUY-009', 'GHE_MEM', 0.12);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-045', 'KM-002', 'TUY-009', 'GIUONG_NAM', 0.12);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-046', 'KM-002', 'TUY-010', 'GHE_CUNG', 0.12);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-047', 'KM-002', 'TUY-010', 'GHE_MEM', 0.12);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-048', 'KM-002', 'TUY-010', 'GIUONG_NAM', 0.12);
+
+-- KM-003: Mua he - giam nhieu hon cho giuong nam de khuyen khich du lich
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-049', 'KM-003', 'TUY-001', 'GHE_CUNG', 0.05);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-050', 'KM-003', 'TUY-001', 'GHE_MEM', 0.07);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-051', 'KM-003', 'TUY-001', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-052', 'KM-003', 'TUY-002', 'GHE_CUNG', 0.05);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-053', 'KM-003', 'TUY-002', 'GHE_MEM', 0.07);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-054', 'KM-003', 'TUY-002', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-055', 'KM-003', 'TUY-003', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-056', 'KM-003', 'TUY-003', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-057', 'KM-003', 'TUY-003', 'GIUONG_NAM', 0.15);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-058', 'KM-003', 'TUY-004', 'GHE_CUNG', 0.05);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-059', 'KM-003', 'TUY-004', 'GHE_MEM', 0.07);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-060', 'KM-003', 'TUY-004', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-061', 'KM-003', 'TUY-005', 'GHE_CUNG', 0.05);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-062', 'KM-003', 'TUY-005', 'GHE_MEM', 0.07);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-063', 'KM-003', 'TUY-005', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-064', 'KM-003', 'TUY-009', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-065', 'KM-003', 'TUY-009', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-066', 'KM-003', 'TUY-009', 'GIUONG_NAM', 0.15);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-067', 'KM-003', 'TUY-010', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-068', 'KM-003', 'TUY-010', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-069', 'KM-003', 'TUY-010', 'GIUONG_NAM', 0.15);
+
+-- KM-004: Tet 2027 - giam manh cho tuyen xuyen Viet
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-070', 'KM-004', 'TUY-009', 'GHE_CUNG', 0.15);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-071', 'KM-004', 'TUY-009', 'GHE_MEM', 0.15);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-072', 'KM-004', 'TUY-009', 'GIUONG_NAM', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-073', 'KM-004', 'TUY-010', 'GHE_CUNG', 0.15);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-074', 'KM-004', 'TUY-010', 'GHE_MEM', 0.15);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-075', 'KM-004', 'TUY-010', 'GIUONG_NAM', 0.20);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-076', 'KM-004', 'TUY-001', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-077', 'KM-004', 'TUY-001', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-078', 'KM-004', 'TUY-001', 'GIUONG_NAM', 0.12);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-079', 'KM-004', 'TUY-004', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-080', 'KM-004', 'TUY-004', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-081', 'KM-004', 'TUY-004', 'GIUONG_NAM', 0.12);
+
+-- KM-005: Quoc khanh 2/9 - giam 8% cho tat ca tuyen chinh
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-082', 'KM-005', 'TUY-001', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-083', 'KM-005', 'TUY-001', 'GHE_MEM', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-084', 'KM-005', 'TUY-001', 'GIUONG_NAM', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-085', 'KM-005', 'TUY-002', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-086', 'KM-005', 'TUY-002', 'GHE_MEM', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-087', 'KM-005', 'TUY-002', 'GIUONG_NAM', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-088', 'KM-005', 'TUY-003', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-089', 'KM-005', 'TUY-003', 'GHE_MEM', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-090', 'KM-005', 'TUY-003', 'GIUONG_NAM', 0.08);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-091', 'KM-005', 'TUY-009', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-092', 'KM-005', 'TUY-009', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-093', 'KM-005', 'TUY-009', 'GIUONG_NAM', 0.12);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-094', 'KM-005', 'TUY-010', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-095', 'KM-005', 'TUY-010', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-096', 'KM-005', 'TUY-010', 'GIUONG_NAM', 0.12);
 
 -- ==================== 14. Ve (CAU TRUC MOI: maLich + maGhe thay vi maHoaDon) ====================
 -- HD-10042026-001: Pham Minh Tuan mua 2 ve ghe mem LCH-001
@@ -653,8 +776,9 @@ INSERT INTO ChiTietHoaDon VALUES ('CTHD-008', 'HD-11042026-001', 'VE-008', 20000
 -- HD-12042026-001: 1 ve ghe mem TUY-004 (600k), da huy
 INSERT INTO ChiTietHoaDon VALUES ('CTHD-009', 'HD-12042026-001', 'VE-009', 600000.00);
 
--- ==================== 17. ApDungKM (da doi FK sang ChiTietHoaDon) ====================
-INSERT INTO ApDungKM VALUES ('ADKM-001', 'CTHD-004', 'KM-002');
+-- ==================== 17. ApDungKM (FK -> ChiTietHoaDon + ChiTietKhuyenMai) ====================
+-- CTHD-004: ve ghe cung TUY-003 (Hue->Da Nang), sinh vien -> ap dung CTKM-003 (KM-001, TUY-003, GHE_CUNG, 20%)
+INSERT INTO ApDungKM VALUES ('ADKM-001', 'CTHD-004', 'CTKM-003');
 
 -- ==================== 18. GiuCho ====================
 INSERT INTO GiuCho VALUES ('GC-001', 'NV-0001', 'LCH-008', 'G-007-02', '2026-04-14 15:05:00');
@@ -681,6 +805,7 @@ UNION ALL SELECT 'Lich', COUNT(*) FROM Lich
 UNION ALL SELECT 'Gia', COUNT(*) FROM Gia
 UNION ALL SELECT 'ChiTietGia', COUNT(*) FROM ChiTietGia
 UNION ALL SELECT 'KhuyenMai', COUNT(*) FROM KhuyenMai
+UNION ALL SELECT 'ChiTietKhuyenMai', COUNT(*) FROM ChiTietKhuyenMai
 UNION ALL SELECT 'Ve', COUNT(*) FROM Ve
 UNION ALL SELECT 'HoaDon', COUNT(*) FROM HoaDon
 UNION ALL SELECT 'ChiTietHoaDon', COUNT(*) FROM ChiTietHoaDon

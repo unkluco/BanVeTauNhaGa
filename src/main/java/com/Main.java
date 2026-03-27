@@ -25,7 +25,7 @@ public class Main {
             UIManager.put("TextComponent.arc", 12);
             UIManager.put("Component.arc", 12);
         } catch (Exception e) {
-            System.err.println("Khong the cai dat FlatLaf: " + e.getMessage());
+            System.err.println("Khong the cai dxat FlatLaf: " + e.getMessage());
         }
 
         SwingUtilities.invokeLater(() -> showLogin());
