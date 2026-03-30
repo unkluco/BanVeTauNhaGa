@@ -23,7 +23,9 @@
       "Bash(ls C:UsersADMINDesktopcodeptudprojectsBanVeTauNhaGa/target/lib/*.jar)",
       "Bash(xargs grep:*)",
       "Bash(find /c/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa -name \"ChiTietGia.class\" -exec strings {})",
-      "Bash(javap -c /c/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa/bin/com/entity/ChiTietGia.class)"
+      "Bash(javap -c /c/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa/bin/com/entity/ChiTietGia.class)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(dir \"C:\\\\Users\\\\ADMIN\\\\Desktop\\\\code\\\\ptud\\\\projects\\\\BanVeTauNhaGa\\\\src\\\\main\\\\resources\\\\html\" /b)"
     ]
   }
 }

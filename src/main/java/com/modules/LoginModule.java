@@ -67,13 +67,9 @@ public class LoginModule extends JPanel implements AppModule {
         JPanel logoRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         logoRow.setOpaque(false);
         logoRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel lblLogo = new JLabel("\u2708");
-        lblLogo.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
-        lblLogo.setForeground(ON_PRIMARY);
         JLabel lblBrand = new JLabel("Qu\u1EA7y V\u00E9 Azure Rail");
         lblBrand.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblBrand.setForeground(ON_PRIMARY);
-        logoRow.add(lblLogo);
         logoRow.add(lblBrand);
 
         heroPanel.add(logoRow);

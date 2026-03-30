@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Quản lý Tuyến đường - The Fluid Terminal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-fixed": "#cfe6f2",
+              "on-background": "#191c1e",
+              "secondary": "#4c616c",
+              "tertiary-container": "#a95f00",
+              "on-surface": "#191c1e",
+              "on-error": "#ffffff",
+              "on-secondary-fixed-variant": "#354a53",
+              "surface-container-highest": "#e0e3e5",
+              "on-tertiary": "#ffffff",
+              "on-secondary-fixed": "#071e27",
+              "surface-bright": "#f7f9fb",
+              "on-primary": "#ffffff",
+              "surface-tint": "#006399",
+              "surface-container-high": "#e6e8ea",
+              "primary-fixed-dim": "#94ccff",
+              "on-tertiary-fixed": "#2e1600",
+              "tertiary": "#864a00",
+              "outline": "#707881",
+              "surface-dim": "#d8dadc",
+              "on-primary-fixed-variant": "#004b74",
+              "surface": "#f7f9fb",
+              "on-tertiary-container": "#fff6f1",
+              "on-secondary-container": "#526772",
+              "outline-variant": "#bfc7d1",
+              "surface-variant": "#e0e3e5",
+              "on-primary-fixed": "#001d32",
+              "inverse-surface": "#2d3133",
+              "tertiary-fixed": "#ffdcc0",
+              "primary-fixed": "#cde5ff",
+              "primary-container": "#0077b6",
+              "secondary-fixed-dim": "#b4cad6",
+              "on-tertiary-fixed-variant": "#6c3a00",
+              "error": "#ba1a1a",
+              "surface-container-low": "#f2f4f6",
+              "secondary-container": "#cfe6f2",
+              "surface-container-lowest": "#ffffff",
+              "on-surface-variant": "#404850",
+              "inverse-primary": "#94ccff",
+              "background": "#f7f9fb",
+              "primary": "#005d90",
+              "surface-container": "#eceef0",
+              "on-secondary": "#ffffff",
+              "inverse-on-surface": "#eff1f3",
+              "tertiary-fixed-dim": "#ffb877",
+              "on-primary-container": "#f3f7ff",
+              "on-error-container": "#93000a",
+              "error-container": "#ffdad6"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .journey-track {
+            background: linear-gradient(90deg, #005d90 0%, #0077b6 100%);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface p-12">
+<!-- Container Header Section -->
+<header class="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h1 class="font-headline font-extrabold text-4xl tracking-tight text-primary mb-2">Quản lý Tuyến đường</h1>
+<p class="text-on-surface-variant font-body">Cấu hình và tối ưu hóa các lộ trình vận tải đường sắt trong hệ thống.</p>
+</div>
+<button class="bg-primary text-on-primary px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-primary-container transition-all active:scale-95 shadow-sm">
+<span class="material-symbols-outlined">add_circle</span>
+<span>Thêm Tuyến mới</span>
+</button>
+</header>
+<!-- Filter Bar (JComboBox style) -->
+<section class="bg-surface-container-low p-6 rounded-xl mb-8 flex flex-wrap items-center gap-6">
+<div class="flex flex-col gap-1.5 min-w-[240px]">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant px-1">Ga đi</label>
+<div class="relative">
+<select class="w-full bg-surface-container-lowest border-none rounded-xl py-3 pl-4 pr-10 appearance-none text-on-surface focus:ring-2 focus:ring-primary/20 cursor-pointer font-medium">
+<option>Tất cả các ga</option>
+<option>Ga Hà Nội</option>
+<option>Ga Đà Nẵng</option>
+<option>Ga Sài Gòn</option>
+<option>Ga Huế</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="flex items-center justify-center pt-5">
+<span class="material-symbols-outlined text-outline-variant text-2xl">sync_alt</span>
+</div>
+<div class="flex flex-col gap-1.5 min-w-[240px]">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant px-1">Ga đến</label>
+<div class="relative">
+<select class="w-full bg-surface-container-lowest border-none rounded-xl py-3 pl-4 pr-10 appearance-none text-on-surface focus:ring-2 focus:ring-primary/20 cursor-pointer font-medium">
+<option>Tất cả các ga</option>
+<option>Ga Hà Nội</option>
+<option>Ga Đà Nẵng</option>
+<option>Ga Sài Gòn</option>
+<option>Ga Huế</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+<button class="mt-5 bg-secondary-container text-primary font-bold px-6 py-3 rounded-xl hover:bg-surface-container-highest transition-all flex items-center gap-2"><span class="material-symbols-outlined">filter_alt_off</span><span>Bỏ lọc</span></button>
+</section>
+<!-- Route List (Simple Timeline/Diagram View) -->
+<main class="space-y-4">
+<!-- Route Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-8 group hover:bg-white transition-all border border-transparent hover:border-outline-variant/20">
+<div class="flex-1 w-full">
+<div class="flex items-center justify-between mb-4">
+<span class="text-xs font-bold bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full">ID: RT-2024-01</span>
+<span class="text-sm font-medium text-on-surface-variant italic">Cập nhật: 2 giờ trước</span>
+</div>
+<div class="flex items-center w-full gap-4">
+<!-- Origin -->
+<div class="flex flex-col items-center min-w-[100px]">
+<div class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-primary text-2xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<span class="font-headline font-bold text-lg text-on-surface">Ga Hà Nội</span>
+</div>
+<!-- Path -->
+<div class="flex-1 flex flex-col items-center relative py-4">
+<div class="w-full h-[3px] bg-surface-dim rounded-full overflow-hidden">
+<div class="journey-track h-full w-[100%]"></div>
+</div>
+<div class="absolute top-0 flex flex-col items-center"><div class="bg-white px-3 py-1 rounded-full border border-primary/20 shadow-sm flex items-center gap-1.5 mb-1">
+<span class="material-symbols-outlined text-primary text-base">train</span>
+<span class="text-sm font-bold text-primary">1,726 km</span>
+</div></div>
+<span class="mt-2 text-xs font-bold text-on-surface-variant tracking-widest uppercase">Tuyến Bắc Nam</span>
+</div>
+<!-- Destination -->
+<div class="flex flex-col items-center min-w-[100px]">
+<div class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-primary text-2xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">flag</span>
+</div>
+<span class="font-headline font-bold text-lg text-on-surface">Ga Sài Gòn</span>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex gap-2 items-center shrink-0 border-l border-surface-container pl-8">
+<button class="p-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors active:scale-90" title="Chỉnh sửa">
+<span class="material-symbols-outlined text-2xl">edit_square</span>
+</button>
+<button class="p-3 rounded-xl text-on-surface-variant hover:bg-error-container hover:text-error transition-colors active:scale-90" title="Xóa tuyến">
+<span class="material-symbols-outlined text-2xl">delete</span>
+</button>
+</div>
+</div>
+<!-- Route Card 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-8 group hover:bg-white transition-all border border-transparent hover:border-outline-variant/20">
+<div class="flex-1 w-full">
+<div class="flex items-center justify-between mb-4">
+<span class="text-xs font-bold bg-secondary-fixed text-on-secondary-fixed-variant px-3 py-1 rounded-full">ID: RT-2024-05</span>
+<span class="text-sm font-medium text-on-surface-variant italic">Cập nhật: 1 ngày trước</span>
+</div>
+<div class="flex items-center w-full gap-4">
+<!-- Origin -->
+<div class="flex flex-col items-center min-w-[100px]">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-secondary text-2xl">location_on</span>
+</div>
+<span class="font-headline font-bold text-lg text-on-surface">Ga Đà Nẵng</span>
+</div>
+<!-- Path -->
+<div class="flex-1 flex flex-col items-center relative py-4"><div class="w-full h-[3px] bg-surface-dim rounded-full">
+<div class="bg-primary h-full w-full opacity-30"></div>
+</div>
+<div class="absolute top-0 flex flex-col items-center">
+<div class="bg-white px-3 py-1 rounded-full border border-primary/20 shadow-sm flex items-center gap-1.5 mb-1">
+<span class="material-symbols-outlined text-primary text-base">map</span>
+<span class="text-sm font-bold text-primary">791 km</span>
+</div>
+</div>
+<span class="mt-2 text-xs font-bold text-on-surface-variant tracking-widest uppercase">Tuyến Trung - Nam</span></div>
+<!-- Destination -->
+<div class="flex flex-col items-center min-w-[100px]">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-secondary text-2xl">flag</span>
+</div>
+<span class="font-headline font-bold text-lg text-on-surface">Ga Sài Gòn</span>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex gap-2 items-center shrink-0 border-l border-surface-container pl-8">
+<button class="p-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors active:scale-90">
+<span class="material-symbols-outlined text-2xl">edit_square</span>
+</button>
+<button class="p-3 rounded-xl text-on-surface-variant hover:bg-error-container hover:text-error transition-colors active:scale-90">
+<span class="material-symbols-outlined text-2xl">delete</span>
+</button>
+</div>
+</div>
+<!-- Route Card 3 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-8 group hover:bg-white transition-all border border-transparent hover:border-outline-variant/20">
+<div class="flex-1 w-full">
+<div class="flex items-center justify-between mb-4">
+<span class="text-xs font-bold bg-secondary-fixed text-on-secondary-fixed-variant px-3 py-1 rounded-full">ID: RT-2024-09</span>
+<span class="text-sm font-medium text-on-surface-variant italic">Cập nhật: 3 ngày trước</span>
+</div>
+<div class="flex items-center w-full gap-4">
+<!-- Origin -->
+<div class="flex flex-col items-center min-w-[100px]">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-secondary text-2xl">location_on</span>
+</div>
+<span class="font-headline font-bold text-lg text-on-surface">Ga Hà Nội</span>
+</div>
+<!-- Path -->
+<div class="flex-1 flex flex-col items-center relative py-4"><div class="w-full h-[3px] bg-surface-dim rounded-full">
+<div class="bg-primary h-full w-full opacity-30"></div>
+</div>
+<div class="absolute top-0 flex flex-col items-center">
+<div class="bg-white px-3 py-1 rounded-full border border-primary/20 shadow-sm flex items-center gap-1.5 mb-1">
+<span class="material-symbols-outlined text-primary text-base">directions_railway</span>
+<span class="text-sm font-bold text-primary">103 km</span>
+</div>
+</div>
+<span class="mt-2 text-xs font-bold text-on-surface-variant tracking-widest uppercase">Tuyến Ngắn Nội Vùng</span></div>
+<!-- Destination -->
+<div class="flex flex-col items-center min-w-[100px]">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-secondary text-2xl">flag</span>
+</div>
+<span class="font-headline font-bold text-lg text-on-surface">Ga Hải Phòng</span>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex gap-2 items-center shrink-0 border-l border-surface-container pl-8">
+<button class="p-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors active:scale-90">
+<span class="material-symbols-outlined text-2xl">edit_square</span>
+</button>
+<button class="p-3 rounded-xl text-on-surface-variant hover:bg-error-container hover:text-error transition-colors active:scale-90">
+<span class="material-symbols-outlined text-2xl">delete</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Empty State / Add New Placeholder -->
+</body></html>

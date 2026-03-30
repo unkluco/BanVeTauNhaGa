@@ -77,11 +77,12 @@ public class DAO_Tuyen {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "INSERT INTO Tuyen (maTuyen, gaDi, gaDen) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, tuyen.getMaTuyen());
             ps.setString(2, tuyen.getGaDi().getMaGa());
             ps.setString(3, tuyen.getGaDen().getMaGa());
+            ps.setInt(4, tuyen.getKm());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi thêm tuyến: " + e.getMessage());
@@ -93,14 +94,29 @@ public class DAO_Tuyen {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "UPDATE Tuyen SET gaDi = ?, gaDen = ? WHERE maTuyen = ?";
+        String sql = "UPDATE Tuyen SET gaDi = ?, gaDen = ?, km = ? WHERE maTuyen = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, tuyen.getGaDi().getMaGa());
             ps.setString(2, tuyen.getGaDen().getMaGa());
-            ps.setString(3, tuyen.getMaTuyen());
+            ps.setInt(3, tuyen.getKm());
+            ps.setString(4, tuyen.getMaTuyen());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi cập nhật tuyến: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean delete(String maTuyen) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return false;
+
+        String sql = "DELETE FROM Tuyen WHERE maTuyen = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maTuyen);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi xóa tuyến: " + e.getMessage());
         }
         return false;
     }
@@ -109,6 +125,7 @@ public class DAO_Tuyen {
         String maTuyen = rs.getString("maTuyen");
         Ga gaDi = daoGa.findById(rs.getString("gaDi"));
         Ga gaDen = daoGa.findById(rs.getString("gaDen"));
-        return new Tuyen(maTuyen, gaDi, gaDen);
+        int km = rs.getInt("km");
+        return new Tuyen(maTuyen, gaDi, gaDen, km);
     }
 }

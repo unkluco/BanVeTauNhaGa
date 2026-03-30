@@ -1,11 +1,11 @@
 package com.dao;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,8 +75,8 @@ public class DAO_Gia {
         String sql = "INSERT INTO Gia (maGia, thoiGianBatDau, thoiGianKetThuc, moTa, trangThai) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, gia.getMaGia());
-            ps.setTimestamp(2, Timestamp.valueOf(gia.getThoiGianBatDau()));
-            ps.setTimestamp(3, Timestamp.valueOf(gia.getThoiGianKetThuc()));
+            ps.setDate(2, Date.valueOf(gia.getThoiGianBatDau()));
+            ps.setDate(3, Date.valueOf(gia.getThoiGianKetThuc()));
             ps.setNString(4, gia.getMoTa());
             ps.setBoolean(5, gia.isTrangThai());
             return ps.executeUpdate() > 0;
@@ -92,8 +92,8 @@ public class DAO_Gia {
 
         String sql = "UPDATE Gia SET thoiGianBatDau = ?, thoiGianKetThuc = ?, moTa = ?, trangThai = ? WHERE maGia = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setTimestamp(1, Timestamp.valueOf(gia.getThoiGianBatDau()));
-            ps.setTimestamp(2, Timestamp.valueOf(gia.getThoiGianKetThuc()));
+            ps.setDate(1, Date.valueOf(gia.getThoiGianBatDau()));
+            ps.setDate(2, Date.valueOf(gia.getThoiGianKetThuc()));
             ps.setNString(3, gia.getMoTa());
             ps.setBoolean(4, gia.isTrangThai());
             ps.setString(5, gia.getMaGia());
@@ -106,10 +106,10 @@ public class DAO_Gia {
 
     private Gia mapRow(ResultSet rs) throws SQLException {
         String maGia = rs.getString("maGia");
-        Timestamp tsBD = rs.getTimestamp("thoiGianBatDau");
-        Timestamp tsKT = rs.getTimestamp("thoiGianKetThuc");
-        LocalDateTime thoiGianBatDau = tsBD != null ? tsBD.toLocalDateTime() : null;
-        LocalDateTime thoiGianKetThuc = tsKT != null ? tsKT.toLocalDateTime() : null;
+        Date dBD = rs.getDate("thoiGianBatDau");
+        Date dKT = rs.getDate("thoiGianKetThuc");
+        LocalDate thoiGianBatDau = dBD != null ? dBD.toLocalDate() : null;
+        LocalDate thoiGianKetThuc = dKT != null ? dKT.toLocalDate() : null;
         String moTa = rs.getNString("moTa");
         boolean trangThai = rs.getBoolean("trangThai");
         return new Gia(maGia, thoiGianBatDau, thoiGianKetThuc, moTa, trangThai);

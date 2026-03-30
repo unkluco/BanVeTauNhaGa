@@ -4,9 +4,10 @@ import com.enums.LoaiGhe;
 
 public class ChiTietKhuyenMai {
     private String maChiTietKM;
+    private String tenChiTiet;
     private KhuyenMai khuyenMai;
-    private Tuyen tuyen;
-    private LoaiGhe loaiGhe;
+    private Tuyen tuyen;       // null = áp dụng tất cả tuyến
+    private LoaiGhe loaiGhe;   // null = áp dụng tất cả loại ghế
     private double phanTramGiam;
 
     public ChiTietKhuyenMai() {
@@ -20,14 +21,26 @@ public class ChiTietKhuyenMai {
     public ChiTietKhuyenMai(String maChiTietKM, KhuyenMai khuyenMai, Tuyen tuyen,
                               LoaiGhe loaiGhe, double phanTramGiam) {
         this.maChiTietKM = maChiTietKM;
-        this.khuyenMai = khuyenMai;
-        this.tuyen = tuyen;
-        this.loaiGhe = loaiGhe;
+        this.khuyenMai   = khuyenMai;
+        this.tuyen       = tuyen;
+        this.loaiGhe     = loaiGhe;
+        this.phanTramGiam = phanTramGiam;
+    }
+
+    public ChiTietKhuyenMai(String maChiTietKM, String tenChiTiet, KhuyenMai khuyenMai,
+                              Tuyen tuyen, LoaiGhe loaiGhe, double phanTramGiam) {
+        this.maChiTietKM  = maChiTietKM;
+        this.tenChiTiet   = tenChiTiet;
+        this.khuyenMai    = khuyenMai;
+        this.tuyen        = tuyen;
+        this.loaiGhe      = loaiGhe;
         this.phanTramGiam = phanTramGiam;
     }
 
     public String getMaChiTietKM() { return maChiTietKM; }
     public void setMaChiTietKM(String maChiTietKM) { this.maChiTietKM = maChiTietKM; }
+    public String getTenChiTiet() { return tenChiTiet; }
+    public void setTenChiTiet(String tenChiTiet) { this.tenChiTiet = tenChiTiet; }
     public KhuyenMai getKhuyenMai() { return khuyenMai; }
     public void setKhuyenMai(KhuyenMai khuyenMai) { this.khuyenMai = khuyenMai; }
     public Tuyen getTuyen() { return tuyen; }

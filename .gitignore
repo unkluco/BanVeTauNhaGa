@@ -1,5 +1,6 @@
 # Thông tin nhạy cảm
 .env
+.claude/
 
 # Maven build output
 target/**

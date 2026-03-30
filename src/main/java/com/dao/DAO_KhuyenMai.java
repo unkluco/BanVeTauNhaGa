@@ -106,6 +106,19 @@ public class DAO_KhuyenMai {
         return false;
     }
 
+    public boolean delete(String maKhuyenMai) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return false;
+        String sql = "DELETE FROM KhuyenMai WHERE maKhuyenMai = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maKhuyenMai);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi xóa khuyến mãi: " + e.getMessage());
+        }
+        return false;
+    }
+
     private KhuyenMai mapRow(ResultSet rs) throws SQLException {
         String maKM = rs.getString("maKhuyenMai");
         String tenKM = rs.getNString("tenKhuyenMai");

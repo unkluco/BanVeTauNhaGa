@@ -102,13 +102,16 @@ public class DAO_ChiTietKhuyenMai {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, tenChiTiet, phanTramGiam) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, ctkm.getMaChiTietKM());
             ps.setString(2, ctkm.getKhuyenMai().getMaKhuyenMai());
-            ps.setString(3, ctkm.getTuyen().getMaTuyen());
-            ps.setString(4, ctkm.getLoaiGhe().toDbValue());
-            ps.setDouble(5, ctkm.getPhanTramGiam());
+            if (ctkm.getTuyen() != null) ps.setString(3, ctkm.getTuyen().getMaTuyen());
+            else ps.setNull(3, java.sql.Types.VARCHAR);
+            if (ctkm.getLoaiGhe() != null) ps.setString(4, ctkm.getLoaiGhe().toDbValue());
+            else ps.setNull(4, java.sql.Types.VARCHAR);
+            ps.setString(5, ctkm.getTenChiTiet());
+            ps.setDouble(6, ctkm.getPhanTramGiam());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi thêm chi tiết khuyến mãi: " + e.getMessage());
@@ -120,13 +123,16 @@ public class DAO_ChiTietKhuyenMai {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "UPDATE ChiTietKhuyenMai SET maKhuyenMai = ?, maTuyen = ?, loaiGhe = ?, phanTramGiam = ? WHERE maChiTietKM = ?";
+        String sql = "UPDATE ChiTietKhuyenMai SET maKhuyenMai = ?, maTuyen = ?, loaiGhe = ?, tenChiTiet = ?, phanTramGiam = ? WHERE maChiTietKM = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, ctkm.getKhuyenMai().getMaKhuyenMai());
-            ps.setString(2, ctkm.getTuyen().getMaTuyen());
-            ps.setString(3, ctkm.getLoaiGhe().toDbValue());
-            ps.setDouble(4, ctkm.getPhanTramGiam());
-            ps.setString(5, ctkm.getMaChiTietKM());
+            if (ctkm.getTuyen() != null) ps.setString(2, ctkm.getTuyen().getMaTuyen());
+            else ps.setNull(2, java.sql.Types.VARCHAR);
+            if (ctkm.getLoaiGhe() != null) ps.setString(3, ctkm.getLoaiGhe().toDbValue());
+            else ps.setNull(3, java.sql.Types.VARCHAR);
+            ps.setString(4, ctkm.getTenChiTiet());
+            ps.setDouble(5, ctkm.getPhanTramGiam());
+            ps.setString(6, ctkm.getMaChiTietKM());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi cập nhật chi tiết khuyến mãi: " + e.getMessage());
@@ -134,12 +140,28 @@ public class DAO_ChiTietKhuyenMai {
         return false;
     }
 
+    public boolean delete(String maChiTietKM) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return false;
+        String sql = "DELETE FROM ChiTietKhuyenMai WHERE maChiTietKM = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maChiTietKM);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi xóa chi tiết khuyến mãi: " + e.getMessage());
+        }
+        return false;
+    }
+
     private ChiTietKhuyenMai mapRow(ResultSet rs) throws SQLException {
         String maChiTietKM = rs.getString("maChiTietKM");
+        String tenChiTiet  = rs.getString("tenChiTiet");
         KhuyenMai km = daoKM.findById(rs.getString("maKhuyenMai"));
-        Tuyen tuyen = daoTuyen.findById(rs.getString("maTuyen"));
-        LoaiGhe loaiGhe = LoaiGhe.fromAny(rs.getString("loaiGhe"));
+        String maTuyenVal = rs.getString("maTuyen");
+        Tuyen tuyen = (maTuyenVal != null) ? daoTuyen.findById(maTuyenVal) : null;
+        String loaiGheVal = rs.getString("loaiGhe");
+        LoaiGhe loaiGhe = (loaiGheVal != null) ? LoaiGhe.fromAny(loaiGheVal) : null;
         double phanTramGiam = rs.getDouble("phanTramGiam");
-        return new ChiTietKhuyenMai(maChiTietKM, km, tuyen, loaiGhe, phanTramGiam);
+        return new ChiTietKhuyenMai(maChiTietKM, tenChiTiet, km, tuyen, loaiGhe, phanTramGiam);
     }
 }

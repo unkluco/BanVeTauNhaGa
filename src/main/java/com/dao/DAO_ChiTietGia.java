@@ -134,6 +134,20 @@ public class DAO_ChiTietGia {
         return false;
     }
 
+    public boolean delete(String maChiTietGia) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return false;
+
+        String sql = "DELETE FROM ChiTietGia WHERE maChiTietGia = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maChiTietGia);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi xóa chi tiết giá: " + e.getMessage());
+        }
+        return false;
+    }
+
     private ChiTietGia mapRow(ResultSet rs) throws SQLException {
         String maChiTietGia = rs.getString("maChiTietGia");
         Gia gia = daoGia.findById(rs.getString("maGia"));

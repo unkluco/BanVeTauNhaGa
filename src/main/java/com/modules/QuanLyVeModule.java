@@ -67,6 +67,8 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     private static final Color ROW_ALT       = new Color(0xF8, 0xFA, 0xFC);
     private static final Color ROW_HOVER     = new Color(0xEE, 0xF5, 0xFB);
     private static final Color ERROR         = new Color(0xBA, 0x1A, 0x1A);
+    private static final Color ERROR_BG      = new Color(0xFF, 0xDA, 0xD6);
+    private static final Color ERROR_FG      = new Color(0xB9, 0x1C, 0x1C);
 
     private static final Color STATUS_GREEN_BG  = new Color(0xDC, 0xFA, 0xE6);
     private static final Color STATUS_GREEN_FG  = new Color(0x16, 0x6B, 0x3A);
@@ -453,7 +455,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
 
         // Columns: Mã vé, Hành khách, Ga đi, Ga đến, Khởi hành, Trạng thái, Thao tác
         TableColumnModel colModel = table.getColumnModel();
-        int[] widths = {110, 170, 110, 110, 140, 120, 100};
+        int[] widths = {110, 170, 110, 110, 140, 120, 160};
         for (int i = 0; i < widths.length; i++) {
             colModel.getColumn(i).setPreferredWidth(widths[i]);
         }
@@ -912,32 +914,35 @@ public class QuanLyVeModule extends JPanel implements AppModule {
 
     /** Action buttons: Chi tiet + Hoan ve */
     private class ActionButtonRenderer extends JPanel implements TableCellRenderer {
-        private final JLabel btnDetail = new JLabel("\u2315");
-        private final JLabel btnRefund = new JLabel("\u21BA");
+        private final JLabel lblDetail = new JLabel("Xem");
+        private final JLabel lblRefund = new JLabel("Ho\u00E0n v\u00E9");
+        private boolean isCancelled = false;
 
         ActionButtonRenderer() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 6, 0));
+            setLayout(new GridBagLayout());
             setOpaque(true);
-            setupBtn(btnDetail, PRIMARY);
-            setupBtn(btnRefund, PRIMARY);
-            add(btnDetail);
-            add(btnRefund);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(0, 5, 0, 5);
+            configLabel(lblDetail, PRIMARY,   new Dimension(52, 28));
+            configLabel(lblRefund, ERROR_FG,  new Dimension(72, 28));
+            add(lblDetail, gbc);
+            add(lblRefund, gbc);
         }
 
-        private void setupBtn(JLabel lbl, Color color) {
-            lbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
-            lbl.setForeground(color);
-            lbl.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            lbl.setPreferredSize(new Dimension(32, 32));
+        private void configLabel(JLabel lbl, Color fg, Dimension size) {
+            lbl.setFont(FONT_BADGE);
+            lbl.setForeground(fg);
             lbl.setHorizontalAlignment(SwingConstants.CENTER);
+            lbl.setPreferredSize(size);
+            lbl.setOpaque(false);
         }
 
         @Override
         public Component getTableCellRendererComponent(JTable tbl, Object value,
                 boolean isSel, boolean hasFocus, int row, int col) {
             setBackground(getRowBg(isSel, row));
-            boolean isCancelled = (value instanceof TrangThaiVe tt && tt == TrangThaiVe.DA_HUY);
-            btnRefund.setForeground(isCancelled ? new Color(0xC0, 0xC0, 0xC0) : PRIMARY);
+            isCancelled = (value instanceof TrangThaiVe tt && tt == TrangThaiVe.DA_HUY);
+            lblRefund.setForeground(isCancelled ? ON_SURF_VAR : ERROR_FG);
             return this;
         }
 
@@ -945,38 +950,47 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         protected void paintChildren(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            // Draw rounded rect bg for each button
-            for (Component c : getComponents()) {
-                Rectangle r = c.getBounds();
-                g2.setColor(PRIMARY_LIGHT);
-                g2.fill(new RoundRectangle2D.Float(r.x, r.y + 2, r.width, r.height - 4, 8, 8));
-            }
+            Rectangle rd = lblDetail.getBounds();
+            g2.setColor(PRIMARY_LIGHT);
+            g2.fillRoundRect(rd.x, rd.y, rd.width, rd.height, 8, 8);
+            Rectangle rr = lblRefund.getBounds();
+            g2.setColor(isCancelled ? new Color(0xF1, 0xF5, 0xF9) : ERROR_BG);
+            g2.fillRoundRect(rr.x, rr.y, rr.width, rr.height, 8, 8);
             g2.dispose();
             super.paintChildren(g);
         }
     }
 
     private class ActionButtonEditor extends AbstractCellEditor implements TableCellEditor {
-        private final JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
-        private final JButton btnDetail = new JButton("\u2315");
-        private final JButton btnRefund = new JButton("\u21BA");
+        private final JPanel  panel     = new JPanel(new GridBagLayout());
+        private final JButton btnDetail = new JButton("Xem");
+        private final JButton btnRefund = new JButton("Ho\u00E0n v\u00E9");
         private int editingRow;
 
         ActionButtonEditor() {
             panel.setOpaque(true);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(0, 5, 0, 5);
 
-            for (JButton btn : new JButton[]{btnDetail, btnRefund}) {
-                btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
-                btn.setForeground(PRIMARY);
-                btn.setBackground(PRIMARY_LIGHT);
-                btn.setBorderPainted(false);
-                btn.setFocusPainted(false);
-                btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                btn.setPreferredSize(new Dimension(32, 32));
-                panel.add(btn);
-            }
+            btnDetail.setFont(FONT_BADGE);
+            btnDetail.setForeground(PRIMARY);
+            btnDetail.setBackground(PRIMARY_LIGHT);
+            btnDetail.setBorderPainted(false);
+            btnDetail.setFocusPainted(false);
+            btnDetail.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            btnDetail.setPreferredSize(new Dimension(52, 28));
+            panel.add(btnDetail, gbc);
 
-            btnDetail.setToolTipText("Chi ti\u1EBFt");
+            btnRefund.setFont(FONT_BADGE);
+            btnRefund.setForeground(ERROR_FG);
+            btnRefund.setBackground(ERROR_BG);
+            btnRefund.setBorderPainted(false);
+            btnRefund.setFocusPainted(false);
+            btnRefund.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            btnRefund.setPreferredSize(new Dimension(72, 28));
+            panel.add(btnRefund, gbc);
+
+            btnDetail.setToolTipText("Xem chi ti\u1EBFt");
             btnRefund.setToolTipText("Ho\u00E0n v\u00E9");
 
             btnDetail.addActionListener(e -> {
@@ -1028,10 +1042,11 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         public Component getTableCellEditorComponent(JTable tbl, Object value,
                 boolean isSel, int row, int col) {
             editingRow = row;
-            panel.setBackground(PRIMARY_LIGHT);
+            panel.setBackground(getRowBg(true, row));
             boolean isCancelled = (value instanceof TrangThaiVe tt && tt == TrangThaiVe.DA_HUY);
             btnRefund.setEnabled(!isCancelled);
-            btnRefund.setForeground(isCancelled ? new Color(0xC0, 0xC0, 0xC0) : PRIMARY);
+            btnRefund.setForeground(isCancelled ? ON_SURF_VAR : ERROR_FG);
+            btnRefund.setBackground(isCancelled ? new Color(0xF1, 0xF5, 0xF9) : ERROR_BG);
             return panel;
         }
 

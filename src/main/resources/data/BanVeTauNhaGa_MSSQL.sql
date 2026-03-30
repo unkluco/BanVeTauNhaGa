@@ -73,8 +73,8 @@ CREATE TABLE ToaTau (
 -- 6. Gia
 CREATE TABLE Gia (
     maGia VARCHAR(20) PRIMARY KEY,
-    thoiGianBatDau DATETIME NOT NULL,
-    thoiGianKetThuc DATETIME NOT NULL,
+    thoiGianBatDau DATE NOT NULL,
+    thoiGianKetThuc DATE NOT NULL,
     moTa NVARCHAR(255),
     trangThai BIT NOT NULL DEFAULT 0,
     CHECK (thoiGianKetThuc > thoiGianBatDau)
@@ -96,6 +96,7 @@ CREATE TABLE Tuyen (
     maTuyen VARCHAR(20) PRIMARY KEY,
     gaDi VARCHAR(20) NOT NULL,
     gaDen VARCHAR(20) NOT NULL,
+    km INT NOT NULL DEFAULT 0,
     FOREIGN KEY (gaDi) REFERENCES Ga(maGa),
     FOREIGN KEY (gaDen) REFERENCES Ga(maGa),
     CHECK (gaDi != gaDen)
@@ -150,14 +151,17 @@ CREATE TABLE ChiTietGia (
 );
 
 -- 13b. ChiTietKhuyenMai (FK -> KhuyenMai, Tuyen) - cau truc giong ChiTietGia
+--   maTuyen  NULL = ap dung tat ca tuyen
+--   loaiGhe  NULL = ap dung tat ca loai ghe
 CREATE TABLE ChiTietKhuyenMai (
     maChiTietKM VARCHAR(20) PRIMARY KEY,
     maKhuyenMai VARCHAR(20) NOT NULL,
-    maTuyen VARCHAR(20) NOT NULL,
-    loaiGhe VARCHAR(20) NOT NULL CHECK (loaiGhe IN ('GHE_CUNG', 'GHE_MEM', 'GIUONG_NAM')),
+    maTuyen     VARCHAR(20) NULL,
+    loaiGhe     VARCHAR(20) NULL CHECK (loaiGhe IS NULL OR loaiGhe IN ('GHE_CUNG', 'GHE_MEM', 'GIUONG_NAM')),
+    tenChiTiet  NVARCHAR(200) NULL,
     phanTramGiam DECIMAL(5,2) NOT NULL CHECK (phanTramGiam > 0 AND phanTramGiam <= 1),
     FOREIGN KEY (maKhuyenMai) REFERENCES KhuyenMai(maKhuyenMai),
-    FOREIGN KEY (maTuyen) REFERENCES Tuyen(maTuyen)
+    FOREIGN KEY (maTuyen)     REFERENCES Tuyen(maTuyen)
 );
 
 -- 14. Ve (THAY DOI LON: xoa maHoaDon/tenHanhKhach/cccd/giaTien, them maLich+maGhe)
@@ -355,49 +359,49 @@ INSERT INTO ToaTau VALUES ('TOA-008', 'GHE_MEM');
 -- ==================== 6. Tuyen ====================
 -- Ghi chu: Tuyen trong DB la tuyen dich vu (ga di - ga den), khong phai chi doan vat ly.
 -- TUY-001..010: Tuyen express giua cac ga chinh (giu nguyen de tuong thich du lieu mau)
-INSERT INTO Tuyen VALUES ('TUY-001', 'GA-001', 'GA-002');   -- Ha Noi -> Vinh
-INSERT INTO Tuyen VALUES ('TUY-002', 'GA-002', 'GA-003');   -- Vinh -> Hue
-INSERT INTO Tuyen VALUES ('TUY-003', 'GA-003', 'GA-004');   -- Hue -> Da Nang
-INSERT INTO Tuyen VALUES ('TUY-004', 'GA-004', 'GA-005');   -- Da Nang -> Sai Gon
-INSERT INTO Tuyen VALUES ('TUY-005', 'GA-005', 'GA-004');   -- Sai Gon -> Da Nang
-INSERT INTO Tuyen VALUES ('TUY-006', 'GA-004', 'GA-003');   -- Da Nang -> Hue
-INSERT INTO Tuyen VALUES ('TUY-007', 'GA-003', 'GA-002');   -- Hue -> Vinh
-INSERT INTO Tuyen VALUES ('TUY-008', 'GA-002', 'GA-001');   -- Vinh -> Ha Noi
-INSERT INTO Tuyen VALUES ('TUY-009', 'GA-001', 'GA-005');   -- Ha Noi -> Sai Gon (xuyen Viet)
-INSERT INTO Tuyen VALUES ('TUY-010', 'GA-005', 'GA-001');   -- Sai Gon -> Ha Noi (xuyen Viet)
+INSERT INTO Tuyen VALUES ('TUY-001', 'GA-001', 'GA-002', 319);   -- Ha Noi -> Vinh
+INSERT INTO Tuyen VALUES ('TUY-002', 'GA-002', 'GA-003', 368);   -- Vinh -> Hue
+INSERT INTO Tuyen VALUES ('TUY-003', 'GA-003', 'GA-004', 100);   -- Hue -> Da Nang
+INSERT INTO Tuyen VALUES ('TUY-004', 'GA-004', 'GA-005', 935);   -- Da Nang -> Sai Gon
+INSERT INTO Tuyen VALUES ('TUY-005', 'GA-005', 'GA-004', 935);   -- Sai Gon -> Da Nang
+INSERT INTO Tuyen VALUES ('TUY-006', 'GA-004', 'GA-003', 100);   -- Da Nang -> Hue
+INSERT INTO Tuyen VALUES ('TUY-007', 'GA-003', 'GA-002', 368);   -- Hue -> Vinh
+INSERT INTO Tuyen VALUES ('TUY-008', 'GA-002', 'GA-001', 319);   -- Vinh -> Ha Noi
+INSERT INTO Tuyen VALUES ('TUY-009', 'GA-001', 'GA-005', 1726);  -- Ha Noi -> Sai Gon (xuyen Viet)
+INSERT INTO Tuyen VALUES ('TUY-010', 'GA-005', 'GA-001', 1726);  -- Sai Gon -> Ha Noi (xuyen Viet)
 -- TUY-011..025: Doan trung gian Bac->Nam (theo thu tu dia ly)
-INSERT INTO Tuyen VALUES ('TUY-011', 'GA-001', 'GA-006');   -- Ha Noi -> Nam Dinh     (~87 km)
-INSERT INTO Tuyen VALUES ('TUY-012', 'GA-006', 'GA-007');   -- Nam Dinh -> Ninh Binh  (~30 km)
-INSERT INTO Tuyen VALUES ('TUY-013', 'GA-007', 'GA-008');   -- Ninh Binh -> Thanh Hoa (~57 km)
-INSERT INTO Tuyen VALUES ('TUY-014', 'GA-008', 'GA-002');   -- Thanh Hoa -> Vinh      (~73 km)
-INSERT INTO Tuyen VALUES ('TUY-015', 'GA-002', 'GA-009');   -- Vinh -> Dong Hoi       (~166 km)
-INSERT INTO Tuyen VALUES ('TUY-016', 'GA-009', 'GA-010');   -- Dong Hoi -> Dong Ha    (~72 km)
-INSERT INTO Tuyen VALUES ('TUY-017', 'GA-010', 'GA-003');   -- Dong Ha -> Hue         (~70 km)
-INSERT INTO Tuyen VALUES ('TUY-018', 'GA-003', 'GA-004');   -- Hue -> Da Nang (qua Hai Van, ~100 km) [trung tran TUY-003]
-INSERT INTO Tuyen VALUES ('TUY-019', 'GA-004', 'GA-011');   -- Da Nang -> Tam Ky      (~72 km)
-INSERT INTO Tuyen VALUES ('TUY-020', 'GA-011', 'GA-012');   -- Tam Ky -> Quang Ngai   (~40 km)
-INSERT INTO Tuyen VALUES ('TUY-021', 'GA-012', 'GA-013');   -- Quang Ngai -> Dieu Tri (~107 km)
-INSERT INTO Tuyen VALUES ('TUY-022', 'GA-013', 'GA-014');   -- Dieu Tri -> Tuy Hoa    (~85 km)
-INSERT INTO Tuyen VALUES ('TUY-023', 'GA-014', 'GA-015');   -- Tuy Hoa -> Nha Trang   (~104 km)
-INSERT INTO Tuyen VALUES ('TUY-024', 'GA-015', 'GA-016');   -- Nha Trang -> Phan Rang (~101 km)
-INSERT INTO Tuyen VALUES ('TUY-025', 'GA-016', 'GA-017');   -- Phan Rang -> Bien Hoa  (~185 km)
-INSERT INTO Tuyen VALUES ('TUY-026', 'GA-017', 'GA-005');   -- Bien Hoa -> Sai Gon    (~32 km)
+INSERT INTO Tuyen VALUES ('TUY-011', 'GA-001', 'GA-006', 87);    -- Ha Noi -> Nam Dinh     (~87 km)
+INSERT INTO Tuyen VALUES ('TUY-012', 'GA-006', 'GA-007', 30);    -- Nam Dinh -> Ninh Binh  (~30 km)
+INSERT INTO Tuyen VALUES ('TUY-013', 'GA-007', 'GA-008', 57);    -- Ninh Binh -> Thanh Hoa (~57 km)
+INSERT INTO Tuyen VALUES ('TUY-014', 'GA-008', 'GA-002', 73);    -- Thanh Hoa -> Vinh      (~73 km)
+INSERT INTO Tuyen VALUES ('TUY-015', 'GA-002', 'GA-009', 166);   -- Vinh -> Dong Hoi       (~166 km)
+INSERT INTO Tuyen VALUES ('TUY-016', 'GA-009', 'GA-010', 72);    -- Dong Hoi -> Dong Ha    (~72 km)
+INSERT INTO Tuyen VALUES ('TUY-017', 'GA-010', 'GA-003', 70);    -- Dong Ha -> Hue         (~70 km)
+INSERT INTO Tuyen VALUES ('TUY-018', 'GA-003', 'GA-004', 100);   -- Hue -> Da Nang (qua Hai Van, ~100 km)
+INSERT INTO Tuyen VALUES ('TUY-019', 'GA-004', 'GA-011', 72);    -- Da Nang -> Tam Ky      (~72 km)
+INSERT INTO Tuyen VALUES ('TUY-020', 'GA-011', 'GA-012', 40);    -- Tam Ky -> Quang Ngai   (~40 km)
+INSERT INTO Tuyen VALUES ('TUY-021', 'GA-012', 'GA-013', 107);   -- Quang Ngai -> Dieu Tri (~107 km)
+INSERT INTO Tuyen VALUES ('TUY-022', 'GA-013', 'GA-014', 85);    -- Dieu Tri -> Tuy Hoa    (~85 km)
+INSERT INTO Tuyen VALUES ('TUY-023', 'GA-014', 'GA-015', 104);   -- Tuy Hoa -> Nha Trang   (~104 km)
+INSERT INTO Tuyen VALUES ('TUY-024', 'GA-015', 'GA-016', 101);   -- Nha Trang -> Phan Rang (~101 km)
+INSERT INTO Tuyen VALUES ('TUY-025', 'GA-016', 'GA-017', 185);   -- Phan Rang -> Bien Hoa  (~185 km)
+INSERT INTO Tuyen VALUES ('TUY-026', 'GA-017', 'GA-005', 32);    -- Bien Hoa -> Sai Gon    (~32 km)
 -- TUY-027..040: Doan trung gian Nam->Bac (nguoc chieu)
-INSERT INTO Tuyen VALUES ('TUY-027', 'GA-006', 'GA-001');   -- Nam Dinh -> Ha Noi
-INSERT INTO Tuyen VALUES ('TUY-028', 'GA-007', 'GA-006');   -- Ninh Binh -> Nam Dinh
-INSERT INTO Tuyen VALUES ('TUY-029', 'GA-008', 'GA-007');   -- Thanh Hoa -> Ninh Binh
-INSERT INTO Tuyen VALUES ('TUY-030', 'GA-002', 'GA-008');   -- Vinh -> Thanh Hoa
-INSERT INTO Tuyen VALUES ('TUY-031', 'GA-009', 'GA-002');   -- Dong Hoi -> Vinh
-INSERT INTO Tuyen VALUES ('TUY-032', 'GA-010', 'GA-009');   -- Dong Ha -> Dong Hoi
-INSERT INTO Tuyen VALUES ('TUY-033', 'GA-003', 'GA-010');   -- Hue -> Dong Ha
-INSERT INTO Tuyen VALUES ('TUY-034', 'GA-011', 'GA-004');   -- Tam Ky -> Da Nang
-INSERT INTO Tuyen VALUES ('TUY-035', 'GA-012', 'GA-011');   -- Quang Ngai -> Tam Ky
-INSERT INTO Tuyen VALUES ('TUY-036', 'GA-013', 'GA-012');   -- Dieu Tri -> Quang Ngai
-INSERT INTO Tuyen VALUES ('TUY-037', 'GA-014', 'GA-013');   -- Tuy Hoa -> Dieu Tri
-INSERT INTO Tuyen VALUES ('TUY-038', 'GA-015', 'GA-014');   -- Nha Trang -> Tuy Hoa
-INSERT INTO Tuyen VALUES ('TUY-039', 'GA-016', 'GA-015');   -- Phan Rang -> Nha Trang
-INSERT INTO Tuyen VALUES ('TUY-040', 'GA-017', 'GA-016');   -- Bien Hoa -> Phan Rang
-INSERT INTO Tuyen VALUES ('TUY-041', 'GA-005', 'GA-017');   -- Sai Gon -> Bien Hoa
+INSERT INTO Tuyen VALUES ('TUY-027', 'GA-006', 'GA-001', 87);    -- Nam Dinh -> Ha Noi
+INSERT INTO Tuyen VALUES ('TUY-028', 'GA-007', 'GA-006', 30);    -- Ninh Binh -> Nam Dinh
+INSERT INTO Tuyen VALUES ('TUY-029', 'GA-008', 'GA-007', 57);    -- Thanh Hoa -> Ninh Binh
+INSERT INTO Tuyen VALUES ('TUY-030', 'GA-002', 'GA-008', 73);    -- Vinh -> Thanh Hoa
+INSERT INTO Tuyen VALUES ('TUY-031', 'GA-009', 'GA-002', 166);   -- Dong Hoi -> Vinh
+INSERT INTO Tuyen VALUES ('TUY-032', 'GA-010', 'GA-009', 72);    -- Dong Ha -> Dong Hoi
+INSERT INTO Tuyen VALUES ('TUY-033', 'GA-003', 'GA-010', 70);    -- Hue -> Dong Ha
+INSERT INTO Tuyen VALUES ('TUY-034', 'GA-011', 'GA-004', 72);    -- Tam Ky -> Da Nang
+INSERT INTO Tuyen VALUES ('TUY-035', 'GA-012', 'GA-011', 40);    -- Quang Ngai -> Tam Ky
+INSERT INTO Tuyen VALUES ('TUY-036', 'GA-013', 'GA-012', 107);   -- Dieu Tri -> Quang Ngai
+INSERT INTO Tuyen VALUES ('TUY-037', 'GA-014', 'GA-013', 85);    -- Tuy Hoa -> Dieu Tri
+INSERT INTO Tuyen VALUES ('TUY-038', 'GA-015', 'GA-014', 104);   -- Nha Trang -> Tuy Hoa
+INSERT INTO Tuyen VALUES ('TUY-039', 'GA-016', 'GA-015', 101);   -- Phan Rang -> Nha Trang
+INSERT INTO Tuyen VALUES ('TUY-040', 'GA-017', 'GA-016', 185);   -- Bien Hoa -> Phan Rang
+INSERT INTO Tuyen VALUES ('TUY-041', 'GA-005', 'GA-017', 32);    -- Sai Gon -> Bien Hoa
 
 -- ==================== 7. DoanTau ====================
 -- Ten tau theo quy uoc cua VNR (SE = Speed Express, TN = Thong Nhat)
@@ -475,9 +479,9 @@ INSERT INTO Lich VALUES ('LCH-007', 'TUY-005', 'DT-002', '2026-04-13 07:00:00', 
 INSERT INTO Lich VALUES ('LCH-008', 'TUY-009', 'DT-003', '2026-04-15 19:00:00', 1980);  -- 33h
 
 -- ==================== 11. Gia ====================
-INSERT INTO Gia VALUES ('GIA-001', '2026-01-01 00:00:00', '2026-12-31 23:59:59', N'Bảng giá thường 2026', 0);
-INSERT INTO Gia VALUES ('GIA-002', '2026-01-25 00:00:00', '2026-02-10 23:59:59', N'Bảng giá Tết Nguyên Đán 2026', 0);
-INSERT INTO Gia VALUES ('GIA-003', '2026-06-01 00:00:00', '2026-08-31 23:59:59', N'Bảng giá mùa hè 2026', 0);
+INSERT INTO Gia VALUES ('GIA-001', '2026-01-01', '2026-12-31', N'Bảng giá thường 2026', 0);
+INSERT INTO Gia VALUES ('GIA-002', '2026-01-25', '2026-02-10', N'Bảng giá Tết Nguyên Đán 2026', 0);
+INSERT INTO Gia VALUES ('GIA-003', '2026-06-01', '2026-08-31', N'Bảng giá mùa hè 2026', 0);
 
 -- ==================== 12. ChiTietGia (giaNiemYet da doi sang DECIMAL) ====================
 -- Bang gia thuong (GIA-001)
@@ -628,112 +632,112 @@ INSERT INTO KhuyenMai VALUES ('KM-005', N'Khuyến mãi Quốc khánh 2/9', '202
 -- Tre em: giam 20-25%, Sinh vien: giam 10-15%, Nguoi cao tuoi: giam 15-20%
 -- Ap dung cho 10 tuyen express chinh (TUY-001 den TUY-010)
 -- Tre em - ghe cung 20%
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-001', 'KM-001', 'TUY-001', 'GHE_CUNG', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-002', 'KM-001', 'TUY-002', 'GHE_CUNG', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-003', 'KM-001', 'TUY-003', 'GHE_CUNG', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-004', 'KM-001', 'TUY-004', 'GHE_CUNG', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-005', 'KM-001', 'TUY-005', 'GHE_CUNG', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-006', 'KM-001', 'TUY-006', 'GHE_CUNG', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-007', 'KM-001', 'TUY-007', 'GHE_CUNG', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-008', 'KM-001', 'TUY-008', 'GHE_CUNG', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-009', 'KM-001', 'TUY-009', 'GHE_CUNG', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-010', 'KM-001', 'TUY-010', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-001', 'KM-001', 'TUY-001', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-002', 'KM-001', 'TUY-002', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-003', 'KM-001', 'TUY-003', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-004', 'KM-001', 'TUY-004', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-005', 'KM-001', 'TUY-005', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-006', 'KM-001', 'TUY-006', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-007', 'KM-001', 'TUY-007', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-008', 'KM-001', 'TUY-008', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-009', 'KM-001', 'TUY-009', 'GHE_CUNG', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-010', 'KM-001', 'TUY-010', 'GHE_CUNG', 0.20);
 -- Tre em - ghe mem 22%
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-011', 'KM-001', 'TUY-001', 'GHE_MEM', 0.22);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-012', 'KM-001', 'TUY-002', 'GHE_MEM', 0.22);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-013', 'KM-001', 'TUY-003', 'GHE_MEM', 0.22);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-014', 'KM-001', 'TUY-004', 'GHE_MEM', 0.22);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-015', 'KM-001', 'TUY-005', 'GHE_MEM', 0.22);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-016', 'KM-001', 'TUY-006', 'GHE_MEM', 0.22);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-017', 'KM-001', 'TUY-007', 'GHE_MEM', 0.22);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-018', 'KM-001', 'TUY-008', 'GHE_MEM', 0.22);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-019', 'KM-001', 'TUY-009', 'GHE_MEM', 0.22);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-020', 'KM-001', 'TUY-010', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-011', 'KM-001', 'TUY-001', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-012', 'KM-001', 'TUY-002', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-013', 'KM-001', 'TUY-003', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-014', 'KM-001', 'TUY-004', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-015', 'KM-001', 'TUY-005', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-016', 'KM-001', 'TUY-006', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-017', 'KM-001', 'TUY-007', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-018', 'KM-001', 'TUY-008', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-019', 'KM-001', 'TUY-009', 'GHE_MEM', 0.22);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-020', 'KM-001', 'TUY-010', 'GHE_MEM', 0.22);
 -- Tre em - giuong nam 25%
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-021', 'KM-001', 'TUY-001', 'GIUONG_NAM', 0.25);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-022', 'KM-001', 'TUY-002', 'GIUONG_NAM', 0.25);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-023', 'KM-001', 'TUY-003', 'GIUONG_NAM', 0.25);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-024', 'KM-001', 'TUY-004', 'GIUONG_NAM', 0.25);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-025', 'KM-001', 'TUY-005', 'GIUONG_NAM', 0.25);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-026', 'KM-001', 'TUY-006', 'GIUONG_NAM', 0.25);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-027', 'KM-001', 'TUY-007', 'GIUONG_NAM', 0.25);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-028', 'KM-001', 'TUY-008', 'GIUONG_NAM', 0.25);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-029', 'KM-001', 'TUY-009', 'GIUONG_NAM', 0.25);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-030', 'KM-001', 'TUY-010', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-021', 'KM-001', 'TUY-001', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-022', 'KM-001', 'TUY-002', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-023', 'KM-001', 'TUY-003', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-024', 'KM-001', 'TUY-004', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-025', 'KM-001', 'TUY-005', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-026', 'KM-001', 'TUY-006', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-027', 'KM-001', 'TUY-007', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-028', 'KM-001', 'TUY-008', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-029', 'KM-001', 'TUY-009', 'GIUONG_NAM', 0.25);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-030', 'KM-001', 'TUY-010', 'GIUONG_NAM', 0.25);
 
 -- KM-002: Le 30/4 - giam 10% dong deu cho cac tuyen chinh
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-031', 'KM-002', 'TUY-001', 'GHE_CUNG', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-032', 'KM-002', 'TUY-001', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-033', 'KM-002', 'TUY-001', 'GIUONG_NAM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-034', 'KM-002', 'TUY-002', 'GHE_CUNG', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-035', 'KM-002', 'TUY-002', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-036', 'KM-002', 'TUY-002', 'GIUONG_NAM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-037', 'KM-002', 'TUY-003', 'GHE_CUNG', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-038', 'KM-002', 'TUY-003', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-039', 'KM-002', 'TUY-003', 'GIUONG_NAM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-040', 'KM-002', 'TUY-004', 'GHE_CUNG', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-041', 'KM-002', 'TUY-004', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-042', 'KM-002', 'TUY-004', 'GIUONG_NAM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-043', 'KM-002', 'TUY-009', 'GHE_CUNG', 0.12);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-044', 'KM-002', 'TUY-009', 'GHE_MEM', 0.12);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-045', 'KM-002', 'TUY-009', 'GIUONG_NAM', 0.12);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-046', 'KM-002', 'TUY-010', 'GHE_CUNG', 0.12);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-047', 'KM-002', 'TUY-010', 'GHE_MEM', 0.12);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-048', 'KM-002', 'TUY-010', 'GIUONG_NAM', 0.12);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-031', 'KM-002', 'TUY-001', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-032', 'KM-002', 'TUY-001', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-033', 'KM-002', 'TUY-001', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-034', 'KM-002', 'TUY-002', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-035', 'KM-002', 'TUY-002', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-036', 'KM-002', 'TUY-002', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-037', 'KM-002', 'TUY-003', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-038', 'KM-002', 'TUY-003', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-039', 'KM-002', 'TUY-003', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-040', 'KM-002', 'TUY-004', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-041', 'KM-002', 'TUY-004', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-042', 'KM-002', 'TUY-004', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-043', 'KM-002', 'TUY-009', 'GHE_CUNG', 0.12);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-044', 'KM-002', 'TUY-009', 'GHE_MEM', 0.12);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-045', 'KM-002', 'TUY-009', 'GIUONG_NAM', 0.12);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-046', 'KM-002', 'TUY-010', 'GHE_CUNG', 0.12);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-047', 'KM-002', 'TUY-010', 'GHE_MEM', 0.12);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-048', 'KM-002', 'TUY-010', 'GIUONG_NAM', 0.12);
 
 -- KM-003: Mua he - giam nhieu hon cho giuong nam de khuyen khich du lich
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-049', 'KM-003', 'TUY-001', 'GHE_CUNG', 0.05);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-050', 'KM-003', 'TUY-001', 'GHE_MEM', 0.07);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-051', 'KM-003', 'TUY-001', 'GIUONG_NAM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-052', 'KM-003', 'TUY-002', 'GHE_CUNG', 0.05);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-053', 'KM-003', 'TUY-002', 'GHE_MEM', 0.07);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-054', 'KM-003', 'TUY-002', 'GIUONG_NAM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-055', 'KM-003', 'TUY-003', 'GHE_CUNG', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-056', 'KM-003', 'TUY-003', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-057', 'KM-003', 'TUY-003', 'GIUONG_NAM', 0.15);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-058', 'KM-003', 'TUY-004', 'GHE_CUNG', 0.05);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-059', 'KM-003', 'TUY-004', 'GHE_MEM', 0.07);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-060', 'KM-003', 'TUY-004', 'GIUONG_NAM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-061', 'KM-003', 'TUY-005', 'GHE_CUNG', 0.05);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-062', 'KM-003', 'TUY-005', 'GHE_MEM', 0.07);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-063', 'KM-003', 'TUY-005', 'GIUONG_NAM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-064', 'KM-003', 'TUY-009', 'GHE_CUNG', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-065', 'KM-003', 'TUY-009', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-066', 'KM-003', 'TUY-009', 'GIUONG_NAM', 0.15);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-067', 'KM-003', 'TUY-010', 'GHE_CUNG', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-068', 'KM-003', 'TUY-010', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-069', 'KM-003', 'TUY-010', 'GIUONG_NAM', 0.15);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-049', 'KM-003', 'TUY-001', 'GHE_CUNG', 0.05);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-050', 'KM-003', 'TUY-001', 'GHE_MEM', 0.07);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-051', 'KM-003', 'TUY-001', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-052', 'KM-003', 'TUY-002', 'GHE_CUNG', 0.05);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-053', 'KM-003', 'TUY-002', 'GHE_MEM', 0.07);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-054', 'KM-003', 'TUY-002', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-055', 'KM-003', 'TUY-003', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-056', 'KM-003', 'TUY-003', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-057', 'KM-003', 'TUY-003', 'GIUONG_NAM', 0.15);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-058', 'KM-003', 'TUY-004', 'GHE_CUNG', 0.05);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-059', 'KM-003', 'TUY-004', 'GHE_MEM', 0.07);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-060', 'KM-003', 'TUY-004', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-061', 'KM-003', 'TUY-005', 'GHE_CUNG', 0.05);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-062', 'KM-003', 'TUY-005', 'GHE_MEM', 0.07);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-063', 'KM-003', 'TUY-005', 'GIUONG_NAM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-064', 'KM-003', 'TUY-009', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-065', 'KM-003', 'TUY-009', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-066', 'KM-003', 'TUY-009', 'GIUONG_NAM', 0.15);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-067', 'KM-003', 'TUY-010', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-068', 'KM-003', 'TUY-010', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-069', 'KM-003', 'TUY-010', 'GIUONG_NAM', 0.15);
 
 -- KM-004: Tet 2027 - giam manh cho tuyen xuyen Viet
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-070', 'KM-004', 'TUY-009', 'GHE_CUNG', 0.15);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-071', 'KM-004', 'TUY-009', 'GHE_MEM', 0.15);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-072', 'KM-004', 'TUY-009', 'GIUONG_NAM', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-073', 'KM-004', 'TUY-010', 'GHE_CUNG', 0.15);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-074', 'KM-004', 'TUY-010', 'GHE_MEM', 0.15);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-075', 'KM-004', 'TUY-010', 'GIUONG_NAM', 0.20);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-076', 'KM-004', 'TUY-001', 'GHE_CUNG', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-077', 'KM-004', 'TUY-001', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-078', 'KM-004', 'TUY-001', 'GIUONG_NAM', 0.12);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-079', 'KM-004', 'TUY-004', 'GHE_CUNG', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-080', 'KM-004', 'TUY-004', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-081', 'KM-004', 'TUY-004', 'GIUONG_NAM', 0.12);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-070', 'KM-004', 'TUY-009', 'GHE_CUNG', 0.15);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-071', 'KM-004', 'TUY-009', 'GHE_MEM', 0.15);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-072', 'KM-004', 'TUY-009', 'GIUONG_NAM', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-073', 'KM-004', 'TUY-010', 'GHE_CUNG', 0.15);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-074', 'KM-004', 'TUY-010', 'GHE_MEM', 0.15);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-075', 'KM-004', 'TUY-010', 'GIUONG_NAM', 0.20);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-076', 'KM-004', 'TUY-001', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-077', 'KM-004', 'TUY-001', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-078', 'KM-004', 'TUY-001', 'GIUONG_NAM', 0.12);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-079', 'KM-004', 'TUY-004', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-080', 'KM-004', 'TUY-004', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-081', 'KM-004', 'TUY-004', 'GIUONG_NAM', 0.12);
 
 -- KM-005: Quoc khanh 2/9 - giam 8% cho tat ca tuyen chinh
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-082', 'KM-005', 'TUY-001', 'GHE_CUNG', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-083', 'KM-005', 'TUY-001', 'GHE_MEM', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-084', 'KM-005', 'TUY-001', 'GIUONG_NAM', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-085', 'KM-005', 'TUY-002', 'GHE_CUNG', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-086', 'KM-005', 'TUY-002', 'GHE_MEM', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-087', 'KM-005', 'TUY-002', 'GIUONG_NAM', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-088', 'KM-005', 'TUY-003', 'GHE_CUNG', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-089', 'KM-005', 'TUY-003', 'GHE_MEM', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-090', 'KM-005', 'TUY-003', 'GIUONG_NAM', 0.08);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-091', 'KM-005', 'TUY-009', 'GHE_CUNG', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-092', 'KM-005', 'TUY-009', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-093', 'KM-005', 'TUY-009', 'GIUONG_NAM', 0.12);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-094', 'KM-005', 'TUY-010', 'GHE_CUNG', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-095', 'KM-005', 'TUY-010', 'GHE_MEM', 0.10);
-INSERT INTO ChiTietKhuyenMai VALUES ('CTKM-096', 'KM-005', 'TUY-010', 'GIUONG_NAM', 0.12);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-082', 'KM-005', 'TUY-001', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-083', 'KM-005', 'TUY-001', 'GHE_MEM', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-084', 'KM-005', 'TUY-001', 'GIUONG_NAM', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-085', 'KM-005', 'TUY-002', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-086', 'KM-005', 'TUY-002', 'GHE_MEM', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-087', 'KM-005', 'TUY-002', 'GIUONG_NAM', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-088', 'KM-005', 'TUY-003', 'GHE_CUNG', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-089', 'KM-005', 'TUY-003', 'GHE_MEM', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-090', 'KM-005', 'TUY-003', 'GIUONG_NAM', 0.08);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-091', 'KM-005', 'TUY-009', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-092', 'KM-005', 'TUY-009', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-093', 'KM-005', 'TUY-009', 'GIUONG_NAM', 0.12);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-094', 'KM-005', 'TUY-010', 'GHE_CUNG', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-095', 'KM-005', 'TUY-010', 'GHE_MEM', 0.10);
+INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, phanTramGiam) VALUES ('CTKM-096', 'KM-005', 'TUY-010', 'GIUONG_NAM', 0.12);
 
 -- ==================== 14. Ve (CAU TRUC MOI: maLich + maGhe thay vi maHoaDon) ====================
 -- HD-10042026-001: Pham Minh Tuan mua 2 ve ghe mem LCH-001

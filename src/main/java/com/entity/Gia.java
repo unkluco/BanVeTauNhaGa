@@ -1,11 +1,11 @@
 package com.entity;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public class Gia {
     private String maGia;
-    private LocalDateTime thoiGianBatDau;
-    private LocalDateTime thoiGianKetThuc;
+    private LocalDate thoiGianBatDau;
+    private LocalDate thoiGianKetThuc;
     private String moTa;
     private boolean trangThai;
 
@@ -17,7 +17,7 @@ public class Gia {
         this.maGia = maGia;
     }
 
-    public Gia(String maGia, LocalDateTime thoiGianBatDau, LocalDateTime thoiGianKetThuc, String moTa, boolean trangThai) {
+    public Gia(String maGia, LocalDate thoiGianBatDau, LocalDate thoiGianKetThuc, String moTa, boolean trangThai) {
         this.maGia = maGia;
         this.thoiGianBatDau = thoiGianBatDau;
         this.thoiGianKetThuc = thoiGianKetThuc;
@@ -27,10 +27,10 @@ public class Gia {
 
     public String getMaGia() { return maGia; }
     public void setMaGia(String maGia) { this.maGia = maGia; }
-    public LocalDateTime getThoiGianBatDau() { return thoiGianBatDau; }
-    public void setThoiGianBatDau(LocalDateTime thoiGianBatDau) { this.thoiGianBatDau = thoiGianBatDau; }
-    public LocalDateTime getThoiGianKetThuc() { return thoiGianKetThuc; }
-    public void setThoiGianKetThuc(LocalDateTime thoiGianKetThuc) { this.thoiGianKetThuc = thoiGianKetThuc; }
+    public LocalDate getThoiGianBatDau() { return thoiGianBatDau; }
+    public void setThoiGianBatDau(LocalDate thoiGianBatDau) { this.thoiGianBatDau = thoiGianBatDau; }
+    public LocalDate getThoiGianKetThuc() { return thoiGianKetThuc; }
+    public void setThoiGianKetThuc(LocalDate thoiGianKetThuc) { this.thoiGianKetThuc = thoiGianKetThuc; }
     public String getMoTa() { return moTa; }
     public void setMoTa(String moTa) { this.moTa = moTa; }
     public boolean isTrangThai() { return trangThai; }

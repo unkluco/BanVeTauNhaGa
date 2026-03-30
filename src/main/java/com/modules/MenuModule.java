@@ -439,6 +439,28 @@ public class MenuModule extends JPanel implements AppModule {
                 contentPanel.revalidate();
                 contentPanel.repaint();
             }
+            case "QL_GIA" -> {
+                QuanLyGiaModule giaModule = new QuanLyGiaModule();
+                giaModule.setOnResult(null);
+                contentPanel.removeAll();
+                contentPanel.add(giaModule.getView(), BorderLayout.CENTER);
+                contentPanel.revalidate();
+                contentPanel.repaint();
+            }
+            case "QL_KHUYEN_MAI" -> {
+                try {
+                    QuanLyKhuyenMaiModule kmModule = new QuanLyKhuyenMaiModule();
+                    kmModule.setOnResult(null);
+                    contentPanel.removeAll();
+                    contentPanel.add(kmModule.getView(), BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                } catch (Exception ex) {
+                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyKhuyenMaiModule:");
+                    ex.printStackTrace();
+                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD khuy\u1EBFn m\u00E3i: " + ex.getMessage());
+                }
+            }
             case "QL_VE_HOA_DON" -> {
                 try {
                     QuanLyVeModule module = new QuanLyVeModule();
@@ -451,6 +473,20 @@ public class MenuModule extends JPanel implements AppModule {
                     System.err.println("[ERROR] Không thể mở QuanLyVeModule:");
                     ex.printStackTrace();
                     showPlaceholder("Lỗi", "Không thể tải module Quản lý vé: " + ex.getMessage());
+                }
+            }
+            case "QL_TUYEN_LICH" -> {
+                try {
+                    QuanLyTuyenModule module = new QuanLyTuyenModule();
+                    module.setOnResult(null);
+                    contentPanel.removeAll();
+                    contentPanel.add(module.getView(), BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                } catch (Exception ex) {
+                    System.err.println("[ERROR] Không thể mở QuanLyTuyenModule:");
+                    ex.printStackTrace();
+                    showPlaceholder("Lỗi", "Không thể tải module Quản lý tuyến: " + ex.getMessage());
                 }
             }
             default -> showPlaceholder(label,
