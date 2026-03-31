@@ -97,8 +97,10 @@ public class MenuModule extends JPanel implements AppModule {
         addMenuItem(nav, "Qu\u1EA3n l\u00FD gi\u00E1",                                  "QL_GIA");
         addMenuItem(nav, "Qu\u1EA3n l\u00FD khuy\u1EBFn m\u00E3i",                      "QL_KHUYEN_MAI");
         addMenuItem(nav, "Qu\u1EA3n l\u00FD v\u00E9",                                    "QL_VE_HOA_DON");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD \u0111o\u00E0n t\u00E0u & toa",             "QL_TOA_TAU");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD tuy\u1EBFn & l\u1ECBch ch\u1EA1y",          "QL_TUYEN_LICH");
+        addMenuItem(nav, "Qu\u1EA3n l\u00FD \u0111o\u00E0n t\u00E0u",                   "QL_DOAN_TAU");
+        addMenuItem(nav, "Qu\u1EA3n l\u00FD toa",                                       "QL_TOA");
+        addMenuItem(nav, "Qu\u1EA3n l\u00FD tuy\u1EBFn",                                "QL_TUYEN");
+        addMenuItem(nav, "Qu\u1EA3n l\u00FD l\u1ECBch ch\u1EA1y",                       "QL_LICH_CHAY");
         addMenuItem(nav, "Qu\u1EA3n l\u00FD nh\u00E2n vi\u00EAn",                       "QL_NHAN_VIEN");
 
         applyRoleRestrictions();
@@ -399,8 +401,10 @@ public class MenuModule extends JPanel implements AppModule {
 
         if (vaiTro == VaiTro.BAN_VE) {
             disableMenuItem("QL_NHAN_VIEN");
-            disableMenuItem("QL_TUYEN_LICH");
-            disableMenuItem("QL_TOA_TAU");
+            disableMenuItem("QL_TUYEN");
+            disableMenuItem("QL_LICH_CHAY");
+            disableMenuItem("QL_DOAN_TAU");
+            disableMenuItem("QL_TOA");
             disableMenuItem("QL_KHUYEN_MAI");
             disableMenuItem("QL_GIA");
         }
@@ -475,7 +479,7 @@ public class MenuModule extends JPanel implements AppModule {
                     showPlaceholder("Lỗi", "Không thể tải module Quản lý vé: " + ex.getMessage());
                 }
             }
-            case "QL_TUYEN_LICH" -> {
+            case "QL_TUYEN" -> {
                 try {
                     QuanLyTuyenModule module = new QuanLyTuyenModule();
                     module.setOnResult(null);
@@ -484,9 +488,37 @@ public class MenuModule extends JPanel implements AppModule {
                     contentPanel.revalidate();
                     contentPanel.repaint();
                 } catch (Exception ex) {
-                    System.err.println("[ERROR] Không thể mở QuanLyTuyenModule:");
+                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyTuyenModule:");
                     ex.printStackTrace();
-                    showPlaceholder("Lỗi", "Không thể tải module Quản lý tuyến: " + ex.getMessage());
+                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD tuy\u1EBFn: " + ex.getMessage());
+                }
+            }
+            case "QL_DOAN_TAU" -> {
+                try {
+                    QuanLyDoanTauModule module = new QuanLyDoanTauModule();
+                    module.setOnResult(null);
+                    contentPanel.removeAll();
+                    contentPanel.add(module.getView(), BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                } catch (Exception ex) {
+                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyDoanTauModule:");
+                    ex.printStackTrace();
+                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD \u0111o\u00E0n t\u00E0u: " + ex.getMessage());
+                }
+            }
+            case "QL_LICH_CHAY" -> {
+                try {
+                    QuanLyLichChayModule module = new QuanLyLichChayModule();
+                    module.setOnResult(null);
+                    contentPanel.removeAll();
+                    contentPanel.add(module.getView(), BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                } catch (Exception ex) {
+                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyLichChayModule:");
+                    ex.printStackTrace();
+                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD l\u1ECBch ch\u1EA1y: " + ex.getMessage());
                 }
             }
             default -> showPlaceholder(label,

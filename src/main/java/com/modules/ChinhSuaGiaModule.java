@@ -324,10 +324,10 @@ public class ChinhSuaGiaModule extends JPanel {
                 new EmptyBorder(14, 20, 14, 20)
         ));
 
-        // Row 1: title + search
-        JPanel row1 = new JPanel(new BorderLayout(12, 0));
+        // Row 1: title only
+        JPanel row1 = new JPanel(new BorderLayout());
         row1.setOpaque(false);
-        row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 
         JLabel lblTableTitle = new JLabel("Danh s\u00E1ch chi ti\u1EBFt gi\u00E1");
         lblTableTitle.setFont(FONT_BOLD);
@@ -348,8 +348,7 @@ public class ChinhSuaGiaModule extends JPanel {
             }
         };
         txtFilterSearch.setFont(FONT_BODY);
-        txtFilterSearch.setPreferredSize(new Dimension(260, 34));
-        txtFilterSearch.setMaximumSize(new Dimension(260, 34));
+        txtFilterSearch.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         txtFilterSearch.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1),
                 new EmptyBorder(4, 10, 4, 10)
@@ -365,13 +364,12 @@ public class ChinhSuaGiaModule extends JPanel {
         });
 
         row1.add(lblTableTitle, BorderLayout.WEST);
-        row1.add(txtFilterSearch, BorderLayout.EAST);
 
-        // Row 2: loai ghe filter
+        // Row 2: search + loai ghe filter + reset
         JPanel row2 = new JPanel();
         row2.setLayout(new BoxLayout(row2, BoxLayout.X_AXIS));
         row2.setOpaque(false);
-        row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
 
         JLabel lblLg = new JLabel("Lo\u1EA1i gh\u1EBF:");
         lblLg.setFont(FONT_HEADER);
@@ -381,14 +379,26 @@ public class ChinhSuaGiaModule extends JPanel {
             "T\u1EA5t c\u1EA3", "Gh\u1EBF c\u1EE9ng", "Gh\u1EBF m\u1EC1m", "Gi\u01B0\u1EDDng n\u1EB1m"
         });
         cboFilterLoaiGhe.setFont(FONT_BODY);
-        cboFilterLoaiGhe.setPreferredSize(new Dimension(160, 34));
-        cboFilterLoaiGhe.setMaximumSize(new Dimension(160, 34));
+        cboFilterLoaiGhe.setPreferredSize(new Dimension(200, 34));
+        cboFilterLoaiGhe.setMaximumSize(new Dimension(200, 34));
         cboFilterLoaiGhe.addActionListener(e -> applyFilter());
 
+        JButton btnBoLoc = new JButton("B\u1ECF l\u1ECDc");
+        btnBoLoc.setFont(FONT_BODY);
+        btnBoLoc.setPreferredSize(new Dimension(72, 34));
+        btnBoLoc.setMaximumSize(new Dimension(72, 34));
+        btnBoLoc.addActionListener(e -> {
+            txtFilterSearch.setText("");
+            cboFilterLoaiGhe.setSelectedIndex(0);
+        });
+
+        row2.add(txtFilterSearch);
+        row2.add(Box.createHorizontalStrut(12));
         row2.add(lblLg);
-        row2.add(Box.createHorizontalStrut(8));
+        row2.add(Box.createHorizontalStrut(6));
         row2.add(cboFilterLoaiGhe);
-        row2.add(Box.createHorizontalGlue());
+        row2.add(Box.createHorizontalStrut(8));
+        row2.add(btnBoLoc);
 
         bar.add(row1);
         bar.add(Box.createVerticalStrut(10));

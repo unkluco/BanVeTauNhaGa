@@ -25,7 +25,23 @@
       "Bash(find /c/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa -name \"ChiTietGia.class\" -exec strings {})",
       "Bash(javap -c /c/Users/ADMIN/Desktop/code/ptud/projects/BanVeTauNhaGa/bin/com/entity/ChiTietGia.class)",
       "Bash(xargs -I {} basename {})",
-      "Bash(dir \"C:\\\\Users\\\\ADMIN\\\\Desktop\\\\code\\\\ptud\\\\projects\\\\BanVeTauNhaGa\\\\src\\\\main\\\\resources\\\\html\" /b)"
+      "Bash(dir \"C:\\\\Users\\\\ADMIN\\\\Desktop\\\\code\\\\ptud\\\\projects\\\\BanVeTauNhaGa\\\\src\\\\main\\\\resources\\\\html\" /b)",
+      "Bash(./mvnw compile:*)",
+      "Bash(where java:*)",
+      "Bash(python skills/Line-Locator/cut.py --file src/main/java/com/entity/Lich.java -m \"class Lich\" \"private \" \"public \" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/entity/Lich.java -m \"class Lich\" \"private \" \"public \" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/dao/DAO_Lich.java -m \"getAll\" \"insert\" \"update\" \"delete\" \"findBy\" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/modules/SuaNhanVienDialog.java -m \"class Sua\" \"buildUI\" \"PRIMARY\" \"JTextField\" \"JComboBox\" \"btnLuu\" \"execute\" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/modules/QuanLyVeModule.java -m \"buildStatsRow\" \"buildSearchSection\" \"buildTableCard\" \"buildPagination\" \"applyFilter\" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/modules/SuaNhanVienDialog.java -m \"initUI\" \"buildHeader\" \"buildForm\" \"buildFooter\" \"roundedField\" \"styleBtn\" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/modules/SuaNhanVienDialog.java -m \"createPrimaryButton\" \"createOutlineButton\" \"createTextField\" \"addFocusBorder\" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/modules/QuanLyVeModule.java -m \"ActionButtonRenderer\" \"ActionButtonEditor\" \"class VeTableModel\" \"createSearchButton\" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/modules/MenuModule.java -m \"QuanLyLich\" \"QuanLyVe\" \"QuanLyNhan\" \"addMenuItem\" \"showModule\" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/dao/DAO_Tuyen.java -m \"findById\" \"getAll\" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/entity/Tuyen.java -m \"getTenTuyen\" \"getMaTuyen\" \"getGaDi\" \"getGaDen\" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/entity/DoanTau.java -m \"getMaDoanTau\" \"getTenDoanTau\" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/entity/Tuyen.java -m \"private \" \"public \" --json)",
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/modules/MenuModule.java -m \"QL_LICH_CHAY\" \"QL_DOAN_TAU\" \"default\" \"showPlaceholder\" --json)"
     ]
   }
 }
