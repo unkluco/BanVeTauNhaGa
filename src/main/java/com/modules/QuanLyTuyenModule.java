@@ -123,17 +123,22 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         left.setOpaque(false);
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
 
-        JLabel lblTitle = new JLabel("Quản lý Tuyến đường");
+        JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        titleRow.setOpaque(false);
+        ImageIcon icoTitle = loadScaledIcon("bieuTuongTuyen.png", 28);
+        if (icoTitle != null) titleRow.add(new JLabel(icoTitle));
+        JLabel lblTitle = new JLabel("Qu\u1EA3n l\u00FD Tuy\u1EBFn \u0111\u01B0\u1EDDng");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(PRIMARY);
-        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        titleRow.add(lblTitle);
+        titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDesc = new JLabel("Cấu hình và tối ưu hóa các lộ trình vận tải đường sắt trong hệ thống.");
+        JLabel lblDesc = new JLabel("C\u1EA5u h\u00ECnh v\u00E0 t\u1ED1i \u01B0u h\u00F3a c\u00E1c l\u1ED9 tr\u00ECnh v\u1EADn t\u1EA3i \u0111\u01B0\u1EDDng s\u1EAFt trong h\u1EC7 th\u1ED1ng.");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        left.add(lblTitle);
+        left.add(titleRow);
         left.add(Box.createVerticalStrut(4));
         left.add(lblDesc);
 
@@ -153,8 +158,10 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         btnAdd.setBorderPainted(false);
         btnAdd.setFocusPainted(false);
         btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnAdd.setPreferredSize(new Dimension(180, 42));
+        btnAdd.setPreferredSize(new Dimension(190, 42));
         btnAdd.addActionListener(e -> openAddDialog());
+        ImageIcon icoAdd = loadScaledIcon("nutThem.png", 16);
+        if (icoAdd != null) { btnAdd.setIcon(icoAdd); btnAdd.setText("  Th\u00EAm Tuy\u1EBFn m\u1EDBi"); }
 
         hdr.add(left,   BorderLayout.CENTER);
         hdr.add(btnAdd, BorderLayout.EAST);
@@ -175,39 +182,56 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
 
     // ── Filter Bar ────────────────────────────────────────────────────────
     private JPanel buildFilterBar() {
-        JPanel bar = new JPanel();
+        JPanel bar = new JPanel(new GridBagLayout());
         bar.setBackground(FILTER_BG);
         bar.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1),
                 new EmptyBorder(14, 18, 14, 18)));
-        bar.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 0));
 
-        // Ga đi label + combo
-        bar.add(buildFilterGroup("Ga đi", filterGaDi = new SearchableComboBox<>(
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy   = 0;
+        gbc.fill    = GridBagConstraints.HORIZONTAL;
+        gbc.anchor  = GridBagConstraints.CENTER;
+        gbc.weighty = 0;
+
+        // Ga đi
+        filterGaDi = new SearchableComboBox<>(
                 ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
-                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q)
-        )));
-        filterGaDi.setPlaceholder("Tất cả các ga");
-        filterGaDi.setPreferredSize(new Dimension(220, 40));
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
+        filterGaDi.setPlaceholder("T\u1EA5t c\u1EA3 c\u00E1c ga");
+        filterGaDi.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         filterGaDi.setOnChanged(this::applyFilter);
+        gbc.gridx = 0; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 8);
+        bar.add(buildFilterGroup("Ga \u0111i", filterGaDi), gbc);
 
-        // sync icon
-        JLabel syncLbl = new JLabel("⇄");
+        // sync icon ⇄ — wrapped to align at field level
+        JPanel syncWrap = new JPanel(new BorderLayout());
+        syncWrap.setOpaque(false);
+        JLabel syncSpacer = new JLabel(" ");
+        syncSpacer.setFont(FONT_SMALL);
+        syncWrap.add(syncSpacer, BorderLayout.NORTH);
+        JLabel syncLbl = new JLabel("\u21C4");
         syncLbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
         syncLbl.setForeground(OUTLINE);
-        bar.add(syncLbl);
+        syncLbl.setHorizontalAlignment(SwingConstants.CENTER);
+        syncWrap.add(syncLbl, BorderLayout.CENTER);
+        gbc.gridx = 1; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 0, 0, 8);
+        bar.add(syncWrap, gbc);
 
-        // Ga đến label + combo
-        bar.add(buildFilterGroup("Ga đến", filterGaDen = new SearchableComboBox<>(
+        // Ga đến
+        filterGaDen = new SearchableComboBox<>(
                 ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
-                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q)
-        )));
-        filterGaDen.setPlaceholder("Tất cả các ga");
-        filterGaDen.setPreferredSize(new Dimension(220, 40));
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
+        filterGaDen.setPlaceholder("T\u1EA5t c\u1EA3 c\u00E1c ga");
+        filterGaDen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         filterGaDen.setOnChanged(this::applyFilter);
+        gbc.gridx = 2; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(0, 0, 0, 8);
+        bar.add(buildFilterGroup("Ga \u0111\u1EBFn", filterGaDen), gbc);
 
-        // Bỏ lọc
-        JButton btnClear = new JButton("Bỏ lọc") {
+        // Bỏ lọc button
+        JButton btnClear = new JButton("B\u1ECF l\u1ECDc") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -229,15 +253,18 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
             filterGaDen.clearSelection();
             applyFilter();
         });
+        ImageIcon icoClear = loadScaledIcon("nutBoLoc.png", 14);
+        if (icoClear != null) btnClear.setIcon(icoClear);
 
-        // Align button to bottom like the combos
         JPanel clearWrapper = new JPanel(new BorderLayout());
         clearWrapper.setOpaque(false);
-        JLabel spacer = new JLabel(" ");
-        spacer.setFont(FONT_SMALL);
-        clearWrapper.add(spacer, BorderLayout.NORTH);
+        JLabel clearSpacer = new JLabel(" ");
+        clearSpacer.setFont(FONT_SMALL);
+        clearWrapper.add(clearSpacer, BorderLayout.NORTH);
         clearWrapper.add(btnClear, BorderLayout.CENTER);
-        bar.add(clearWrapper);
+        gbc.gridx = 3; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        bar.add(clearWrapper, gbc);
 
         return bar;
     }
@@ -253,6 +280,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
         group.add(lbl);
         group.add(Box.createVerticalStrut(4));
@@ -702,10 +730,22 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
             } else {
                 JOptionPane.showMessageDialog(
                         this,
-                        "Không thể xóa tuyến này. Tuyến có thể đang được sử dụng trong lịch chạy.",
-                        "Lỗi xóa",
+                        "Kh\u00F4ng th\u1EC3 x\u00F3a tuy\u1EBFn n\u00E0y. Tuy\u1EBFn c\u00F3 th\u1EC3 \u0111ang \u0111\u01B0\u1EE3c s\u1EED d\u1EE5ng trong l\u1ECBch ch\u1EA1y.",
+                        "L\u1ED7i x\u00F3a",
                         JOptionPane.ERROR_MESSAGE);
             }
+        }
+    }
+
+    private ImageIcon loadScaledIcon(String fileName, int size) {
+        try {
+            java.net.URL url = getClass().getResource("/icons/" + fileName);
+            if (url == null) return null;
+            Image img = new ImageIcon(url).getImage()
+                    .getScaledInstance(size, size, Image.SCALE_SMOOTH);
+            return new ImageIcon(img);
+        } catch (Exception e) {
+            return null;
         }
     }
 }

@@ -678,10 +678,12 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         private final JLabel btnDelete = buildActionLabel("X\u00F3a", ERROR_FG,   ERROR_BG);
 
         ActionRenderer() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 6, 0));
+            setLayout(new GridBagLayout());
             setOpaque(true);
-            add(btnEdit);
-            add(btnDelete);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(0, 4, 0, 4);
+            add(btnEdit, gbc);
+            add(btnDelete, gbc);
         }
 
         @Override
@@ -692,7 +694,7 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
     }
 
     private class ActionEditor extends AbstractCellEditor implements TableCellEditor {
-        private final JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
+        private final JPanel panel = new JPanel(new GridBagLayout());
         private final JButton btnEdit   = buildActionButton("S\u1EEDa",  PRIMARY,   PRIMARY_LIGHT);
         private final JButton btnDelete = buildActionButton("X\u00F3a", ERROR_FG,   ERROR_BG);
         private DoanTauRow currentRow;
@@ -700,8 +702,10 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         ActionEditor() {
             panel.setOpaque(true);
             panel.setBackground(ROW_HOVER);
-            panel.add(btnEdit);
-            panel.add(btnDelete);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(0, 4, 0, 4);
+            panel.add(btnEdit, gbc);
+            panel.add(btnDelete, gbc);
             btnEdit.addActionListener(e -> { fireEditingStopped(); openEditModule(currentRow.doanTau); });
             btnDelete.addActionListener(e -> { fireEditingStopped(); deleteRow(currentRow); });
         }

@@ -7,6 +7,8 @@ import com.entity.DoanTau;
 import com.entity.Lich;
 import com.entity.Tuyen;
 
+import com.toedter.calendar.JDateChooser;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -14,8 +16,7 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+import java.util.Calendar;
 import java.util.List;
 
 public class ChinhSuaLichChayDialog extends JDialog {
@@ -41,8 +42,6 @@ public class ChinhSuaLichChayDialog extends JDialog {
     private static final Font FONT_HINT   = new Font("Segoe UI", Font.ITALIC, 10);
     private static final Font FONT_ERR    = new Font("Segoe UI", Font.PLAIN, 11);
 
-    private static final DateTimeFormatter FMT_IN  = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-
     // === Mode ===
     private final boolean isEditMode;
     private final Lich    original;
@@ -57,7 +56,9 @@ public class ChinhSuaLichChayDialog extends JDialog {
     private JTextField         txtMaLich;
     private JComboBox<Tuyen>   cboTuyen;
     private JComboBox<DoanTau> cboDoanTau;
-    private JTextField         txtThoiGianBatDau;
+    private JDateChooser       datePickerBatDau;
+    private JSpinner           timePickerBatDau;
+    private JPanel             dateTimePanel;
     private JTextField         txtThoiGianChay;
 
     // === Error labels ===
@@ -245,10 +246,25 @@ public class ChinhSuaLichChayDialog extends JDialog {
         row2.add(buildFieldGroup("\u0110o\u00E0n t\u00E0u", cboDoanTau, null, true, lblErrDoanTau));
         form.add(row2); form.add(Box.createVerticalStrut(12));
 
-        // Row 3: Thời gian bắt đầu | Thời gian chạy
-        txtThoiGianBatDau = createTextField();
-        txtThoiGianBatDau.setPreferredSize(new Dimension(0, 36));
-        txtThoiGianBatDau.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        // Row 3: Thời gian bắt đầu (JDateChooser + JSpinner) | Thời gian chạy
+        datePickerBatDau = new JDateChooser();
+        datePickerBatDau.setDateFormatString("dd/MM/yyyy");
+        datePickerBatDau.setFont(FONT_INPUT);
+        datePickerBatDau.setPreferredSize(new Dimension(0, 36));
+
+        SpinnerDateModel timeModel = new SpinnerDateModel();
+        timePickerBatDau = new JSpinner(timeModel);
+        JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(timePickerBatDau, "HH:mm");
+        timePickerBatDau.setEditor(timeEditor);
+        timePickerBatDau.setFont(FONT_INPUT);
+        timePickerBatDau.setPreferredSize(new Dimension(75, 36));
+
+        dateTimePanel = new JPanel(new BorderLayout(6, 0));
+        dateTimePanel.setOpaque(false);
+        dateTimePanel.setPreferredSize(new Dimension(0, 36));
+        dateTimePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        dateTimePanel.add(datePickerBatDau, BorderLayout.CENTER);
+        dateTimePanel.add(timePickerBatDau, BorderLayout.EAST);
         lblErrBatDau = createErrorLabel();
 
         txtThoiGianChay = createTextField();
@@ -256,16 +272,21 @@ public class ChinhSuaLichChayDialog extends JDialog {
         txtThoiGianChay.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         lblErrChay = createErrorLabel();
 
-        if (isEditMode) {
-            if (original.getThoiGianBatDau() != null)
-                txtThoiGianBatDau.setText(original.getThoiGianBatDau().format(FMT_IN));
-            if (original.getThoiGianChay() != null)
-                txtThoiGianChay.setText(original.getThoiGianChay());
+        if (isEditMode && original.getThoiGianBatDau() != null) {
+            LocalDateTime ldt = original.getThoiGianBatDau();
+            Calendar cal = Calendar.getInstance();
+            cal.set(ldt.getYear(), ldt.getMonthValue() - 1, ldt.getDayOfMonth());
+            datePickerBatDau.setDate(cal.getTime());
+            Calendar timeCal = Calendar.getInstance();
+            timeCal.set(Calendar.HOUR_OF_DAY, ldt.getHour());
+            timeCal.set(Calendar.MINUTE, ldt.getMinute());
+            timePickerBatDau.setValue(timeCal.getTime());
         }
+        if (isEditMode && original.getThoiGianChay() != null)
+            txtThoiGianChay.setText(original.getThoiGianChay());
 
         JPanel row3 = buildRow(1, 2, Integer.MAX_VALUE, 90);
-        row3.add(buildFieldGroup("Th\u1EDDi gian b\u1EAFt \u0111\u1EA7u",
-                txtThoiGianBatDau, "Nh\u1EADp theo d\u1EA1ng dd/MM/yyyy HH:mm", true, lblErrBatDau));
+        row3.add(buildFieldGroup("Th\u1EDDi gian b\u1EAFt \u0111\u1EA7u", dateTimePanel, null, true, lblErrBatDau));
         row3.add(buildFieldGroup("Th\u1EDDi gian ch\u1EA1y (ph\u00FAt)",
                 txtThoiGianChay, "S\u1ED1 ph\u00FAt to\u00E0n h\u00E0nh tr\u00ECnh", true, lblErrChay));
         form.add(row3);
@@ -310,9 +331,8 @@ public class ChinhSuaLichChayDialog extends JDialog {
     private void doSave() {
         clearAllErrors();
 
-        String maLich = txtMaLich.getText().trim();
-        String batDauStr = txtThoiGianBatDau.getText().trim();
-        String chayStr   = txtThoiGianChay.getText().trim();
+        String maLich  = txtMaLich.getText().trim();
+        String chayStr = txtThoiGianChay.getText().trim();
 
         // Validate
         if (!isEditMode && maLich.isEmpty()) {
@@ -324,16 +344,19 @@ public class ChinhSuaLichChayDialog extends JDialog {
         if (cboDoanTau.getSelectedItem() == null) {
             lblErrDoanTau.setText("Vui l\u00F2ng ch\u1ECDn \u0111o\u00E0n t\u00E0u"); lblErrDoanTau.setVisible(true); return;
         }
-        if (batDauStr.isEmpty()) {
-            showFieldError(txtThoiGianBatDau, lblErrBatDau, "Vui l\u00F2ng nh\u1EADp th\u1EDDi gian b\u1EAFt \u0111\u1EA7u"); return;
+        if (datePickerBatDau.getDate() == null) {
+            lblErrBatDau.setText("Vui l\u00F2ng ch\u1ECDn ng\u00E0y b\u1EAFt \u0111\u1EA7u"); lblErrBatDau.setVisible(true); return;
         }
 
-        LocalDateTime batDau;
-        try {
-            batDau = LocalDateTime.parse(batDauStr, FMT_IN);
-        } catch (DateTimeParseException ex) {
-            showFieldError(txtThoiGianBatDau, lblErrBatDau, "Sai \u0111\u1ECBnh d\u1EA1ng (dd/MM/yyyy HH:mm)"); return;
-        }
+        java.util.Date dateVal = datePickerBatDau.getDate();
+        java.util.Date timeVal = (java.util.Date) timePickerBatDau.getValue();
+        Calendar dateCal = Calendar.getInstance(); dateCal.setTime(dateVal);
+        Calendar timeCal = Calendar.getInstance(); timeCal.setTime(timeVal);
+        dateCal.set(Calendar.HOUR_OF_DAY, timeCal.get(Calendar.HOUR_OF_DAY));
+        dateCal.set(Calendar.MINUTE,      timeCal.get(Calendar.MINUTE));
+        dateCal.set(Calendar.SECOND, 0);  dateCal.set(Calendar.MILLISECOND, 0);
+        LocalDateTime batDau = LocalDateTime.ofInstant(
+                dateCal.getTime().toInstant(), java.time.ZoneId.systemDefault());
 
         if (chayStr.isEmpty()) {
             showFieldError(txtThoiGianChay, lblErrChay, "Vui l\u00F2ng nh\u1EADp th\u1EDDi gian ch\u1EA1y"); return;
@@ -417,11 +440,10 @@ public class ChinhSuaLichChayDialog extends JDialog {
     }
 
     private void clearAllErrors() {
-        JLabel[]     errs = {lblErrMaLich, lblErrTuyen, lblErrDoanTau, lblErrBatDau, lblErrChay};
-        JComponent[] flds = {txtMaLich, cboTuyen, cboDoanTau, txtThoiGianBatDau, txtThoiGianChay};
-        for (int i = 0; i < errs.length; i++) {
-            if (errs[i] != null) { errs[i].setText(""); errs[i].setVisible(false); }
-            if (flds[i] instanceof JTextField tf && tf.isEditable()) {
+        JLabel[] errs = {lblErrMaLich, lblErrTuyen, lblErrDoanTau, lblErrBatDau, lblErrChay};
+        for (JLabel lbl : errs) { if (lbl != null) { lbl.setText(""); lbl.setVisible(false); } }
+        for (JTextField tf : new JTextField[]{txtMaLich, txtThoiGianChay}) {
+            if (tf != null && tf.isEditable()) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(OUTLINE, 1, true), new EmptyBorder(8, 12, 8, 12)));
             }

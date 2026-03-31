@@ -1,11 +1,13 @@
 package com.modules;
 
 import com.connectDB.ConnectDB;
+import com.dao.DAO_Ga;
 import com.dao.DAO_Lich;
 import com.entity.DoanTau;
 import com.entity.Ga;
 import com.entity.Lich;
 import com.entity.Tuyen;
+import com.toedter.calendar.JDateChooser;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -36,6 +38,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     private List<Lich> allData      = new ArrayList<>();
     private List<Lich> filteredData = new ArrayList<>();
     private final DAO_Lich daoLich  = new DAO_Lich();
+    private final DAO_Ga   daoGa    = new DAO_Ga();
 
     // --- Pagination ---
     private int currentPage  = 1;
@@ -44,6 +47,12 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     private boolean isRefreshing = false;
     private JLabel lblPageInfo;
     private JPanel paginationPanel;
+
+    // --- Filter ---
+    private SearchableComboBox<Ga> filterGaDi;
+    private SearchableComboBox<Ga> filterGaDen;
+    private JDateChooser           dateFrom;
+    private JDateChooser           dateTo;
 
     // --- UI ---
     private JTextField    txtSearch;
@@ -127,15 +136,22 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         search.setAlignmentX(Component.LEFT_ALIGNMENT);
         search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
 
+        JPanel filterBar = buildFilterBar();
+        filterBar.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filterBar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+
         top.add(header);
         top.add(Box.createVerticalStrut(20));
         top.add(stats);
         top.add(Box.createVerticalStrut(20));
         top.add(search);
+        top.add(Box.createVerticalStrut(12));
+        top.add(filterBar);
         top.add(Box.createVerticalStrut(20));
 
         add(top, BorderLayout.NORTH);
         add(buildTableCard(), BorderLayout.CENTER);
+        loadGaFilters();
     }
 
     // ---- Header ----
@@ -293,6 +309,140 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
 
         section.add(inner, BorderLayout.CENTER);
         return section;
+    }
+
+    // ---- Filter bar ----
+    private JPanel buildFilterBar() {
+        JPanel bar = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(SURFACE_DIM);
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20));
+                g2.dispose();
+            }
+        };
+        bar.setOpaque(false);
+        bar.setLayout(new BorderLayout(0, 8));
+        bar.setBorder(new EmptyBorder(14, 24, 14, 24));
+
+        // Label row
+        JPanel labelRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        labelRow.setOpaque(false);
+        ImageIcon icoFilter = loadScaledIcon("nutBoLoc.png", 13);
+        if (icoFilter != null) labelRow.add(new JLabel(icoFilter));
+        JLabel lbl = new JLabel("B\u1ED8 L\u1ECDC");
+        lbl.setFont(FONT_STAT_LBL);
+        lbl.setForeground(ON_SURF_VAR);
+        labelRow.add(lbl);
+
+        // Fields row — GridBagLayout so combos/pickers expand
+        JPanel fieldsRow = new JPanel(new GridBagLayout());
+        fieldsRow.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy   = 0;
+        gbc.fill    = GridBagConstraints.HORIZONTAL;
+        gbc.weighty = 0;
+
+        // Ga đi
+        filterGaDi = new SearchableComboBox<>(
+                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
+        filterGaDi.setPlaceholder("T\u1EA5t c\u1EA3 ga \u0111i");
+        filterGaDi.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        filterGaDi.setOnChanged(this::applyFilter);
+        gbc.gridx = 0; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
+        fieldsRow.add(buildFilterGroupLich("GA \u0110I", filterGaDi), gbc);
+
+        // Ga đến
+        filterGaDen = new SearchableComboBox<>(
+                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
+        filterGaDen.setPlaceholder("T\u1EA5t c\u1EA3 ga \u0111\u1EBFn");
+        filterGaDen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        filterGaDen.setOnChanged(this::applyFilter);
+        gbc.gridx = 1; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
+        fieldsRow.add(buildFilterGroupLich("GA \u0110\u1EBEN", filterGaDen), gbc);
+
+        // Từ ngày
+        dateFrom = new JDateChooser();
+        dateFrom.setDateFormatString("dd/MM/yyyy");
+        dateFrom.setFont(FONT_BODY);
+        dateFrom.setPreferredSize(new Dimension(0, 40));
+        dateFrom.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        dateFrom.addPropertyChangeListener("date", e -> applyFilter());
+        gbc.gridx = 2; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
+        fieldsRow.add(buildFilterGroupLich("T\u1EEB NG\u00C0Y", dateFrom), gbc);
+
+        // Đến ngày
+        dateTo = new JDateChooser();
+        dateTo.setDateFormatString("dd/MM/yyyy");
+        dateTo.setFont(FONT_BODY);
+        dateTo.setPreferredSize(new Dimension(0, 40));
+        dateTo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        dateTo.addPropertyChangeListener("date", e -> applyFilter());
+        gbc.gridx = 3; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
+        fieldsRow.add(buildFilterGroupLich("\u0110\u1EBEN NG\u00C0Y", dateTo), gbc);
+
+        // Bỏ lọc button
+        JButton btnClear = new JButton("B\u1ECF l\u1ECDc") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? OUTLINE.darker() : OUTLINE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnClear.setFont(FONT_BOLD);
+        btnClear.setForeground(PRIMARY);
+        btnClear.setContentAreaFilled(false);
+        btnClear.setBorderPainted(false);
+        btnClear.setFocusPainted(false);
+        btnClear.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnClear.setPreferredSize(new Dimension(100, 40));
+        btnClear.addActionListener(e -> {
+            if (filterGaDi  != null) filterGaDi.clearSelection();
+            if (filterGaDen != null) filterGaDen.clearSelection();
+            if (dateFrom != null) dateFrom.setDate(null);
+            if (dateTo   != null) dateTo.setDate(null);
+            applyFilter();
+        });
+        // wrap so the button aligns at field level (below the label)
+        JPanel clearWrap = new JPanel(new BorderLayout());
+        clearWrap.setOpaque(false);
+        JLabel clearSpacer = new JLabel(" ");
+        clearSpacer.setFont(FONT_STAT_LBL);
+        clearWrap.add(clearSpacer, BorderLayout.NORTH);
+        clearWrap.add(btnClear, BorderLayout.CENTER);
+        gbc.gridx = 4; gbc.weightx = 0; gbc.insets = new Insets(0, 0, 0, 0);
+        fieldsRow.add(clearWrap, gbc);
+
+        bar.add(labelRow,   BorderLayout.NORTH);
+        bar.add(fieldsRow,  BorderLayout.CENTER);
+        return bar;
+    }
+
+    private JPanel buildFilterGroupLich(String labelText, JComponent field) {
+        JPanel group = new JPanel();
+        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
+        group.setOpaque(false);
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(FONT_STAT_LBL);
+        lbl.setForeground(ON_SURF_VAR);
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        group.add(lbl);
+        group.add(Box.createVerticalStrut(4));
+        group.add(field);
+        return group;
+    }
+
+    private void loadGaFilters() {
+        List<Ga> gaList = daoGa.getAll();
+        if (filterGaDi  != null) filterGaDi.setItems(gaList);
+        if (filterGaDen != null) filterGaDen.setItems(gaList);
     }
 
     // ---- Table card ----
@@ -479,31 +629,51 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     // =====================================================================
 
     private void applyFilter() {
-        filteredData = new ArrayList<>(allData);
+        String kw = txtSearch != null ? txtSearch.getText().trim().toLowerCase() : "";
+        Ga selGaDi  = filterGaDi  != null ? filterGaDi.getSelectedItem()  : null;
+        Ga selGaDen = filterGaDen != null ? filterGaDen.getSelectedItem() : null;
+        java.util.Date dFrom = dateFrom != null ? dateFrom.getDate() : null;
+        java.util.Date dTo   = dateTo   != null ? dateTo.getDate()   : null;
+        java.time.LocalDate ldFrom = dFrom != null
+                ? dFrom.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null;
+        java.time.LocalDate ldTo   = dTo   != null
+                ? dTo.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate()   : null;
+
+        filteredData = new ArrayList<>();
+        for (Lich l : allData) {
+            if (!kw.isEmpty()) {
+                String maLich   = l.getMaLich() != null ? l.getMaLich().toLowerCase() : "";
+                String maDoan   = l.getDoanTau() != null ? l.getDoanTau().getMaDoanTau().toLowerCase() : "";
+                String tenDoan  = l.getDoanTau() != null && l.getDoanTau().getTenDoanTau() != null
+                                ? l.getDoanTau().getTenDoanTau().toLowerCase() : "";
+                String maTuyen  = l.getTuyen() != null ? l.getTuyen().getMaTuyen().toLowerCase() : "";
+                String tenTuyen = tuyenDisplayName(l.getTuyen()).toLowerCase();
+                if (!maLich.contains(kw) && !maDoan.contains(kw) && !tenDoan.contains(kw)
+                        && !maTuyen.contains(kw) && !tenTuyen.contains(kw)) continue;
+            }
+            if (selGaDi != null) {
+                if (l.getTuyen() == null || l.getTuyen().getGaDi() == null
+                        || !l.getTuyen().getGaDi().getMaGa().equals(selGaDi.getMaGa())) continue;
+            }
+            if (selGaDen != null) {
+                if (l.getTuyen() == null || l.getTuyen().getGaDen() == null
+                        || !l.getTuyen().getGaDen().getMaGa().equals(selGaDen.getMaGa())) continue;
+            }
+            if (ldFrom != null && l.getThoiGianBatDau() != null) {
+                if (l.getThoiGianBatDau().toLocalDate().isBefore(ldFrom)) continue;
+            }
+            if (ldTo != null && l.getThoiGianBatDau() != null) {
+                if (l.getThoiGianBatDau().toLocalDate().isAfter(ldTo)) continue;
+            }
+            filteredData.add(l);
+        }
         totalRecords = filteredData.size();
         currentPage  = 1;
         refreshTable();
     }
 
     private void doSearch() {
-        String kw = txtSearch.getText().trim().toLowerCase();
-        if (kw.isEmpty()) { applyFilter(); return; }
-        filteredData = new ArrayList<>();
-        for (Lich l : allData) {
-            String maLich   = l.getMaLich() != null ? l.getMaLich().toLowerCase() : "";
-            String maDoan   = l.getDoanTau() != null ? l.getDoanTau().getMaDoanTau().toLowerCase() : "";
-            String tenDoan  = l.getDoanTau() != null && l.getDoanTau().getTenDoanTau() != null
-                            ? l.getDoanTau().getTenDoanTau().toLowerCase() : "";
-            String maTuyen  = l.getTuyen() != null ? l.getTuyen().getMaTuyen().toLowerCase() : "";
-            String tenTuyen = tuyenDisplayName(l.getTuyen()).toLowerCase();
-            if (maLich.contains(kw) || maDoan.contains(kw) || tenDoan.contains(kw)
-                    || maTuyen.contains(kw) || tenTuyen.contains(kw)) {
-                filteredData.add(l);
-            }
-        }
-        totalRecords = filteredData.size();
-        currentPage  = 1;
-        refreshTable();
+        applyFilter();
     }
 
     private void refreshTable() {
