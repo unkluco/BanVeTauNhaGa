@@ -507,6 +507,20 @@ public class MenuModule extends JPanel implements AppModule {
                     showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD \u0111o\u00E0n t\u00E0u: " + ex.getMessage());
                 }
             }
+            case "QL_TOA" -> {
+                try {
+                    QuanLyToaModule module = new QuanLyToaModule();
+                    module.setOnResult(null);
+                    contentPanel.removeAll();
+                    contentPanel.add(module.getView(), BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                } catch (Exception ex) {
+                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyToaModule:");
+                    ex.printStackTrace();
+                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD toa: " + ex.getMessage());
+                }
+            }
             case "QL_LICH_CHAY" -> {
                 try {
                     QuanLyLichChayModule module = new QuanLyLichChayModule();

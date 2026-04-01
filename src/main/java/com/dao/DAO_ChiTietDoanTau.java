@@ -56,6 +56,29 @@ public class DAO_ChiTietDoanTau {
         return ds;
     }
 
+    /**
+     * Lấy danh sách đoàn tàu đang dùng một toa cụ thể (qua ChiTietDoanTau)
+     */
+    public List<DoanTau> findDoanTauByToaTau(String maToaTau) {
+        List<DoanTau> ds = new ArrayList<>();
+        Connection con = ConnectDB.getCon();
+        if (con == null) return ds;
+
+        String sql = "SELECT DISTINCT maDoanTau FROM ChiTietDoanTau WHERE maToaTau = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maToaTau);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    DoanTau dt = daoDoanTau.findById(rs.getString("maDoanTau"));
+                    if (dt != null) ds.add(dt);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi tìm đoàn tàu theo toa: " + e.getMessage());
+        }
+        return ds;
+    }
+
     public boolean insert(ChiTietDoanTau ct) {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
