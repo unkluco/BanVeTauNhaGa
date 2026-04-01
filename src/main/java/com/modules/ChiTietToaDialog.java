@@ -25,6 +25,8 @@ public class ChiTietToaDialog extends JDialog {
     private final DAO_Ghe              daoGhe    = new DAO_Ghe();
     private final DAO_ChiTietDoanTau   daoCTDT   = new DAO_ChiTietDoanTau();
 
+    private Point dragStart;
+
     // --- Dữ liệu ---
     private final ToaTau        toa;
     private final List<Ghe>     gheList;
@@ -54,7 +56,7 @@ public class ChiTietToaDialog extends JDialog {
         this.gheList    = daoGhe.findByToaTau(toa.getMaToaTau());
         this.doanTauList = daoCTDT.findDoanTauByToaTau(toa.getMaToaTau());
 
-        setUndecorated(false);
+        setUndecorated(true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         buildUI();
         pack();
@@ -111,6 +113,22 @@ public class ChiTietToaDialog extends JDialog {
         p.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
                 new EmptyBorder(16, 24, 16, 24)));
+
+        // Window drag via header
+        p.addMouseListener(new MouseAdapter() {
+            @Override public void mousePressed(MouseEvent e) {
+                dragStart = SwingUtilities.convertPoint(p, e.getPoint(), ChiTietToaDialog.this);
+            }
+        });
+        p.addMouseMotionListener(new MouseAdapter() {
+            @Override public void mouseDragged(MouseEvent e) {
+                if (dragStart == null) return;
+                Point cur = SwingUtilities.convertPoint(p, e.getPoint(), ChiTietToaDialog.this);
+                Point loc = getLocation();
+                setLocation(loc.x + cur.x - dragStart.x, loc.y + cur.y - dragStart.y);
+                dragStart = cur;
+            }
+        });
 
         String loaiText = toa.getLoaiGhe() != null ? toa.getLoaiGhe().toString() : "Không rõ";
         int soGhe = gheList.size();

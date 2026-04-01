@@ -119,7 +119,7 @@ public class QuanLyToaModule extends JPanel implements AppModule {
                 BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
                 new EmptyBorder(18, 24, 18, 24)));
 
-        JLabel title = new JLabel("Quản lý Toa & Đầu máy");
+        JLabel title = new JLabel("Quản lý Toa và Đầu máy");
         title.setFont(new Font("Segoe UI", Font.BOLD, 20));
         title.setForeground(ON_SURFACE);
 
@@ -538,7 +538,7 @@ public class QuanLyToaModule extends JPanel implements AppModule {
     //  AppModule interface
     // =========================================================================
 
-    @Override public String getTitle() { return "Quản lý Toa & Đầu máy"; }
+    @Override public String getTitle() { return "Quản lý Toa và Đầu máy"; }
     @Override public JPanel getView()  { return this; }
 
     @Override

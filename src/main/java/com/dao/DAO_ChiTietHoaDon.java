@@ -107,6 +107,38 @@ public class DAO_ChiTietHoaDon {
         return false;
     }
 
+    /** Tổng tiền của một hóa đơn (trả 0 nếu chưa có chi tiết) */
+    public java.math.BigDecimal getTongTienByHoaDon(String maHoaDon) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return java.math.BigDecimal.ZERO;
+        String sql = "SELECT COALESCE(SUM(giaTien), 0) AS tong FROM ChiTietHoaDon WHERE maHoaDon = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maHoaDon);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getBigDecimal("tong");
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi getTongTien: " + e.getMessage());
+        }
+        return java.math.BigDecimal.ZERO;
+    }
+
+    /** Số vé trong một hóa đơn */
+    public int getSoVeByHoaDon(String maHoaDon) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return 0;
+        String sql = "SELECT COUNT(*) AS soVe FROM ChiTietHoaDon WHERE maHoaDon = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maHoaDon);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("soVe");
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi getSoVe: " + e.getMessage());
+        }
+        return 0;
+    }
+
     public boolean update(ChiTietHoaDon cthd) {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
