@@ -92,8 +92,7 @@ public class MenuModule extends JPanel implements AppModule {
 
         // Menu items (only Vietnamese labels)
         addMenuItem(nav, "T\u1ED5ng quan",                                              "TONG_QUAN");
-        addMenuItem(nav, "Tra c\u1EE9u",                                                "TRA_CUU");
-        addMenuItem(nav, "Doanh thu",                                                    "DOANH_THU");
+        addMenuItem(nav, "Th\u1ED1ng k\u00EA",                                           "THONG_KE");
         addMenuItem(nav, "Qu\u1EA3n l\u00FD gi\u00E1",                                  "QL_GIA");
         addMenuItem(nav, "Qu\u1EA3n l\u00FD khuy\u1EBFn m\u00E3i",                      "QL_KHUYEN_MAI");
         addMenuItem(nav, "Qu\u1EA3n l\u00FD v\u00E9",                                    "QL_VE_HOA_DON");
@@ -436,6 +435,28 @@ public class MenuModule extends JPanel implements AppModule {
         lblPageTitle.setText(label);
 
         switch (actionKey) {
+            case "TONG_QUAN" -> {
+                TongQuatModule tqModule = new TongQuatModule();
+                tqModule.setOnResult(null);
+                contentPanel.removeAll();
+                contentPanel.add(tqModule.getView(), BorderLayout.CENTER);
+                contentPanel.revalidate();
+                contentPanel.repaint();
+            }
+            case "THONG_KE" -> {
+                try {
+                    ThongKeModule module = new ThongKeModule();
+                    module.setOnResult(null);
+                    contentPanel.removeAll();
+                    contentPanel.add(module.getView(), BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                } catch (Exception ex) {
+                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF ThongKeModule:");
+                    ex.printStackTrace();
+                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Th\u1ED1ng k\u00EA: " + ex.getMessage());
+                }
+            }
             case "QL_NHAN_VIEN" -> {
                 QuanLyNhanVienModule module = new QuanLyNhanVienModule();
                 module.setOnResult(null);
