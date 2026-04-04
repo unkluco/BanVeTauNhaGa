@@ -146,14 +146,22 @@ public class TongQuatModule extends JPanel implements AppModule {
         lstResults.setSelectionForeground(TEXT_MAIN);
         lstResults.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
-                hidePopup();
+                int idx = lstResults.locationToIndex(e.getPoint());
+                if (idx >= 0) {
+                    SearchResult sr = searchModel.getElementAt(idx);
+                    hidePopup();
+                    if (!"INFO".equals(sr.type)) openDetail(sr);
+                }
             }
         });
         lstResults.addKeyListener(new KeyAdapter() {
             @Override public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ESCAPE
-                    || e.getKeyCode() == KeyEvent.VK_ENTER) {
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     hidePopup();
+                } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    SearchResult sr = lstResults.getSelectedValue();
+                    hidePopup();
+                    if (sr != null && !"INFO".equals(sr.type)) openDetail(sr);
                 }
             }
         });
@@ -703,6 +711,8 @@ public class TongQuatModule extends JPanel implements AppModule {
             sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
             searchPopup.setContentPane(sp);
         }
+        // Không hiện nếu txtSearch không còn focus (ví dụ: dialog đang mở)
+        if (!txtSearch.isFocusOwner()) return;
         try {
             Point loc  = searchCard.getLocationOnScreen();
             int   rows = Math.min(searchModel.size(), 7);
@@ -714,6 +724,114 @@ public class TongQuatModule extends JPanel implements AppModule {
 
     private void hidePopup() {
         if (searchPopup != null) searchPopup.setVisible(false);
+    }
+
+    // ── OPEN DETAIL ───────────────────────────────────────────────────────────
+    private void openDetail(SearchResult sr) {
+        new SwingWorker<LinkedHashMap<String, String>, Void>() {
+            @Override protected LinkedHashMap<String, String> doInBackground() {
+                return fetchEntityFields(sr);
+            }
+            @Override protected void done() {
+                try {
+                    LinkedHashMap<String, String> fields = get();
+                    if (fields == null) return;
+                    Color  color = SearchResultRenderer.COLORS.getOrDefault(sr.type, PRIMARY);
+                    String label = SearchResultRenderer.LABELS.getOrDefault(sr.type, sr.type);
+                    EntityDetailModule detail = new EntityDetailModule(
+                        label, color, sr.title, sr.id, fields);
+                    Window win = SwingUtilities.getWindowAncestor(TongQuatModule.this);
+                    JFrame frame = (win instanceof JFrame) ? (JFrame) win : null;
+                    ModuleLauncher.asDialog(detail, frame, res -> {});
+                } catch (Exception ex) { ex.printStackTrace(); }
+            }
+        }.execute();
+    }
+
+    private LinkedHashMap<String, String> fetchEntityFields(SearchResult sr) {
+        String sql = getDetailSql(sr.type);
+        if (sql == null) return null;
+        Connection con = ConnectDB.getCon();
+        if (con == null) return null;
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, sr.id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return fields;
+                ResultSetMetaData meta = rs.getMetaData();
+                int cols = meta.getColumnCount();
+                for (int i = 1; i <= cols; i++) {
+                    String colLabel = meta.getColumnLabel(i);
+                    String val      = rs.getString(i);
+                    fields.put(colLabel, val);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[Detail] " + e.getMessage());
+        }
+        return fields;
+    }
+
+    /** SQL dùng alias Tiếng Việt — getColumnLabel() sẽ trả về tên alias làm nhãn hiển thị */
+    private String getDetailSql(String type) {
+        switch (type) {
+            case "NV":
+                return "SELECT maNV AS [Mã NV], hoTen AS [Họ tên]," +
+                    " vaiTro AS [Vai trò], soDienThoai AS [Điện thoại]," +
+                    " cccd AS [CCCD], email AS [Email]," +
+                    " gaLamViec AS [Ga làm việc]," +
+                    " CONVERT(varchar,ngaySinh,103) AS [Ngày sinh]," +
+                    " gioiTinh AS [Giới tính], quocTich AS [Quốc tịch]," +
+                    " diaChiThuongTru AS [Địa chỉ thường trú]," +
+                    " diaChiTamTru AS [Địa chỉ tạm trú]," +
+                    " trangThai AS [Trạng thái]" +
+                    " FROM NhanVien WHERE maNV=?";
+            case "KH":
+                return "SELECT maKhachHang AS [Mã KH], hoTen AS [Họ tên]," +
+                    " cccd AS [CCCD], soDienThoai AS [Điện thoại]" +
+                    " FROM KhachHang WHERE maKhachHang=?";
+            case "HD":
+                return "SELECT hd.maHoaDon AS [Mã HĐ]," +
+                    " hd.maNV AS [Nhân viên (mã)]," +
+                    " nv.hoTen AS [Tên nhân viên]," +
+                    " hd.maKhachHang AS [Khách hàng (mã)]," +
+                    " kh.hoTen AS [Tên khách hàng]," +
+                    " CONVERT(varchar,hd.ngayLap,120) AS [Ngày lập]," +
+                    " COUNT(ct.maChiTietHD) AS [Số vé]," +
+                    " ISNULL(SUM(ct.giaTien),0) AS [Tổng tiền (VNĐ)]" +
+                    " FROM HoaDon hd" +
+                    " LEFT JOIN NhanVien nv ON hd.maNV=nv.maNV" +
+                    " LEFT JOIN KhachHang kh ON hd.maKhachHang=kh.maKhachHang" +
+                    " LEFT JOIN ChiTietHoaDon ct ON hd.maHoaDon=ct.maHoaDon" +
+                    " WHERE hd.maHoaDon=?" +
+                    " GROUP BY hd.maHoaDon,hd.maNV,nv.hoTen,hd.maKhachHang,kh.hoTen,hd.ngayLap";
+            case "VE":
+                return "SELECT v.maVe AS [Mã vé]," +
+                    " v.maLich AS [Lịch chạy (mã)]," +
+                    " v.maGhe AS [Ghế (mã)]," +
+                    " g.loaiGhe AS [Loại ghế]," +
+                    " v.trangThai AS [Trạng thái]," +
+                    " v.lyDoHuy AS [Lý do hủy]," +
+                    " CONVERT(varchar,v.ngayHuy,120) AS [Ngày hủy]" +
+                    " FROM Ve v" +
+                    " LEFT JOIN Ghe g ON v.maGhe=g.maGhe" +
+                    " WHERE v.maVe=?";
+            case "GA":
+                return "SELECT maGa AS [Mã ga], tenGa AS [Tên ga], diaChi AS [Địa chỉ]" +
+                    " FROM Ga WHERE maGa=?";
+            case "DT":
+                return "SELECT maDoanTau AS [Mã đoàn tàu], tenDoanTau AS [Tên đoàn tàu]" +
+                    " FROM DoanTau WHERE maDoanTau=?";
+            case "KM":
+                return "SELECT maKhuyenMai AS [Mã KM], tenKhuyenMai AS [Tên KM]," +
+                    " CONVERT(varchar,thoiGianBatDau,103) AS [Thời gian bắt đầu]," +
+                    " CONVERT(varchar,thoiGianKetThuc,103) AS [Thời gian kết thúc]," +
+                    " moTa AS [Mô tả]," +
+                    " CASE WHEN trangThai=1 THEN N'Hoạt động' ELSE N'Dừng' END AS [Trạng thái]" +
+                    " FROM KhuyenMai WHERE maKhuyenMai=?";
+            default:
+                return null;
+        }
     }
 
     // ── LOAD DATA ─────────────────────────────────────────────────────────────
