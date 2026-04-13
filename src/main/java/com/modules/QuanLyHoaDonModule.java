@@ -504,6 +504,11 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     }
 
     // =========================================================================
+    public void applySearch(String text) {
+        txtSearch.setText(text);
+        applyFilter();
+    }
+
     //  AppModule
     // =========================================================================
 

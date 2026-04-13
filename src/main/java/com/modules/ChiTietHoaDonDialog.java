@@ -444,7 +444,7 @@ public class ChiTietHoaDonDialog extends JDialog {
                 }
                 if (totalPct > 0) {
                     int pct = (int) Math.round(totalPct * 100);
-                    kmText = "\u2212" + pct + "%";   // − (minus sign)
+                    kmText = "−" + pct + "%";   // − (minus sign)
                 }
             }
 

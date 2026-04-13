@@ -9,9 +9,10 @@ import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+import java.time.LocalTime;
+import java.util.Calendar;
 
 public class SuaKhuyenMaiDialog extends JDialog {
 
@@ -35,13 +36,13 @@ public class SuaKhuyenMaiDialog extends JDialog {
     private static final Font FONT_HINT  = new Font("Segoe UI", Font.ITALIC, 10);
     private static final Font FONT_ERR   = new Font("Segoe UI", Font.PLAIN, 11);
 
-    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-
     private JTextField        txtMaKM;
     private JTextField        txtTenKM;
     private JTextField        txtMoTa;
-    private JTextField        txtBatDau;
-    private JTextField        txtKetThuc;
+    private DatePickerField   dpBatDau;
+    private JSpinner          spTimeBatDau;
+    private DatePickerField   dpKetThuc;
+    private JSpinner          spTimeKetThuc;
     private JComboBox<String> cboTrangThai;
 
     private JLabel lblErrTenKM;
@@ -88,14 +89,23 @@ public class SuaKhuyenMaiDialog extends JDialog {
             txtMoTa.setForeground(ON_SURFACE);
         }
         if (khuyenMai.getThoiGianBatDau() != null) {
-            txtBatDau.setText(khuyenMai.getThoiGianBatDau().format(DT_FMT));
-            txtBatDau.setForeground(ON_SURFACE);
+            LocalDateTime ldt = khuyenMai.getThoiGianBatDau();
+            dpBatDau.setValue(ldt.toLocalDate());
+            setSpinnerTime(spTimeBatDau, ldt.getHour(), ldt.getMinute());
         }
         if (khuyenMai.getThoiGianKetThuc() != null) {
-            txtKetThuc.setText(khuyenMai.getThoiGianKetThuc().format(DT_FMT));
-            txtKetThuc.setForeground(ON_SURFACE);
+            LocalDateTime ldt = khuyenMai.getThoiGianKetThuc();
+            dpKetThuc.setValue(ldt.toLocalDate());
+            setSpinnerTime(spTimeKetThuc, ldt.getHour(), ldt.getMinute());
         }
         cboTrangThai.setSelectedIndex(khuyenMai.isTrangThai() ? 0 : 1);
+    }
+
+    private void setSpinnerTime(JSpinner sp, int hour, int minute) {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, hour);
+        cal.set(Calendar.MINUTE, minute);
+        sp.setValue(cal.getTime());
     }
 
     private JPanel buildHeader() {
@@ -183,13 +193,15 @@ public class SuaKhuyenMaiDialog extends JDialog {
         row4.setOpaque(false);
         row4.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
 
-        txtBatDau = createInputField("dd/MM/yyyy HH:mm");
+        dpBatDau     = new DatePickerField();
+        spTimeBatDau = createTimeSpinner();
         lblErrBatDau = createErrorLabel();
-        row4.add(buildFieldGroup("Thời gian bắt đầu", txtBatDau, "* Định dạng: dd/MM/yyyy HH:mm", true, lblErrBatDau));
+        row4.add(buildFieldGroup("Thời gian bắt đầu", buildDateTimePanel(dpBatDau, spTimeBatDau), null, true, lblErrBatDau));
 
-        txtKetThuc = createInputField("dd/MM/yyyy HH:mm");
+        dpKetThuc     = new DatePickerField();
+        spTimeKetThuc = createTimeSpinner();
         lblErrKetThuc = createErrorLabel();
-        row4.add(buildFieldGroup("Thời gian kết thúc", txtKetThuc, "* Định dạng: dd/MM/yyyy HH:mm", true, lblErrKetThuc));
+        row4.add(buildFieldGroup("Thời gian kết thúc", buildDateTimePanel(dpKetThuc, spTimeKetThuc), null, true, lblErrKetThuc));
 
         form.add(row4);
         return form;
@@ -216,38 +228,33 @@ public class SuaKhuyenMaiDialog extends JDialog {
     private void doSave() {
         clearAllErrors();
 
-        String tenKM     = getFieldText(txtTenKM,    "VD: Giảm giá dịp Tết 2025");
-        String moTa      = getFieldText(txtMoTa,     "VD: Giảm giá vé tàu các tuyến");
-        String batDauStr  = getFieldText(txtBatDau,  "dd/MM/yyyy HH:mm");
-        String ketThucStr = getFieldText(txtKetThuc, "dd/MM/yyyy HH:mm");
+        String tenKM = getFieldText(txtTenKM, "VD: Giảm giá dịp Tết 2025");
+        String moTa  = getFieldText(txtMoTa,  "VD: Giảm giá vé tàu các tuyến");
+
+        LocalDate dateBatDau  = dpBatDau.getValue();
+        LocalDate dateKetThuc = dpKetThuc.getValue();
 
         if (tenKM.isEmpty()) {
             showFieldError(txtTenKM, lblErrTenKM, "Vui lòng nhập tên chương trình");
             return;
         }
-        if (batDauStr.isEmpty()) {
-            showFieldError(txtBatDau, lblErrBatDau, "Vui lòng nhập thời gian bắt đầu");
+        if (dateBatDau == null) {
+            lblErrBatDau.setText("Vui lòng chọn ngày bắt đầu");
+            lblErrBatDau.setVisible(true);
             return;
         }
-        if (ketThucStr.isEmpty()) {
-            showFieldError(txtKetThuc, lblErrKetThuc, "Vui lòng nhập thời gian kết thúc");
+        if (dateKetThuc == null) {
+            lblErrKetThuc.setText("Vui lòng chọn ngày kết thúc");
+            lblErrKetThuc.setVisible(true);
             return;
         }
 
-        LocalDateTime batDau;
-        try { batDau = LocalDateTime.parse(batDauStr, DT_FMT); }
-        catch (DateTimeParseException ex) {
-            showFieldError(txtBatDau, lblErrBatDau, "Sai định dạng (dd/MM/yyyy HH:mm)"); return;
-        }
-
-        LocalDateTime ketThuc;
-        try { ketThuc = LocalDateTime.parse(ketThucStr, DT_FMT); }
-        catch (DateTimeParseException ex) {
-            showFieldError(txtKetThuc, lblErrKetThuc, "Sai định dạng (dd/MM/yyyy HH:mm)"); return;
-        }
+        LocalDateTime batDau  = LocalDateTime.of(dateBatDau,  readTime(spTimeBatDau));
+        LocalDateTime ketThuc = LocalDateTime.of(dateKetThuc, readTime(spTimeKetThuc));
 
         if (!ketThuc.isAfter(batDau)) {
-            showFieldError(txtKetThuc, lblErrKetThuc, "Thời gian kết thúc phải sau thời gian bắt đầu");
+            lblErrKetThuc.setText("Thời gian kết thúc phải sau thời gian bắt đầu");
+            lblErrKetThuc.setVisible(true);
             return;
         }
 
@@ -282,6 +289,34 @@ public class SuaKhuyenMaiDialog extends JDialog {
 
     public boolean isSaved() { return saved; }
 
+    // ───────────────────────── date-time helpers ─────────────────────────
+
+    private JSpinner createTimeSpinner() {
+        SpinnerDateModel m = new SpinnerDateModel();
+        JSpinner sp = new JSpinner(m);
+        sp.setEditor(new JSpinner.DateEditor(sp, "HH:mm"));
+        sp.setFont(FONT_INPUT);
+        sp.setPreferredSize(new Dimension(72, 40));
+        sp.setMaximumSize(new Dimension(72, 40));
+        return sp;
+    }
+
+    private JPanel buildDateTimePanel(DatePickerField dp, JSpinner timeSp) {
+        JPanel p = new JPanel(new BorderLayout(6, 0));
+        p.setOpaque(false);
+        p.setPreferredSize(new Dimension(0, 40));
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        p.add(dp,    BorderLayout.CENTER);
+        p.add(timeSp, BorderLayout.EAST);
+        return p;
+    }
+
+    private LocalTime readTime(JSpinner sp) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime((java.util.Date) sp.getValue());
+        return LocalTime.of(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE));
+    }
+
     // ───────────────────────── helpers ─────────────────────────
 
     private void showFieldError(JComponent field, JLabel errLabel, String msg) {
@@ -293,14 +328,12 @@ public class SuaKhuyenMaiDialog extends JDialog {
     }
 
     private void clearAllErrors() {
-        JLabel[]     errs = {lblErrTenKM, lblErrBatDau, lblErrKetThuc};
-        JComponent[] flds = {txtTenKM,   txtBatDau,    txtKetThuc};
-        for (int i = 0; i < errs.length; i++) {
-            errs[i].setText(""); errs[i].setVisible(false);
-            flds[i].setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(OUTLINE, 1, true),
-                    new EmptyBorder(8, 12, 8, 12)));
+        for (JLabel lbl : new JLabel[]{lblErrTenKM, lblErrBatDau, lblErrKetThuc}) {
+            lbl.setText(""); lbl.setVisible(false);
         }
+        txtTenKM.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(8, 12, 8, 12)));
     }
 
     private JLabel createErrorLabel() {
@@ -327,7 +360,7 @@ public class SuaKhuyenMaiDialog extends JDialog {
         group.add(Box.createVerticalStrut(6));
 
         input.setAlignmentX(Component.LEFT_ALIGNMENT);
-        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         group.add(input);
 
         if (hint != null && !hint.isEmpty()) {

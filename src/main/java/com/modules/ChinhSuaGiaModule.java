@@ -120,7 +120,7 @@ public class ChinhSuaGiaModule extends JPanel {
         leftSection.setOpaque(false);
 
         // Back link
-        JLabel lblBack = new JLabel("\u2190 Quay l\u1EA1i danh s\u00E1ch");
+        JLabel lblBack = new JLabel("← Quay lại danh sách");
         lblBack.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblBack.setForeground(PRIMARY);
         lblBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -128,14 +128,14 @@ public class ChinhSuaGiaModule extends JPanel {
         lblBack.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) { if (onBack != null) onBack.run(); }
             @Override public void mouseEntered(MouseEvent e) {
-                lblBack.setText("<html><u>\u2190 Quay l\u1EA1i danh s\u00E1ch</u></html>");
+                lblBack.setText("<html><u>← Quay lại danh sách</u></html>");
             }
             @Override public void mouseExited(MouseEvent e)  {
-                lblBack.setText("\u2190 Quay l\u1EA1i danh s\u00E1ch");
+                lblBack.setText("← Quay lại danh sách");
             }
         });
 
-        JLabel lblTitle = new JLabel("Chi ti\u1EBFt bi\u1EC3u gi\u00E1");
+        JLabel lblTitle = new JLabel("Chi tiết biểu giá");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(ON_SURFACE);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -144,7 +144,7 @@ public class ChinhSuaGiaModule extends JPanel {
         leftSection.add(Box.createVerticalStrut(6));
         leftSection.add(lblTitle);
 
-        JButton btnAddDetail = createPrimaryButton("+ Th\u00EAm chi ti\u1EBFt gi\u00E1 m\u1EDBi");
+        JButton btnAddDetail = createPrimaryButton("+ Thêm chi tiết giá mới");
         btnAddDetail.setPreferredSize(new Dimension(210, 40));
         btnAddDetail.addActionListener(e -> openChinhSuaChiTietDialog(null));
 
@@ -204,14 +204,14 @@ public class ChinhSuaGiaModule extends JPanel {
         icon.setOpaque(false);
         icon.setPreferredSize(new Dimension(38, 38));
 
-        JLabel lblCardTitle = new JLabel("Th\u00F4ng tin bi\u1EC3u gi\u00E1");
+        JLabel lblCardTitle = new JLabel("Thông tin biểu giá");
         lblCardTitle.setFont(FONT_BOLD);
         lblCardTitle.setForeground(ON_SURFACE);
 
         iconTitle.add(icon);
         iconTitle.add(lblCardTitle);
 
-        JButton btnEdit = new JButton("\u270E Ch\u1EC9nh s\u1EEDa");
+        JButton btnEdit = new JButton("✎ Chỉnh sửa");
         btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnEdit.setForeground(PRIMARY);
         btnEdit.setContentAreaFilled(false);
@@ -227,24 +227,24 @@ public class ChinhSuaGiaModule extends JPanel {
         JPanel fields = new JPanel(new GridLayout(1, 4, 24, 0));
         fields.setOpaque(false);
 
-        fields.add(buildInfoField("M\u00C3 GI\u00C1", gia.getMaGia(), FONT_MONO, PRIMARY));
+        fields.add(buildInfoField("MÃ GIÁ", gia.getMaGia(), FONT_MONO, PRIMARY));
 
-        lblInfoMoTa = new JLabel(gia.getMoTa() != null ? gia.getMoTa() : "\u2014");
+        lblInfoMoTa = new JLabel(gia.getMoTa() != null ? gia.getMoTa() : "—");
         lblInfoMoTa.setFont(FONT_BOLD);
         lblInfoMoTa.setForeground(ON_SURFACE);
-        fields.add(buildInfoFieldWithLabel("M\u00D4 T\u1EA2", lblInfoMoTa));
+        fields.add(buildInfoFieldWithLabel("MÔ TẢ", lblInfoMoTa));
 
-        String batDauStr = gia.getThoiGianBatDau() != null ? gia.getThoiGianBatDau().format(DT_FMT) : "\u2014";
+        String batDauStr = gia.getThoiGianBatDau() != null ? gia.getThoiGianBatDau().format(DT_FMT) : "—";
         lblInfoBatDau = new JLabel(batDauStr);
         lblInfoBatDau.setFont(FONT_BOLD);
         lblInfoBatDau.setForeground(ON_SURFACE);
-        fields.add(buildInfoFieldWithLabel("NG\u00C0Y \u00C1P D\u1EE4NG", lblInfoBatDau));
+        fields.add(buildInfoFieldWithLabel("NGÀY ÁP DỤNG", lblInfoBatDau));
 
-        String ketThucStr = gia.getThoiGianKetThuc() != null ? gia.getThoiGianKetThuc().format(DT_FMT) : "\u2014";
+        String ketThucStr = gia.getThoiGianKetThuc() != null ? gia.getThoiGianKetThuc().format(DT_FMT) : "—";
         lblInfoKetThuc = new JLabel(ketThucStr);
         lblInfoKetThuc.setFont(FONT_BOLD);
         lblInfoKetThuc.setForeground(ON_SURFACE);
-        fields.add(buildInfoFieldWithLabel("NG\u00C0Y K\u1EBCT TH\u00DAC", lblInfoKetThuc));
+        fields.add(buildInfoFieldWithLabel("NGÀY KẼT THÚC", lblInfoKetThuc));
 
         card.add(cardHeader, BorderLayout.NORTH);
         card.add(fields, BorderLayout.CENTER);
@@ -329,7 +329,7 @@ public class ChinhSuaGiaModule extends JPanel {
         row1.setOpaque(false);
         row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 
-        JLabel lblTableTitle = new JLabel("Danh s\u00E1ch chi ti\u1EBFt gi\u00E1");
+        JLabel lblTableTitle = new JLabel("Danh sách chi tiết giá");
         lblTableTitle.setFont(FONT_BOLD);
         lblTableTitle.setForeground(ON_SURFACE);
 
@@ -342,7 +342,7 @@ public class ChinhSuaGiaModule extends JPanel {
                     g2.setColor(new Color(0x9E, 0xA7, 0xB0));
                     g2.setFont(FONT_BODY);
                     Insets ins = getInsets();
-                    g2.drawString("T\u00ECm theo m\u00E3 chi ti\u1EBFt, tuy\u1EBFn...", ins.left, getHeight() / 2 + 5);
+                    g2.drawString("Tìm theo mã chi tiết, tuyến...", ins.left, getHeight() / 2 + 5);
                     g2.dispose();
                 }
             }
@@ -371,19 +371,19 @@ public class ChinhSuaGiaModule extends JPanel {
         row2.setOpaque(false);
         row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
 
-        JLabel lblLg = new JLabel("Lo\u1EA1i gh\u1EBF:");
+        JLabel lblLg = new JLabel("Loại ghế:");
         lblLg.setFont(FONT_HEADER);
         lblLg.setForeground(ON_SURF_VAR);
 
         cboFilterLoaiGhe = new JComboBox<>(new String[]{
-            "T\u1EA5t c\u1EA3", "Gh\u1EBF c\u1EE9ng", "Gh\u1EBF m\u1EC1m", "Gi\u01B0\u1EDDng n\u1EB1m"
+            "Tất cả", "Ghế cứng", "Ghế mềm", "Giường nằm"
         });
         cboFilterLoaiGhe.setFont(FONT_BODY);
         cboFilterLoaiGhe.setPreferredSize(new Dimension(200, 34));
         cboFilterLoaiGhe.setMaximumSize(new Dimension(200, 34));
         cboFilterLoaiGhe.addActionListener(e -> applyFilter());
 
-        JButton btnBoLoc = new JButton("B\u1ECF l\u1ECDc");
+        JButton btnBoLoc = new JButton("Bỏ lọc");
         btnBoLoc.setFont(FONT_BODY);
         btnBoLoc.setPreferredSize(new Dimension(72, 34));
         btnBoLoc.setMaximumSize(new Dimension(72, 34));
@@ -421,9 +421,9 @@ public class ChinhSuaGiaModule extends JPanel {
                         && ct.getTuyen().getGaDen().getTenGa().toLowerCase().contains(kw));
 
             boolean matchLg = lgIdx == 0
-                    || (lgIdx == 1 && ct.getLoaiGhe() != null && ct.getLoaiGhe().toString().equals("Gh\u1EBF c\u1EE9ng"))
-                    || (lgIdx == 2 && ct.getLoaiGhe() != null && ct.getLoaiGhe().toString().equals("Gh\u1EBF m\u1EC1m"))
-                    || (lgIdx == 3 && ct.getLoaiGhe() != null && ct.getLoaiGhe().toString().equals("Gi\u01B0\u1EDDng n\u1EB1m"));
+                    || (lgIdx == 1 && ct.getLoaiGhe() != null && ct.getLoaiGhe().toString().equals("Ghế cứng"))
+                    || (lgIdx == 2 && ct.getLoaiGhe() != null && ct.getLoaiGhe().toString().equals("Ghế mềm"))
+                    || (lgIdx == 3 && ct.getLoaiGhe() != null && ct.getLoaiGhe().toString().equals("Giường nằm"));
 
             if (matchKw && matchLg) filteredData.add(ct);
         }
@@ -569,8 +569,8 @@ public class ChinhSuaGiaModule extends JPanel {
             int end   = Math.min(start + rowsPerPage, totalRecords);
             tableModel.setData(filteredData.subList(start, end));
             lblPageInfo.setText(totalRecords == 0
-                    ? "Kh\u00F4ng t\u00ECm th\u1EA5y chi ti\u1EBFt n\u00E0o"
-                    : "Hi\u1EC3n th\u1ECB " + (start + 1) + " \u2013 " + end + " / " + totalRecords + " b\u1EA3n ghi");
+                    ? "Không tìm thấy chi tiết nào"
+                    : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " bản ghi");
             rebuildPagination(totalPages);
         } finally {
             isRefreshing = false;
@@ -579,7 +579,7 @@ public class ChinhSuaGiaModule extends JPanel {
 
     private void rebuildPagination(int totalPages) {
         paginationPanel.removeAll();
-        addNavBtn("\u276E", currentPage > 1, () -> { currentPage--; refreshTable(); });
+        addNavBtn("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
         for (int i = 1; i <= totalPages; i++) {
             final int pg = i;
             JButton btn = new JButton(String.valueOf(pg)) {
@@ -606,7 +606,7 @@ public class ChinhSuaGiaModule extends JPanel {
             btn.addActionListener(e -> { currentPage = pg; refreshTable(); });
             paginationPanel.add(btn);
         }
-        addNavBtn("\u276F", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
+        addNavBtn("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
         paginationPanel.revalidate();
         paginationPanel.repaint();
     }
@@ -633,9 +633,9 @@ public class ChinhSuaGiaModule extends JPanel {
     private void openSuaThongTinGia() {
         Window owner = SwingUtilities.getWindowAncestor(this);
         SuaGiaDialog dlg = new SuaGiaDialog(owner, gia, () -> {
-            lblInfoMoTa.setText(gia.getMoTa() != null ? gia.getMoTa() : "\u2014");
-            lblInfoBatDau.setText(gia.getThoiGianBatDau() != null ? gia.getThoiGianBatDau().format(DT_FMT) : "\u2014");
-            lblInfoKetThuc.setText(gia.getThoiGianKetThuc() != null ? gia.getThoiGianKetThuc().format(DT_FMT) : "\u2014");
+            lblInfoMoTa.setText(gia.getMoTa() != null ? gia.getMoTa() : "—");
+            lblInfoBatDau.setText(gia.getThoiGianBatDau() != null ? gia.getThoiGianBatDau().format(DT_FMT) : "—");
+            lblInfoKetThuc.setText(gia.getThoiGianKetThuc() != null ? gia.getThoiGianKetThuc().format(DT_FMT) : "—");
             repaint();
         });
         dlg.setVisible(true);
@@ -649,8 +649,8 @@ public class ChinhSuaGiaModule extends JPanel {
 
     private void confirmDelete(ChiTietGia ctg) {
         int res = JOptionPane.showConfirmDialog(this,
-                "X\u00F3a chi ti\u1EBFt gi\u00E1 \"" + ctg.getMaChiTietGia() + "\"?",
-                "X\u00E1c nh\u1EADn x\u00F3a",
+                "Xóa chi tiết giá \"" + ctg.getMaChiTietGia() + "\"?",
+                "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (res != JOptionPane.YES_OPTION) return;
         new SwingWorker<Boolean, Void>() {
@@ -661,10 +661,10 @@ public class ChinhSuaGiaModule extends JPanel {
                 try {
                     if (get()) loadData();
                     else JOptionPane.showMessageDialog(ChinhSuaGiaModule.this,
-                            "Kh\u00F4ng th\u1EC3 x\u00F3a chi ti\u1EBFt gi\u00E1!", "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                            "Không thể xóa chi tiết giá!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(ChinhSuaGiaModule.this,
-                            "L\u1ED7i: " + ex.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                            "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();
@@ -709,8 +709,8 @@ public class ChinhSuaGiaModule extends JPanel {
 
     private class ChiTietGiaTableModel extends AbstractTableModel {
         private final String[] COLS = {
-            "M\u00E3 chi ti\u1EBFt", "Tuy\u1EBFn",
-            "Lo\u1EA1i gh\u1EBF", "Gi\u00E1 ni\u00EAm y\u1EBFt (VN\u0110)", ""
+            "Mã chi tiết", "Tuyến",
+            "Loại ghế", "Giá niêm yết (VNĐ)", ""
         };
         private List<ChiTietGia> data = new ArrayList<>();
 
@@ -727,12 +727,12 @@ public class ChinhSuaGiaModule extends JPanel {
             return switch (c) {
                 case 0 -> ct.getMaChiTietGia();
                 case 1 -> {
-                    if (ct.getTuyen() == null) yield "\u2014";
+                    if (ct.getTuyen() == null) yield "—";
                     String gaDi  = ct.getTuyen().getGaDi()  != null ? ct.getTuyen().getGaDi().getTenGa()  : "?";
                     String gaDen = ct.getTuyen().getGaDen() != null ? ct.getTuyen().getGaDen().getTenGa() : "?";
-                    yield gaDi + " \u2192 " + gaDen + " (" + ct.getTuyen().getMaTuyen() + ")";
+                    yield gaDi + " → " + gaDen + " (" + ct.getTuyen().getMaTuyen() + ")";
                 }
-                case 2 -> ct.getLoaiGhe() != null ? ct.getLoaiGhe().toString() : "\u2014";
+                case 2 -> ct.getLoaiGhe() != null ? ct.getLoaiGhe().toString() : "—";
                 case 3 -> ct.getGiaNiemYet();
                 case 4 -> ct;
                 default -> "";
@@ -777,7 +777,7 @@ public class ChinhSuaGiaModule extends JPanel {
         @Override
         public Component getTableCellRendererComponent(JTable tbl, Object value,
                 boolean isSel, boolean hasFocus, int row, int col) {
-            String text = (value instanceof Double d) ? CURRENCY_FMT.format(d) + " \u0111" : "\u2014";
+            String text = (value instanceof Double d) ? CURRENCY_FMT.format(d) + " đ" : "—";
             super.getTableCellRendererComponent(tbl, text, isSel, hasFocus, row, col);
             setFont(FONT_BOLD); setForeground(ON_SURFACE);
             setBorder(new EmptyBorder(0, 20, 0, 8));
@@ -809,13 +809,13 @@ public class ChinhSuaGiaModule extends JPanel {
         @Override
         public Component getTableCellRendererComponent(JTable tbl, Object value,
                 boolean isSel, boolean hasFocus, int row, int col) {
-            String text = value != null ? value.toString() : "\u2014";
+            String text = value != null ? value.toString() : "—";
             badge.setText(text);
-            if (text.equals("Gh\u1EBF c\u1EE9ng")) {
+            if (text.equals("Ghế cứng")) {
                 badgeBg = GHE_CUNG_BG; badgeFg = GHE_CUNG_FG;
-            } else if (text.equals("Gh\u1EBF m\u1EC1m")) {
+            } else if (text.equals("Ghế mềm")) {
                 badgeBg = GHE_MEM_BG;  badgeFg = GHE_MEM_FG;
-            } else if (text.equals("Gi\u01B0\u1EDDng n\u1EB1m")) {
+            } else if (text.equals("Giường nằm")) {
                 badgeBg = GIUONG_BG;   badgeFg = GIUONG_FG;
             } else {
                 badgeBg = BADGE_BG;    badgeFg = ON_SURF_VAR;
@@ -837,8 +837,8 @@ public class ChinhSuaGiaModule extends JPanel {
     }
 
     private class ActionRenderer extends JPanel implements TableCellRenderer {
-        private final JLabel editLbl = new JLabel("S\u1EEDa");
-        private final JLabel delLbl  = new JLabel("X\u00F3a");
+        private final JLabel editLbl = new JLabel("Sửa");
+        private final JLabel delLbl  = new JLabel("Xóa");
         ActionRenderer() {
             setLayout(new GridBagLayout()); setOpaque(true);
             GridBagConstraints gbc = new GridBagConstraints();
@@ -885,7 +885,7 @@ public class ChinhSuaGiaModule extends JPanel {
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.insets = new Insets(0, 5, 0, 5);
 
-            JButton btnEdit = new JButton("S\u1EEDa");
+            JButton btnEdit = new JButton("Sửa");
             btnEdit.setFont(FONT_BADGE); btnEdit.setForeground(PRIMARY); btnEdit.setBackground(PRIMARY_LIGHT);
             btnEdit.setBorderPainted(false); btnEdit.setFocusPainted(false);
             btnEdit.setPreferredSize(new Dimension(52, 28));
@@ -895,7 +895,7 @@ public class ChinhSuaGiaModule extends JPanel {
                 if (ct != null) openChinhSuaChiTietDialog(ct);
             });
 
-            JButton btnDel = new JButton("X\u00F3a");
+            JButton btnDel = new JButton("Xóa");
             btnDel.setFont(FONT_BADGE); btnDel.setForeground(ERROR_FG); btnDel.setBackground(ERROR_BG);
             btnDel.setBorderPainted(false); btnDel.setFocusPainted(false);
             btnDel.setPreferredSize(new Dimension(52, 28));

@@ -12,8 +12,6 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 public class ThemNhanVienDialog extends JDialog {
@@ -53,7 +51,7 @@ public class ThemNhanVienDialog extends JDialog {
     private JTextField        txtEmail;
     private JComboBox<String> cboGaLamViec;
     private JTextField        txtDiaChiThuongTru;
-    private JTextField        txtNgaySinh;
+    private DatePickerField   dpNgaySinh;
     private JComboBox<String> cboGioiTinh;
     private JTextField        txtQuocTich;
     private String[]          gaKeys;   // maGa values corresponding to cboGaLamViec items (index 0 = null)
@@ -69,7 +67,7 @@ public class ThemNhanVienDialog extends JDialog {
     private Runnable onSaved;
 
     public ThemNhanVienDialog(Window owner, Runnable onSaved) {
-        super(owner, "Th\u00EAm nh\u00E2n vi\u00EAn m\u1EDBi", ModalityType.APPLICATION_MODAL);
+        super(owner, "Thêm nhân viên mới", ModalityType.APPLICATION_MODAL);
         this.onSaved = onSaved;
         // Load Ga options synchronously before building UI
         loadGaOptions();
@@ -88,7 +86,7 @@ public class ThemNhanVienDialog extends JDialog {
         gaKeys = new String[gaList.size() + 1];
         gaKeys[0] = null;
         String[] gaDisplayItems = new String[gaList.size() + 1];
-        gaDisplayItems[0] = "-- Ch\u01B0a ph\u00E2n c\u00F4ng --";
+        gaDisplayItems[0] = "-- Chưa phân công --";
         for (int i = 0; i < gaList.size(); i++) {
             gaKeys[i + 1] = gaList.get(i)[0];
             gaDisplayItems[i + 1] = gaList.get(i)[1];
@@ -150,11 +148,11 @@ public class ThemNhanVienDialog extends JDialog {
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("\u2795  Th\u00EAm nh\u00E2n vi\u00EAn m\u1EDBi");
+        JLabel lblTitle = new JLabel("+  Thêm nhân viên mới");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(PRIMARY);
 
-        JLabel lblDesc = new JLabel("Vui l\u00F2ng \u0111i\u1EC1n \u0111\u1EA7y \u0111\u1EE7 th\u00F4ng tin b\u00EAn d\u01B0\u1EDBi \u0111\u1EC3 t\u1EA1o t\u00E0i kho\u1EA3n m\u1EDBi.");
+        JLabel lblDesc = new JLabel("Vui lòng điền đầy đủ thông tin bên dưới để tạo tài khoản mới.");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
 
@@ -185,11 +183,11 @@ public class ThemNhanVienDialog extends JDialog {
                 try { txtMaNV.setText(get()); } catch (Exception e) { txtMaNV.setText("NV-????"); }
             }
         }.execute();
-        row1.add(buildFieldGroup("M\u00E3 nh\u00E2n vi\u00EAn", txtMaNV, "* M\u00E3 s\u1ED1 n\u00E0y \u0111\u01B0\u1EE3c h\u1EC7 th\u1ED1ng t\u1EA1o t\u1EF1 \u0111\u1ED9ng", false, null));
+        row1.add(buildFieldGroup("Mã nhân viên", txtMaNV, "* Mã số này được hệ thống tạo tự động", false, null));
 
-        txtHoTen = createInputField("Nh\u1EADp h\u1ECD v\u00E0 t\u00EAn \u0111\u1EA7y \u0111\u1EE7");
+        txtHoTen = createInputField("Nhập họ và tên đầy đủ");
         lblErrHoTen = createErrorLabel();
-        row1.add(buildFieldGroup("H\u1ECD v\u00E0 t\u00EAn", txtHoTen, null, true, lblErrHoTen));
+        row1.add(buildFieldGroup("Họ và tên", txtHoTen, null, true, lblErrHoTen));
 
         form.add(row1);
         form.add(Box.createVerticalStrut(10));
@@ -201,11 +199,11 @@ public class ThemNhanVienDialog extends JDialog {
 
         txtSoDienThoai = createInputField("09xx xxx xxx");
         lblErrSoDienThoai = createErrorLabel();
-        row2.add(buildFieldGroup("S\u1ED1 \u0111i\u1EC7n tho\u1EA1i", txtSoDienThoai, null, true, lblErrSoDienThoai));
+        row2.add(buildFieldGroup("Số điện thoại", txtSoDienThoai, null, true, lblErrSoDienThoai));
 
-        txtCccd = createInputField("Nh\u1EADp s\u1ED1 CCCD");
+        txtCccd = createInputField("Nhập số CCCD");
         lblErrCccd = createErrorLabel();
-        row2.add(buildFieldGroup("S\u1ED1 CCCD", txtCccd, null, true, lblErrCccd));
+        row2.add(buildFieldGroup("Số CCCD", txtCccd, null, true, lblErrCccd));
 
         txtEmail = createInputField("example@email.com");
         row2.add(buildFieldGroup("Email", txtEmail, null, false, null));
@@ -218,21 +216,23 @@ public class ThemNhanVienDialog extends JDialog {
         row3.setOpaque(false);
         row3.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        txtNgaySinh = createInputField("dd/MM/yyyy");
+        dpNgaySinh = new DatePickerField();
+        dpNgaySinh.setPreferredSize(new Dimension(0, 40));
+        dpNgaySinh.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         lblErrNgaySinh = createErrorLabel();
-        row3.add(buildFieldGroup("Ng\u00E0y sinh", txtNgaySinh, null, false, lblErrNgaySinh));
+        row3.add(buildFieldGroup("Ngày sinh", dpNgaySinh, null, false, lblErrNgaySinh));
 
-        cboGioiTinh = new JComboBox<>(new String[]{"-- Kh\u00F4ng ch\u1ECDn --", "Nam", "N\u1EEF"});
+        cboGioiTinh = new JComboBox<>(new String[]{"-- Không chọn --", "Nam", "Nữ"});
         cboGioiTinh.setFont(FONT_INPUT);
         cboGioiTinh.setBackground(CARD_BG);
         cboGioiTinh.setPreferredSize(new Dimension(0, 36));
         cboGioiTinh.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        row3.add(buildFieldGroup("Gi\u1EDBi t\u00EDnh", cboGioiTinh, null, false, null));
+        row3.add(buildFieldGroup("Giới tính", cboGioiTinh, null, false, null));
 
-        txtQuocTich = createInputField("Vi\u1EC7t Nam");
-        txtQuocTich.setText("Vi\u1EC7t Nam");
+        txtQuocTich = createInputField("Việt Nam");
+        txtQuocTich.setText("Việt Nam");
         txtQuocTich.setForeground(ON_SURFACE);
-        row3.add(buildFieldGroup("Qu\u1ED1c t\u1ECBch", txtQuocTich, null, false, null));
+        row3.add(buildFieldGroup("Quốc tịch", txtQuocTich, null, false, null));
 
         form.add(row3);
         form.add(Box.createVerticalStrut(10));
@@ -242,21 +242,21 @@ public class ThemNhanVienDialog extends JDialog {
         row4.setOpaque(false);
         row4.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        cboBoPhan = new JComboBox<>(new String[]{"B\u00E1n v\u00E9", "\u0110i\u1EC1u ph\u1ED1i", "Admin"});
+        cboBoPhan = new JComboBox<>(new String[]{"Bán vé", "Điều phối", "Admin"});
         cboBoPhan.setFont(FONT_INPUT);
         cboBoPhan.setBackground(CARD_BG);
         cboBoPhan.setPreferredSize(new Dimension(0, 36));
         cboBoPhan.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        row4.add(buildFieldGroup("B\u1ED9 ph\u1EADn", cboBoPhan, null, false, null));
+        row4.add(buildFieldGroup("Bộ phận", cboBoPhan, null, false, null));
 
-        cboTrangThai = new JComboBox<>(new String[]{"\u0110ang l\u00E0m", "Ngh\u1EC9 ph\u00E9p", "\u0110\u00E3 ngh\u1EC9"});
+        cboTrangThai = new JComboBox<>(new String[]{"Đang làm", "Nghỉ phép", "Đã nghỉ"});
         cboTrangThai.setFont(FONT_INPUT);
         cboTrangThai.setBackground(CARD_BG);
         cboTrangThai.setPreferredSize(new Dimension(0, 36));
         cboTrangThai.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        row4.add(buildFieldGroup("Tr\u1EA1ng th\u00E1i", cboTrangThai, null, false, null));
+        row4.add(buildFieldGroup("Trạng thái", cboTrangThai, null, false, null));
 
-        row4.add(buildFieldGroup("Ga l\u00E0m vi\u1EC7c", cboGaLamViec, null, false, null));
+        row4.add(buildFieldGroup("Ga làm việc", cboGaLamViec, null, false, null));
 
         form.add(row4);
         form.add(Box.createVerticalStrut(10));
@@ -276,7 +276,7 @@ public class ThemNhanVienDialog extends JDialog {
         ));
         addFocusBorderEffect(txtPassword);
         lblErrPassword = createErrorLabel();
-        row5.add(buildFieldGroup("M\u1EADt kh\u1EA9u", txtPassword, "* M\u1EADt kh\u1EA9u \u0111\u0103ng nh\u1EADp ban \u0111\u1EA7u", true, lblErrPassword));
+        row5.add(buildFieldGroup("Mật khẩu", txtPassword, "* Mật khẩu đăng nhập ban đầu", true, lblErrPassword));
 
         form.add(row5);
         form.add(Box.createVerticalStrut(10));
@@ -286,8 +286,8 @@ public class ThemNhanVienDialog extends JDialog {
         row6.setOpaque(false);
         row6.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        txtDiaChiTamTru = createInputField("Nh\u1EADp \u0111\u1ECBa ch\u1EC9 t\u1EA1m tr\u00FA hi\u1EC7n t\u1EA1i");
-        row6.add(buildFieldGroup("\u0110\u1ECBa ch\u1EC9 t\u1EA1m tr\u00FA", txtDiaChiTamTru, null, false, null));
+        txtDiaChiTamTru = createInputField("Nhập địa chỉ tạm trú hiện tại");
+        row6.add(buildFieldGroup("Địa chỉ tạm trú", txtDiaChiTamTru, null, false, null));
 
         form.add(row6);
         form.add(Box.createVerticalStrut(10));
@@ -297,8 +297,8 @@ public class ThemNhanVienDialog extends JDialog {
         row7.setOpaque(false);
         row7.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        txtDiaChiThuongTru = createInputField("Nh\u1EADp \u0111\u1ECBa ch\u1EC9 th\u01B0\u1EDDng tr\u00FA");
-        row7.add(buildFieldGroup("\u0110\u1ECBa ch\u1EC9 th\u01B0\u1EDDng tr\u00FA", txtDiaChiThuongTru, null, false, null));
+        txtDiaChiThuongTru = createInputField("Nhập địa chỉ thường trú");
+        row7.add(buildFieldGroup("Địa chỉ thường trú", txtDiaChiThuongTru, null, false, null));
 
         form.add(row7);
 
@@ -314,10 +314,10 @@ public class ThemNhanVienDialog extends JDialog {
                 new EmptyBorder(16, 28, 16, 28)
         ));
 
-        JButton btnCancel = createOutlineButton("H\u1EE7y b\u1ECF");
+        JButton btnCancel = createOutlineButton("Hủy bỏ");
         btnCancel.addActionListener(e -> dispose());
 
-        JButton btnSave = createPrimaryButton("L\u01B0u nh\u00E2n vi\u00EAn");
+        JButton btnSave = createPrimaryButton("Lưu nhân viên");
         btnSave.addActionListener(e -> doSave());
 
         footer.add(btnCancel);
@@ -329,52 +329,41 @@ public class ThemNhanVienDialog extends JDialog {
     private void doSave() {
         clearAllErrors();
 
-        String hoTen = getFieldText(txtHoTen, "Nh\u1EADp h\u1ECD v\u00E0 t\u00EAn \u0111\u1EA7y \u0111\u1EE7");
+        String hoTen = getFieldText(txtHoTen, "Nhập họ và tên đầy đủ");
         String sdt = getFieldText(txtSoDienThoai, "09xx xxx xxx");
-        String cccd = getFieldText(txtCccd, "Nh\u1EADp s\u1ED1 CCCD");
+        String cccd = getFieldText(txtCccd, "Nhập số CCCD");
         String email = getFieldText(txtEmail, "example@email.com");
-        String ngaySinhStr = getFieldText(txtNgaySinh, "dd/MM/yyyy");
-        String diaChiThuongTru = getFieldText(txtDiaChiThuongTru, "Nh\u1EADp \u0111\u1ECBa ch\u1EC9 th\u01B0\u1EDDng tr\u00FA");
-        String diaChiTamTru = getFieldText(txtDiaChiTamTru, "Nh\u1EADp \u0111\u1ECBa ch\u1EC9 t\u1EA1m tr\u00FA hi\u1EC7n t\u1EA1i");
+        LocalDate ngaySinh = dpNgaySinh.getValue();
+        String diaChiThuongTru = getFieldText(txtDiaChiThuongTru, "Nhập địa chỉ thường trú");
+        String diaChiTamTru = getFieldText(txtDiaChiTamTru, "Nhập địa chỉ tạm trú hiện tại");
         String password = new String(txtPassword.getPassword()).trim();
         String maNV = txtMaNV.getText().trim();
         String quocTich = txtQuocTich.getText().trim();
 
         // Validation
         if (hoTen.isEmpty()) {
-            showFieldError(txtHoTen, lblErrHoTen, "Vui l\u00F2ng nh\u1EADp h\u1ECD v\u00E0 t\u00EAn");
+            showFieldError(txtHoTen, lblErrHoTen, "Vui lòng nhập họ và tên");
             return;
         }
         if (sdt.isEmpty()) {
-            showFieldError(txtSoDienThoai, lblErrSoDienThoai, "Vui l\u00F2ng nh\u1EADp s\u1ED1 \u0111i\u1EC7n tho\u1EA1i");
+            showFieldError(txtSoDienThoai, lblErrSoDienThoai, "Vui lòng nhập số điện thoại");
             return;
         }
         if (!sdt.matches("\\d{10,11}")) {
-            showFieldError(txtSoDienThoai, lblErrSoDienThoai, "S\u1ED1 \u0111i\u1EC7n tho\u1EA1i ph\u1EA3i c\u00F3 10\u201311 ch\u1EEF s\u1ED1");
+            showFieldError(txtSoDienThoai, lblErrSoDienThoai, "Số điện thoại phải có 10–11 chữ số");
             return;
         }
         if (cccd.isEmpty()) {
-            showFieldError(txtCccd, lblErrCccd, "Vui l\u00F2ng nh\u1EADp s\u1ED1 CCCD");
+            showFieldError(txtCccd, lblErrCccd, "Vui lòng nhập số CCCD");
             return;
         }
         if (!cccd.matches("\\d{12}")) {
-            showFieldError(txtCccd, lblErrCccd, "S\u1ED1 CCCD ph\u1EA3i c\u00F3 \u0111\u00FAng 12 ch\u1EEF s\u1ED1");
+            showFieldError(txtCccd, lblErrCccd, "Số CCCD phải có đúng 12 chữ số");
             return;
         }
         if (password.isEmpty()) {
-            showFieldError(txtPassword, lblErrPassword, "Vui l\u00F2ng nh\u1EADp m\u1EADt kh\u1EA9u");
+            showFieldError(txtPassword, lblErrPassword, "Vui lòng nhập mật khẩu");
             return;
-        }
-
-        // Parse ngaySinh
-        LocalDate ngaySinh = null;
-        if (!ngaySinhStr.isEmpty()) {
-            try {
-                ngaySinh = LocalDate.parse(ngaySinhStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            } catch (DateTimeParseException ex) {
-                showFieldError(txtNgaySinh, lblErrNgaySinh, "Ng\u00E0y sinh kh\u00F4ng h\u1EE3p l\u1EC7 (dd/MM/yyyy)");
-                return;
-            }
         }
 
         // Resolve vaiTro
@@ -423,13 +412,13 @@ public class ThemNhanVienDialog extends JDialog {
                         dispose();
                     } else {
                         JOptionPane.showMessageDialog(ThemNhanVienDialog.this,
-                                "Kh\u00F4ng th\u1EC3 l\u01B0u! M\u00E3 NV c\u00F3 th\u1EC3 \u0111\u00E3 t\u1ED3n t\u1EA1i.",
-                                "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                                "Không thể lưu! Mã NV có thể đã tồn tại.",
+                                "Lỗi", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(ThemNhanVienDialog.this,
-                            "L\u1ED7i: " + ex.getMessage(),
-                            "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                            "Lỗi: " + ex.getMessage(),
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();
@@ -451,11 +440,10 @@ public class ThemNhanVienDialog extends JDialog {
 
     private void clearAllErrors() {
         JLabel[] errs     = {lblErrHoTen, lblErrSoDienThoai, lblErrCccd, lblErrPassword, lblErrNgaySinh};
-        JComponent[] flds = {txtHoTen, txtSoDienThoai, txtCccd, txtPassword, txtNgaySinh};
-        for (int i = 0; i < errs.length; i++) {
-            errs[i].setText("");
-            errs[i].setVisible(false);
-            flds[i].setBorder(BorderFactory.createCompoundBorder(
+        JComponent[] flds = {txtHoTen, txtSoDienThoai, txtCccd, txtPassword};
+        for (JLabel err : errs) { err.setText(""); err.setVisible(false); }
+        for (JComponent fld : flds) {
+            fld.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(OUTLINE, 1, true),
                     new EmptyBorder(8, 12, 8, 12)
             ));

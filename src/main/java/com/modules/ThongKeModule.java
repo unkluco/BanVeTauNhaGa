@@ -105,14 +105,14 @@ public class ThongKeModule extends JPanel implements AppModule {
             new EmptyBorder(14, 24, 14, 24)
         ));
 
-        JLabel lblTitle = new JLabel("Th\u1ed1ng k\u00ea & B\u00e1o c\u00e1o");
+        JLabel lblTitle = new JLabel("Thống kê & Báo cáo");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblTitle.setForeground(PRIMARY);
 
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         controls.setOpaque(false);
 
-        JLabel lblYear = new JLabel("N\u0103m:");
+        JLabel lblYear = new JLabel("Năm:");
         lblYear.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblYear.setForeground(TEXT_MUTED);
 
@@ -124,7 +124,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         cboYear.setPreferredSize(new Dimension(90, 32));
         cboYear.addActionListener(e -> loadAllData());
 
-        btnRefresh = new JButton("\u21bb L\u00e0m m\u1edbi");
+        btnRefresh = new JButton("↻ Làm mới");
         btnRefresh.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnRefresh.setBackground(PRIMARY);
         btnRefresh.setForeground(Color.WHITE);
@@ -154,10 +154,10 @@ public class ThongKeModule extends JPanel implements AppModule {
         lblTongHoaDon   = new JLabel("...");
         lblVeHuy        = new JLabel("...");
 
-        row.add(buildKpiCard("T\u1ed5ng doanh thu (n\u0103m)", lblTongDoanhThu, PRIMARY));
-        row.add(buildKpiCard("V\u00e9 \u0111\u00e3 b\u00e1n (n\u0103m)",      lblTongVe,       ACCENT1));
-        row.add(buildKpiCard("H\u00f3a \u0111\u01a1n (n\u0103m)",             lblTongHoaDon,   ACCENT2));
-        row.add(buildKpiCard("V\u00e9 \u0111\u00e3 h\u1ee7y (n\u0103m)",       lblVeHuy,        ACCENT4));
+        row.add(buildKpiCard("Tổng doanh thu (năm)", lblTongDoanhThu, PRIMARY));
+        row.add(buildKpiCard("Vé đã bán (năm)",      lblTongVe,       ACCENT1));
+        row.add(buildKpiCard("Hóa đơn (năm)",             lblTongHoaDon,   ACCENT2));
+        row.add(buildKpiCard("Vé đã hủy (năm)",       lblVeHuy,        ACCENT4));
         return row;
     }
 
@@ -195,28 +195,28 @@ public class ThongKeModule extends JPanel implements AppModule {
         grid.setBorder(new EmptyBorder(8, 24, 24, 24));
 
         // 1 ─ Monthly revenue bar chart
-        chartDoanhThuThang = emptyChartPanel(emptyBarChart("Tri\u1ec7u \u20ab", "Th\u00e1ng"));
-        grid.add(buildChartCard("Doanh thu theo th\u00e1ng", chartDoanhThuThang));
+        chartDoanhThuThang = emptyChartPanel(emptyBarChart("Triệu ₫", "Tháng"));
+        grid.add(buildChartCard("Doanh thu theo tháng", chartDoanhThuThang));
 
         // 2 ─ Monthly tickets grouped bar
-        chartVeThang = emptyChartPanel(emptyBarChart("S\u1ed1 v\u00e9", "Th\u00e1ng"));
-        grid.add(buildChartCard("S\u1ed1 v\u00e9 b\u00e1n / h\u1ee7y theo th\u00e1ng", chartVeThang));
+        chartVeThang = emptyChartPanel(emptyBarChart("Số vé", "Tháng"));
+        grid.add(buildChartCard("Số vé bán / hủy theo tháng", chartVeThang));
 
         // 3 ─ Ticket status ring chart
         chartTrangThaiVe = emptyChartPanel(emptyRingChart());
-        grid.add(buildChartCard("T\u1ef7 l\u1ec7 tr\u1ea1ng th\u00e1i v\u00e9 (to\u00e0n th\u1eddi gian)", chartTrangThaiVe));
+        grid.add(buildChartCard("Tỷ lệ trạng thái vé (toàn thời gian)", chartTrangThaiVe));
 
         // 4 ─ Revenue by route horizontal bar
-        chartDoanhThuTuyen = emptyChartPanel(emptyHorizontalBarChart("Tri\u1ec7u \u20ab", "Tuy\u1ebfn"));
-        grid.add(buildChartCard("Top tuy\u1ebfn theo doanh thu", chartDoanhThuTuyen));
+        chartDoanhThuTuyen = emptyChartPanel(emptyHorizontalBarChart("Triệu ₫", "Tuyến"));
+        grid.add(buildChartCard("Top tuyến theo doanh thu", chartDoanhThuTuyen));
 
         // 5 ─ Top employees bar chart
-        chartTopNhanVien = emptyChartPanel(emptyBarChart("Tri\u1ec7u \u20ab", "Nh\u00e2n vi\u00ean"));
-        grid.add(buildChartCard("Top 5 nh\u00e2n vi\u00ean (doanh thu n\u0103m)", chartTopNhanVien));
+        chartTopNhanVien = emptyChartPanel(emptyBarChart("Triệu ₫", "Nhân viên"));
+        grid.add(buildChartCard("Top 5 nhân viên (doanh thu năm)", chartTopNhanVien));
 
         // 6 ─ Daily invoices current month line chart
-        chartHoaDonNgay = emptyChartPanel(emptyLineChart("S\u1ed1 h\u00f3a \u0111\u01a1n", "Ng\u00e0y"));
-        grid.add(buildChartCard("H\u00f3a \u0111\u01a1n theo ng\u00e0y (th\u00e1ng hi\u1ec7n t\u1ea1i)", chartHoaDonNgay));
+        chartHoaDonNgay = emptyChartPanel(emptyLineChart("Số hóa đơn", "Ngày"));
+        grid.add(buildChartCard("Hóa đơn theo ngày (tháng hiện tại)", chartHoaDonNgay));
 
         return grid;
     }
@@ -296,7 +296,7 @@ public class ThongKeModule extends JPanel implements AppModule {
     private void loadAllData() {
         int year = (Integer) cboYear.getSelectedItem();
         btnRefresh.setEnabled(false);
-        btnRefresh.setText("\u23f3 \u0110ang t\u1ea3i...");
+        btnRefresh.setText("⏳ Đang tải...");
 
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
@@ -314,7 +314,7 @@ public class ThongKeModule extends JPanel implements AppModule {
             @Override
             protected void done() {
                 btnRefresh.setEnabled(true);
-                btnRefresh.setText("\u21bb L\u00e0m m\u1edbi");
+                btnRefresh.setText("↻ Làm mới");
             }
         };
         worker.execute();
@@ -348,7 +348,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         for (int i = 0; i < 12; i++) ds.addValue(vals[i], "Doanh thu", months[i]);
 
         JFreeChart chart = ChartFactory.createBarChart(
-            "", "Th\u00e1ng", "Tri\u1ec7u \u20ab", ds,
+            "", "Tháng", "Triệu ₫", ds,
             PlotOrientation.VERTICAL, false, true, false);
         applyBarStyle(chart, false, new Color[]{PALETTE[0]});
         chart.getPlot().setBackgroundPaint(CARD_BG);
@@ -388,12 +388,12 @@ public class ThongKeModule extends JPanel implements AppModule {
         DefaultCategoryDataset ds = new DefaultCategoryDataset();
         String[] months = {"T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"};
         for (int i = 0; i < 12; i++) {
-            ds.addValue(ban[i], "\u0110\u00e3 b\u00e1n", months[i]);
-            ds.addValue(huy[i], "\u0110\u00e3 h\u1ee7y", months[i]);
+            ds.addValue(ban[i], "Đã bán", months[i]);
+            ds.addValue(huy[i], "Đã hủy", months[i]);
         }
 
         JFreeChart chart = ChartFactory.createBarChart(
-            "", "Th\u00e1ng", "S\u1ed1 v\u00e9", ds,
+            "", "Tháng", "Số vé", ds,
             PlotOrientation.VERTICAL, true, true, false);
         applyBarStyle(chart, true, new Color[]{PALETTE[0], PALETTE[4]});
         chart.getPlot().setBackgroundPaint(CARD_BG);
@@ -416,7 +416,7 @@ public class ThongKeModule extends JPanel implements AppModule {
             while (rs.next()) {
                 String tt = rs.getString("trangThai");
                 int cnt = rs.getInt("soLuong");
-                String label = "DA_BAN".equalsIgnoreCase(tt) ? "\u0110\u00e3 b\u00e1n" : "\u0110\u00e3 h\u1ee7y";
+                String label = "DA_BAN".equalsIgnoreCase(tt) ? "Đã bán" : "Đã hủy";
                 ds.setValue(label, cnt);
             }
         } catch (SQLException e) {
@@ -432,8 +432,8 @@ public class ThongKeModule extends JPanel implements AppModule {
         RingPlot plot = (RingPlot) chart.getPlot();
         plot.setBackgroundPaint(CARD_BG);
         plot.setOutlinePaint(null);
-        plot.setSectionPaint("\u0110\u00e3 b\u00e1n", PALETTE[0]);
-        plot.setSectionPaint("\u0110\u00e3 h\u1ee7y", PALETTE[4]);
+        plot.setSectionPaint("Đã bán", PALETTE[0]);
+        plot.setSectionPaint("Đã hủy", PALETTE[4]);
         plot.setDefaultSectionOutlinePaint(CARD_BG);
         plot.setDefaultSectionOutlineStroke(new BasicStroke(3f));
         plot.setSectionDepth(0.40);
@@ -441,7 +441,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         plot.setLabelFont(new Font("Segoe UI", Font.PLAIN, 12));
         plot.setLabelPaint(TEXT_DARK);
         plot.setLabelGenerator(new StandardPieSectionLabelGenerator(
-            "{0}\n{1} v\u00e9 ({2})",
+            "{0}\n{1} vé ({2})",
             NumberFormat.getIntegerInstance(),
             new DecimalFormat("0.0%")
         ));
@@ -456,7 +456,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         DefaultCategoryDataset ds = new DefaultCategoryDataset();
         String sql =
             "SELECT TOP 7 " +
-            "    g1.tenGa + N' \u2192 ' + g2.tenGa AS tenTuyen, " +
+            "    g1.tenGa + N' → ' + g2.tenGa AS tenTuyen, " +
             "    SUM(ct.giaTien) AS tong " +
             "FROM ChiTietHoaDon ct " +
             "JOIN Ve v ON ct.maVe = v.maVe " +
@@ -478,7 +478,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         }
 
         JFreeChart chart = ChartFactory.createBarChart(
-            "", "Tuy\u1ebfn", "Tri\u1ec7u \u20ab", ds,
+            "", "Tuyến", "Triệu ₫", ds,
             PlotOrientation.HORIZONTAL, false, true, false);
         applyBarStyle(chart, false, new Color[]{PALETTE[1]});
         chart.getPlot().setBackgroundPaint(CARD_BG);
@@ -512,7 +512,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         }
 
         JFreeChart chart = ChartFactory.createBarChart(
-            "", "Nh\u00e2n vi\u00ean", "Tri\u1ec7u \u20ab", ds,
+            "", "Nhân viên", "Triệu ₫", ds,
             PlotOrientation.VERTICAL, false, true, false);
         applyBarStyle(chart, false, new Color[]{PALETTE[2]});
         chart.getPlot().setBackgroundPaint(CARD_BG);
@@ -548,11 +548,11 @@ public class ThongKeModule extends JPanel implements AppModule {
 
         DefaultCategoryDataset ds = new DefaultCategoryDataset();
         for (int i = 0; i < daysInMonth; i++) {
-            ds.addValue(vals[i], "H\u00f3a \u0111\u01a1n", String.valueOf(i + 1));
+            ds.addValue(vals[i], "Hóa đơn", String.valueOf(i + 1));
         }
 
         JFreeChart chart = ChartFactory.createLineChart(
-            "", "Ng\u00e0y", "S\u1ed1 h\u00f3a \u0111\u01a1n", ds,
+            "", "Ngày", "Số hóa đơn", ds,
             PlotOrientation.VERTICAL, false, true, false);
         applyLineStyle(chart, PALETTE[3]);
         chart.getPlot().setBackgroundPaint(CARD_BG);
@@ -564,7 +564,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         Connection con = ConnectDB.getCon();
         if (con == null) {
             SwingUtilities.invokeLater(() -> {
-                lblTongDoanhThu.setText("Kh\u00f4ng c\u00f3 d\u1eef li\u1ec7u");
+                lblTongDoanhThu.setText("Không có dữ liệu");
                 lblTongVe.setText("-");
                 lblTongHoaDon.setText("-");
                 lblVeHuy.setText("-");
@@ -614,10 +614,10 @@ public class ThongKeModule extends JPanel implements AppModule {
         }
 
         NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));
-        String sDT  = nf.format(doanhThu) + " \u20ab";
-        String sVe  = nf.format(tongVe)   + " v\u00e9";
-        String sHD  = nf.format(tongHD)   + " \u0111\u01a1n";
-        String sHuy = nf.format(veHuy)    + " v\u00e9";
+        String sDT  = nf.format(doanhThu) + " ₫";
+        String sVe  = nf.format(tongVe)   + " vé";
+        String sHD  = nf.format(tongHD)   + " đơn";
+        String sHuy = nf.format(veHuy)    + " vé";
 
         SwingUtilities.invokeLater(() -> {
             lblTongDoanhThu.setText(sDT);
@@ -700,7 +700,7 @@ public class ThongKeModule extends JPanel implements AppModule {
 
     // ── AppModule interface ───────────────────────────────────────────────
 
-    @Override public String getTitle() { return "Th\u1ed1ng k\u00ea"; }
+    @Override public String getTitle() { return "Thống kê"; }
     @Override public JPanel getView()  { return this; }
     @Override public void setOnResult(Consumer<Object> cb) { this.callback = cb; }
     @Override public void reset() { loadAllData(); }

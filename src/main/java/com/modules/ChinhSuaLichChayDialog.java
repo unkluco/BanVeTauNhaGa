@@ -7,14 +7,13 @@ import com.entity.DoanTau;
 import com.entity.Lich;
 import com.entity.Tuyen;
 
-import com.toedter.calendar.JDateChooser;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.List;
@@ -56,7 +55,7 @@ public class ChinhSuaLichChayDialog extends JDialog {
     private JTextField         txtMaLich;
     private JComboBox<Tuyen>   cboTuyen;
     private JComboBox<DoanTau> cboDoanTau;
-    private JDateChooser       datePickerBatDau;
+    private DatePickerField     dpBatDau;
     private JSpinner           timePickerBatDau;
     private JPanel             dateTimePanel;
     private JTextField         txtThoiGianChay;
@@ -71,7 +70,7 @@ public class ChinhSuaLichChayDialog extends JDialog {
     // =====================================================================
 
     public ChinhSuaLichChayDialog(Window owner, Lich lich, Runnable onSaved) {
-        super(owner, lich == null ? "Th\u00EAm l\u1ECBch ch\u1EA1y" : "Ch\u1EC9nh s\u1EEDa l\u1ECBch ch\u1EA1y",
+        super(owner, lich == null ? "Thêm lịch chạy" : "Chỉnh sửa lịch chạy",
                 ModalityType.APPLICATION_MODAL);
         this.original    = lich;
         this.isEditMode  = (lich != null);
@@ -145,15 +144,15 @@ public class ChinhSuaLichChayDialog extends JDialog {
         textPart.setOpaque(false);
 
         String titleStr = isEditMode
-                ? "\u270E  Ch\u1EC9nh s\u1EEDa l\u1ECBch ch\u1EA1y"
-                : "\u2795  Th\u00EAm l\u1ECBch ch\u1EA1y m\u1EDBi";
+                ? "✎  Chỉnh sửa lịch chạy"
+                : "+  Thêm lịch chạy mới";
         JLabel lblTitle = new JLabel(titleStr);
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(PRIMARY);
 
         String descStr = isEditMode
-                ? "C\u1EADp nh\u1EADt th\u00F4ng tin l\u1ECBch ch\u1EA1y " + original.getMaLich() + "."
-                : "Nh\u1EADp th\u00F4ng tin \u0111\u1EC3 t\u1EA1o l\u1ECBch ch\u1EA1y m\u1EDBi.";
+                ? "Cập nhật thông tin lịch chạy " + original.getMaLich() + "."
+                : "Nhập thông tin để tạo lịch chạy mới.";
         JLabel lblDesc = new JLabel(descStr);
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
@@ -164,7 +163,7 @@ public class ChinhSuaLichChayDialog extends JDialog {
         left.add(textPart, BorderLayout.CENTER);
 
         // Close button
-        JButton btnClose = new JButton("\u2715");
+        JButton btnClose = new JButton("✕");
         btnClose.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         btnClose.setForeground(ON_SURF_VAR);
         btnClose.setContentAreaFilled(false);
@@ -234,23 +233,21 @@ public class ChinhSuaLichChayDialog extends JDialog {
             txtMaLich.setForeground(PRIMARY);
         }
         JPanel row1 = buildRow(1, 1, Integer.MAX_VALUE, 80);
-        row1.add(buildFieldGroup("M\u00E3 l\u1ECBch ch\u1EA1y", txtMaLich,
-                isEditMode ? "* Kh\u00F4ng th\u1EC3 thay \u0111\u1ED5i" : null, !isEditMode, lblErrMaLich));
+        row1.add(buildFieldGroup("Mã lịch chạy", txtMaLich,
+                isEditMode ? "* Không thể thay đổi" : null, !isEditMode, lblErrMaLich));
         form.add(row1); form.add(Box.createVerticalStrut(12));
 
         // Row 2: Tuyến | Đoàn tàu
         lblErrTuyen   = createErrorLabel();
         lblErrDoanTau = createErrorLabel();
         JPanel row2 = buildRow(1, 2, Integer.MAX_VALUE, 90);
-        row2.add(buildFieldGroup("Tuy\u1EBFn \u0111\u01B0\u1EDDng", cboTuyen, null, true, lblErrTuyen));
-        row2.add(buildFieldGroup("\u0110o\u00E0n t\u00E0u", cboDoanTau, null, true, lblErrDoanTau));
+        row2.add(buildFieldGroup("Tuyến đường", cboTuyen, null, true, lblErrTuyen));
+        row2.add(buildFieldGroup("Đoàn tàu", cboDoanTau, null, true, lblErrDoanTau));
         form.add(row2); form.add(Box.createVerticalStrut(12));
 
-        // Row 3: Thời gian bắt đầu (JDateChooser + JSpinner) | Thời gian chạy
-        datePickerBatDau = new JDateChooser();
-        datePickerBatDau.setDateFormatString("dd/MM/yyyy");
-        datePickerBatDau.setFont(FONT_INPUT);
-        datePickerBatDau.setPreferredSize(new Dimension(0, 36));
+        // Row 3: Thời gian bắt đầu (DatePickerField + JSpinner) | Thời gian chạy
+        dpBatDau = new DatePickerField();
+        dpBatDau.setPreferredSize(new Dimension(0, 40));
 
         SpinnerDateModel timeModel = new SpinnerDateModel();
         timePickerBatDau = new JSpinner(timeModel);
@@ -261,9 +258,9 @@ public class ChinhSuaLichChayDialog extends JDialog {
 
         dateTimePanel = new JPanel(new BorderLayout(6, 0));
         dateTimePanel.setOpaque(false);
-        dateTimePanel.setPreferredSize(new Dimension(0, 36));
-        dateTimePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        dateTimePanel.add(datePickerBatDau, BorderLayout.CENTER);
+        dateTimePanel.setPreferredSize(new Dimension(0, 40));
+        dateTimePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        dateTimePanel.add(dpBatDau, BorderLayout.CENTER);
         dateTimePanel.add(timePickerBatDau, BorderLayout.EAST);
         lblErrBatDau = createErrorLabel();
 
@@ -274,9 +271,7 @@ public class ChinhSuaLichChayDialog extends JDialog {
 
         if (isEditMode && original.getThoiGianBatDau() != null) {
             LocalDateTime ldt = original.getThoiGianBatDau();
-            Calendar cal = Calendar.getInstance();
-            cal.set(ldt.getYear(), ldt.getMonthValue() - 1, ldt.getDayOfMonth());
-            datePickerBatDau.setDate(cal.getTime());
+            dpBatDau.setValue(LocalDate.of(ldt.getYear(), ldt.getMonthValue(), ldt.getDayOfMonth()));
             Calendar timeCal = Calendar.getInstance();
             timeCal.set(Calendar.HOUR_OF_DAY, ldt.getHour());
             timeCal.set(Calendar.MINUTE, ldt.getMinute());
@@ -286,9 +281,9 @@ public class ChinhSuaLichChayDialog extends JDialog {
             txtThoiGianChay.setText(original.getThoiGianChay());
 
         JPanel row3 = buildRow(1, 2, Integer.MAX_VALUE, 90);
-        row3.add(buildFieldGroup("Th\u1EDDi gian b\u1EAFt \u0111\u1EA7u", dateTimePanel, null, true, lblErrBatDau));
-        row3.add(buildFieldGroup("Th\u1EDDi gian ch\u1EA1y (ph\u00FAt)",
-                txtThoiGianChay, "S\u1ED1 ph\u00FAt to\u00E0n h\u00E0nh tr\u00ECnh", true, lblErrChay));
+        row3.add(buildFieldGroup("Thời gian bắt đầu", dateTimePanel, null, true, lblErrBatDau));
+        row3.add(buildFieldGroup("Thời gian chạy (phút)",
+                txtThoiGianChay, "Số phút toàn hành trình", true, lblErrChay));
         form.add(row3);
 
         return form;
@@ -311,12 +306,12 @@ public class ChinhSuaLichChayDialog extends JDialog {
                 BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE),
                 new EmptyBorder(16, 28, 16, 28)));
 
-        JButton btnCancel = createOutlineButton("H\u1EE7y b\u1ECF");
+        JButton btnCancel = createOutlineButton("Hủy bỏ");
         ImageIcon icoHuy = loadScaledIcon("nutThoat.png", 15);
         if (icoHuy != null) { btnCancel.setIcon(icoHuy); btnCancel.setIconTextGap(6); }
         btnCancel.addActionListener(e -> dispose());
 
-        JButton btnSave = createPrimaryButton(isEditMode ? "L\u01B0u thay \u0111\u1ED5i" : "T\u1EA1o l\u1ECBch");
+        JButton btnSave = createPrimaryButton(isEditMode ? "Lưu thay đổi" : "Tạo lịch");
         ImageIcon icoLuu = loadScaledIcon("nutLuu.png", 15);
         if (icoLuu != null) { btnSave.setIcon(icoLuu); btnSave.setIconTextGap(6); }
         btnSave.addActionListener(e -> doSave());
@@ -336,36 +331,32 @@ public class ChinhSuaLichChayDialog extends JDialog {
 
         // Validate
         if (!isEditMode && maLich.isEmpty()) {
-            showFieldError(txtMaLich, lblErrMaLich, "Vui l\u00F2ng nh\u1EADp m\u00E3 l\u1ECBch"); return;
+            showFieldError(txtMaLich, lblErrMaLich, "Vui lòng nhập mã lịch"); return;
         }
         if (cboTuyen.getSelectedItem() == null) {
-            lblErrTuyen.setText("Vui l\u00F2ng ch\u1ECDn tuy\u1EBFn"); lblErrTuyen.setVisible(true); return;
+            lblErrTuyen.setText("Vui lòng chọn tuyến"); lblErrTuyen.setVisible(true); return;
         }
         if (cboDoanTau.getSelectedItem() == null) {
-            lblErrDoanTau.setText("Vui l\u00F2ng ch\u1ECDn \u0111o\u00E0n t\u00E0u"); lblErrDoanTau.setVisible(true); return;
+            lblErrDoanTau.setText("Vui lòng chọn đoàn tàu"); lblErrDoanTau.setVisible(true); return;
         }
-        if (datePickerBatDau.getDate() == null) {
-            lblErrBatDau.setText("Vui l\u00F2ng ch\u1ECDn ng\u00E0y b\u1EAFt \u0111\u1EA7u"); lblErrBatDau.setVisible(true); return;
+        LocalDate dateVal = dpBatDau.getValue();
+        if (dateVal == null) {
+            lblErrBatDau.setText("Vui lòng chọn ngày bắt đầu"); lblErrBatDau.setVisible(true); return;
         }
 
-        java.util.Date dateVal = datePickerBatDau.getDate();
         java.util.Date timeVal = (java.util.Date) timePickerBatDau.getValue();
-        Calendar dateCal = Calendar.getInstance(); dateCal.setTime(dateVal);
         Calendar timeCal = Calendar.getInstance(); timeCal.setTime(timeVal);
-        dateCal.set(Calendar.HOUR_OF_DAY, timeCal.get(Calendar.HOUR_OF_DAY));
-        dateCal.set(Calendar.MINUTE,      timeCal.get(Calendar.MINUTE));
-        dateCal.set(Calendar.SECOND, 0);  dateCal.set(Calendar.MILLISECOND, 0);
-        LocalDateTime batDau = LocalDateTime.ofInstant(
-                dateCal.getTime().toInstant(), java.time.ZoneId.systemDefault());
+        LocalDateTime batDau = LocalDateTime.of(dateVal,
+                java.time.LocalTime.of(timeCal.get(Calendar.HOUR_OF_DAY), timeCal.get(Calendar.MINUTE)));
 
         if (chayStr.isEmpty()) {
-            showFieldError(txtThoiGianChay, lblErrChay, "Vui l\u00F2ng nh\u1EADp th\u1EDDi gian ch\u1EA1y"); return;
+            showFieldError(txtThoiGianChay, lblErrChay, "Vui lòng nhập thời gian chạy"); return;
         }
         try {
             int mins = Integer.parseInt(chayStr);
             if (mins <= 0) throw new NumberFormatException();
         } catch (NumberFormatException ex) {
-            showFieldError(txtThoiGianChay, lblErrChay, "Vui l\u00F2ng nh\u1EADp s\u1ED1 ph\u00FAt h\u1EE3p l\u1EC7 (> 0)"); return;
+            showFieldError(txtThoiGianChay, lblErrChay, "Vui lòng nhập số phút hợp lệ (> 0)"); return;
         }
 
         Tuyen   tuyen   = (Tuyen)   cboTuyen.getSelectedItem();
@@ -386,12 +377,12 @@ public class ChinhSuaLichChayDialog extends JDialog {
                         dispose();
                     } else {
                         JOptionPane.showMessageDialog(ChinhSuaLichChayDialog.this,
-                                "Kh\u00F4ng th\u1EC3 l\u01B0u l\u1ECBch. Ki\u1EC3m tra m\u00E3 c\u00F3 b\u1ECB tr\u00F9ng kh\u00F4ng.",
-                                "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                                "Không thể lưu lịch. Kiểm tra mã có bị trùng không.",
+                                "Lỗi", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(ChinhSuaLichChayDialog.this,
-                            "L\u1ED7i: " + ex.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                            "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();
@@ -407,8 +398,8 @@ public class ChinhSuaLichChayDialog extends JDialog {
                 if (val instanceof Tuyen t) {
                     String gaDi  = t.getGaDi()  != null ? t.getGaDi().getTenGa()  : t.getMaTuyen();
                     String gaDen = t.getGaDen() != null ? t.getGaDen().getTenGa() : "";
-                    setText(t.getMaTuyen() + "  \u2014  " + gaDi
-                            + (gaDen.isEmpty() ? "" : " \u2192 " + gaDen));
+                    setText(t.getMaTuyen() + "  —  " + gaDi
+                            + (gaDen.isEmpty() ? "" : " → " + gaDen));
                 }
                 return this;
             }
@@ -422,7 +413,7 @@ public class ChinhSuaLichChayDialog extends JDialog {
                 super.getListCellRendererComponent(list, val, idx, sel, focus);
                 if (val instanceof DoanTau d) {
                     String ten = d.getTenDoanTau() != null ? d.getTenDoanTau() : "";
-                    setText(d.getMaDoanTau() + (ten.isEmpty() ? "" : "  \u2014  " + ten));
+                    setText(d.getMaDoanTau() + (ten.isEmpty() ? "" : "  —  " + ten));
                 }
                 return this;
             }

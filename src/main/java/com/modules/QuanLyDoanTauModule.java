@@ -134,12 +134,12 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Danh m\u1EE5c \u0111\u1ED9i t\u00E0u");
+        JLabel lblTitle = new JLabel("Danh mục đội tàu");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(ON_SURFACE);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDesc = new JLabel("Qu\u1EA3n l\u00FD c\u1EA5u h\u00ECnh chi ti\u1EBFt v\u00E0 tr\u1EA1ng th\u00E1i k\u1EF9 thu\u1EADt c\u1EE7a c\u00E1c \u0111o\u00E0n t\u00E0u \u0111ang v\u1EADn h\u00E0nh.");
+        JLabel lblDesc = new JLabel("Quản lý cấu hình chi tiết và trạng thái kỹ thuật của các đoàn tàu đang vận hành.");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -148,7 +148,7 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         left.add(Box.createVerticalStrut(4));
         left.add(lblDesc);
 
-        JButton btnAddNew = createPrimaryButton("+ Thi\u1EBFt l\u1EADp \u0111o\u00E0n t\u00E0u m\u1EDBi");
+        JButton btnAddNew = createPrimaryButton("+ Thiết lập đoàn tàu mới");
         btnAddNew.setPreferredSize(new Dimension(210, 40));
         btnAddNew.addActionListener(e -> openNewModule());
 
@@ -213,7 +213,7 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
                     g2.setColor(new Color(0x9E, 0xA7, 0xB0));
                     g2.setFont(FONT_BODY);
                     Insets ins = getInsets();
-                    g2.drawString("T\u00ECm ki\u1EBFm m\u00E3 t\u00E0u, t\u00EAn \u0111o\u00E0n t\u00E0u...", ins.left, getHeight() / 2 + 5);
+                    g2.drawString("Tìm kiếm mã tàu, tên đoàn tàu...", ins.left, getHeight() / 2 + 5);
                     g2.dispose();
                 }
             }
@@ -235,16 +235,16 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         row1.add(txtSearch, BorderLayout.CENTER);
 
         // Row 2: checkboxes + bỏ lọc
-        cbGheCung   = new JCheckBox("Gh\u1EBF c\u1EE9ng",   true);
-        cbGheMem    = new JCheckBox("Gh\u1EBF m\u1EC1m",    true);
-        cbGiuongNam = new JCheckBox("Gi\u01B0\u1EDDng n\u1EB1m", true);
+        cbGheCung   = new JCheckBox("Ghế cứng",   true);
+        cbGheMem    = new JCheckBox("Ghế mềm",    true);
+        cbGiuongNam = new JCheckBox("Giường nằm", true);
         for (JCheckBox cb : new JCheckBox[]{cbGheCung, cbGheMem, cbGiuongNam}) {
             cb.setFont(FONT_BODY);
             cb.setOpaque(false);
             cb.addActionListener(e -> applyFilter());
         }
 
-        JButton btnReset = new JButton("B\u1ECF l\u1ECDc") {
+        JButton btnReset = new JButton("Bỏ lọc") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -276,7 +276,7 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         row2.setOpaque(false);
         row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
 
-        JLabel lblLoai = new JLabel("Lo\u1EA1i gh\u1EBF:");
+        JLabel lblLoai = new JLabel("Loại ghế:");
         lblLoai.setFont(FONT_HEADER);
         lblLoai.setForeground(ON_SURF_VAR);
 
@@ -464,22 +464,22 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         tableModel.setData(filteredData.subList(from, to));
 
         lblPageInfo.setText(total == 0
-                ? "Kh\u00F4ng t\u00ECm th\u1EA5y \u0111o\u00E0n t\u00E0u n\u00E0o"
-                : "Hi\u1EC3n th\u1ECB " + (from + 1) + " \u2013 " + to + " / " + total + " \u0111o\u00E0n t\u00E0u");
+                ? "Không tìm thấy đoàn tàu nào"
+                : "Hiển thị " + (from + 1) + " – " + to + " / " + total + " đoàn tàu");
 
         rebuildPagination(totalPages);
     }
 
     private void rebuildPagination(int totalPages) {
         paginationPanel.removeAll();
-        addNavButton("\u276E", currentPage > 1, () -> { currentPage--; refreshTable(); });
+        addNavButton("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
 
         for (int i = 1; i <= totalPages; i++) {
             if (totalPages > 7) {
                 if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
                     addPageButton(i);
                 } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("\u2026");
+                    JLabel dots = new JLabel("…");
                     dots.setFont(FONT_SMALL);
                     dots.setForeground(ON_SURF_VAR);
                     dots.setBorder(new EmptyBorder(0, 4, 0, 4));
@@ -490,7 +490,7 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
             }
         }
 
-        addNavButton("\u276F", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
+        addNavButton("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
         paginationPanel.revalidate();
         paginationPanel.repaint();
     }
@@ -580,14 +580,14 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
 
     private void deleteRow(DoanTauRow row) {
         int confirm = JOptionPane.showConfirmDialog(this,
-                "X\u00F3a \u0111o\u00E0n t\u00E0u \u201C" + row.doanTau.getTenDoanTau() + "\u201D?\n"
-                + "T\u1EA5t c\u1EA3 chi ti\u1EBFt toa thu\u1ED9c \u0111o\u00E0n t\u00E0u n\u00E0y c\u0169ng s\u1EBD b\u1ECB x\u00F3a.",
-                "X\u00E1c nh\u1EADn x\u00F3a", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                "Xóa đoàn tàu “" + row.doanTau.getTenDoanTau() + "”?\n"
+                + "Tất cả chi tiết toa thuộc đoàn tàu này cũng sẽ bị xóa.",
+                "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm != JOptionPane.YES_OPTION) return;
 
         Connection con = ConnectDB.getCon();
         if (con == null) {
-            JOptionPane.showMessageDialog(this, "Kh\u00F4ng th\u1EC3 k\u1EBFt n\u1ED1i c\u01A1 s\u1EDF d\u1EEF li\u1EC7u.", "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Không thể kết nối cơ sở dữ liệu.", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
         try {
@@ -601,7 +601,7 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
             }
             loadData();
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "L\u1ED7i khi x\u00F3a: " + e.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Lỗi khi xóa: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -611,9 +611,9 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
 
     private class DoanTauTableModel extends AbstractTableModel {
         private static final String[] COLS = {
-            "M\u00E3 t\u00E0u", "T\u00EAn \u0111o\u00E0n t\u00E0u", "\u0110\u1EA7u m\u00E1y",
-            "Toa Gh\u1EBF C\u1EE9ng", "Toa Gh\u1EBF M\u1EC1m", "Toa Gi\u01B0\u1EDDng N\u1EB1m",
-            "T\u1ED5ng toa", "Thao t\u00E1c"
+            "Mã tàu", "Tên đoàn tàu", "Đầu máy",
+            "Toa Ghế Cứng", "Toa Ghế Mềm", "Toa Giường Nằm",
+            "Tổng toa", "Thao tác"
         };
         private List<DoanTauRow> data = new ArrayList<>();
 
@@ -631,7 +631,7 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
             return switch (c) {
                 case 0 -> row.doanTau.getMaDoanTau();
                 case 1 -> row.doanTau.getTenDoanTau();
-                case 2 -> row.doanTau.getDauMay() != null ? row.doanTau.getDauMay().getTenDauMay() : "\u2014";
+                case 2 -> row.doanTau.getDauMay() != null ? row.doanTau.getDauMay().getTenDauMay() : "—";
                 case 3 -> row.soToaGheCung;
                 case 4 -> row.soToaGheMem;
                 case 5 -> row.soToaGiuongNam;
@@ -674,8 +674,8 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
     }
 
     private class ActionRenderer extends JPanel implements TableCellRenderer {
-        private final JLabel btnEdit   = buildActionLabel("S\u1EEDa",  PRIMARY,   PRIMARY_LIGHT);
-        private final JLabel btnDelete = buildActionLabel("X\u00F3a", ERROR_FG,   ERROR_BG);
+        private final JLabel btnEdit   = buildActionLabel("Sửa",  PRIMARY,   PRIMARY_LIGHT);
+        private final JLabel btnDelete = buildActionLabel("Xóa", ERROR_FG,   ERROR_BG);
 
         ActionRenderer() {
             setLayout(new GridBagLayout());
@@ -695,8 +695,8 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
 
     private class ActionEditor extends AbstractCellEditor implements TableCellEditor {
         private final JPanel panel = new JPanel(new GridBagLayout());
-        private final JButton btnEdit   = buildActionButton("S\u1EEDa",  PRIMARY,   PRIMARY_LIGHT);
-        private final JButton btnDelete = buildActionButton("X\u00F3a", ERROR_FG,   ERROR_BG);
+        private final JButton btnEdit   = buildActionButton("Sửa",  PRIMARY,   PRIMARY_LIGHT);
+        private final JButton btnDelete = buildActionButton("Xóa", ERROR_FG,   ERROR_BG);
         private DoanTauRow currentRow;
 
         ActionEditor() {
@@ -793,7 +793,7 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
     //  AppModule interface
     // =====================================================================
 
-    @Override public String getTitle() { return "Qu\u1EA3n l\u00FD \u0111o\u00E0n t\u00E0u"; }
+    @Override public String getTitle() { return "Quản lý đoàn tàu"; }
     @Override public JPanel getView()  { return this; }
 
     @Override

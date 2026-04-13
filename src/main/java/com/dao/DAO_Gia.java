@@ -50,6 +50,34 @@ public class DAO_Gia {
     }
 
     /**
+     * Kiểm tra có kỳ giá nào đang bật (trangThai=1) trùng khoảng thời gian không.
+     * Dùng trước khi bật một kỳ giá để ngăn trùng.
+     * @param excludeId  mã kỳ giá đang sửa (loại khỏi kết quả)
+     * @param batDau     ngày bắt đầu kỳ giá cần kiểm tra
+     * @param ketThuc    ngày kết thúc kỳ giá cần kiểm tra
+     * @return danh sách kỳ giá bị trùng (rỗng = không trùng)
+     */
+    public List<Gia> findOverlappingActive(String excludeId, LocalDate batDau, LocalDate ketThuc) {
+        List<Gia> ds = new ArrayList<>();
+        Connection con = ConnectDB.getCon();
+        if (con == null) return ds;
+
+        String sql = "SELECT * FROM Gia WHERE trangThai = 1 AND maGia != ? "
+                   + "AND thoiGianBatDau <= ? AND thoiGianKetThuc >= ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, excludeId);
+            ps.setDate(2, Date.valueOf(ketThuc));
+            ps.setDate(3, Date.valueOf(batDau));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) ds.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi kiểm tra trùng kỳ giá: " + e.getMessage());
+        }
+        return ds;
+    }
+
+    /**
      * Lấy kỳ giá đang áp dụng (trangThai = true)
      */
     public Gia getGiaHienHanh() {

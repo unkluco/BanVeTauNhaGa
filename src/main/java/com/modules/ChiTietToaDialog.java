@@ -611,8 +611,7 @@ public class ChiTietToaDialog extends JDialog {
             Image scaled = raw.getImage().getScaledInstance(38, 38, Image.SCALE_SMOOTH);
             iconLbl.setIcon(new ImageIcon(scaled));
         } catch (Exception ex) {
-            iconLbl.setText("🚂");
-            iconLbl.setFont(new Font("Segoe UI", Font.PLAIN, 26));
+            iconLbl.setText("TAU");
         }
 
         // Mã đoàn tàu

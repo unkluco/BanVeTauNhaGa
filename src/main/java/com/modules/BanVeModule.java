@@ -4,6 +4,8 @@ import com.dao.*;
 import com.entity.*;
 import com.enums.LoaiGhe;
 import com.enums.TrangThaiVe;
+import com.entity.ChiTietKhuyenMai;
+import com.entity.ApDungKM;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -33,12 +35,13 @@ public class BanVeModule extends JPanel implements AppModule {
 
     // --- Wizard context ---
     private Ga        ctxGaDi, ctxGaDen;
-    private LocalDate ctxNgayDi;
+    private LocalDate ctxNgayDiFrom, ctxNgayDiTo;
     private Lich      ctxLich;
     private final Map<LoaiGhe, Double> ctxPriceMap = new EnumMap<>(LoaiGhe.class);
     private ToaTau    ctxToa;
     private final List<Ghe> ctxGhes = new ArrayList<>();
-    private KhachHang ctxKhachHang;
+    private KhachHang      ctxKhachHang;
+    private ChiTietKhuyenMai ctxChiTietKM;
     private String    ctxPaymentType;
 
     // --- Navigation stack ---
@@ -49,13 +52,16 @@ public class BanVeModule extends JPanel implements AppModule {
     private static final String STEP_2  = "2";
     private static final String STEP_3  = "3";
     private static final String STEP_4  = "4";
-    private static final String STEP_5  = "5";
-    private static final String STEP_6A = "6A";
-    private static final String STEP_6B = "6B";
-    private static final String STEP_7  = "7";
+    private static final String STEP_5  = "5";   // Khách hàng
+    private static final String STEP_5B = "5B";  // Khuyến mãi
+    private static final String STEP_6  = "6";   // Xác nhận & thanh toán
+    private static final String STEP_7A = "7A";  // Tiền mặt
+    private static final String STEP_7B = "7B";  // Chuyển khoản
+    private static final String STEP_8  = "8";   // Hoàn thành
 
     private static final String[] STEP_LABELS = {
-        "Thông tin", "Chọn chuyến", "Chọn toa", "Chọn ghế", "Xác nhận", "Thanh toán", "Hoàn thành"
+        "Thông tin", "Chọn chuyến", "Chọn toa", "Chọn ghế",
+        "Khách hàng", "Khuyến mãi", "Xác nhận", "Thanh toán", "Hoàn thành"
     };
 
     // --- Design tokens ---
@@ -70,10 +76,11 @@ public class BanVeModule extends JPanel implements AppModule {
     private static final Color STEP_INACTIVE = new Color(0xB0, 0xBE, 0xC5);
 
     // --- DAOs for final save ---
-    private final DAO_Ve            daoVe   = new DAO_Ve();
-    private final DAO_HoaDon        daoHD   = new DAO_HoaDon();
-    private final DAO_ChiTietHoaDon daoCTHD = new DAO_ChiTietHoaDon();
-    private final DAO_KhachHang     daoKH   = new DAO_KhachHang();
+    private final DAO_Ve            daoVe    = new DAO_Ve();
+    private final DAO_HoaDon        daoHD    = new DAO_HoaDon();
+    private final DAO_ChiTietHoaDon daoCTHD  = new DAO_ChiTietHoaDon();
+    private final DAO_KhachHang     daoKH    = new DAO_KhachHang();
+    private final DAO_ApDungKM      daoADKM  = new DAO_ApDungKM();
 
     // --- AppModule buttons ---
     private JButton btnSubmit, btnCancel;
@@ -221,14 +228,16 @@ public class BanVeModule extends JPanel implements AppModule {
 
     private int stepToIndex(String step) {
         return switch (step) {
-            case STEP_1        -> 0;
-            case STEP_2        -> 1;
-            case STEP_3        -> 2;
-            case STEP_4        -> 3;
-            case STEP_5        -> 4;
-            case STEP_6A, STEP_6B -> 5;
-            case STEP_7        -> 6;
-            default            -> 0;
+            case STEP_1             -> 0;
+            case STEP_2             -> 1;
+            case STEP_3             -> 2;
+            case STEP_4             -> 3;
+            case STEP_5             -> 4;
+            case STEP_5B            -> 5;
+            case STEP_6             -> 6;
+            case STEP_7A, STEP_7B   -> 7;
+            case STEP_8             -> 8;
+            default                 -> 0;
         };
     }
 
@@ -270,9 +279,10 @@ public class BanVeModule extends JPanel implements AppModule {
                 BanVeStep1Module m = new BanVeStep1Module();
                 m.setOnResult(result -> {
                     if (result instanceof Object[] arr) {
-                        ctxGaDi   = (Ga)        arr[0];
-                        ctxGaDen  = (Ga)        arr[1];
-                        ctxNgayDi = (LocalDate) arr[2];
+                        ctxGaDi       = (Ga)        arr[0];
+                        ctxGaDen      = (Ga)        arr[1];
+                        ctxNgayDiFrom = (LocalDate) arr[2];
+                        ctxNgayDiTo   = (LocalDate) arr[3];
                         navigateTo(STEP_2, true);
                     }
                 });
@@ -280,7 +290,7 @@ public class BanVeModule extends JPanel implements AppModule {
             }
 
             case STEP_2 -> {
-                BanVeStep2Module m = new BanVeStep2Module(ctxGaDi, ctxGaDen, ctxNgayDi);
+                BanVeStep2Module m = new BanVeStep2Module(ctxGaDi, ctxGaDen, ctxNgayDiFrom, ctxNgayDiTo);
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     if (result instanceof Object[] arr) {
@@ -320,45 +330,71 @@ public class BanVeModule extends JPanel implements AppModule {
             }
 
             case STEP_5 -> {
-                BanVeStep5Module m = new BanVeStep5Module(
-                    ctxLich, ctxToa, Collections.unmodifiableList(ctxGhes), ctxPriceMap);
+                BanVeStep5Module m = new BanVeStep5Module();
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
-                    if (result instanceof Object[] arr) {
-                        ctxKhachHang  = (KhachHang) arr[0];
-                        ctxPaymentType = (String)   arr[1];
-                        navigateTo("TIEN_MAT".equals(ctxPaymentType) ? STEP_6A : STEP_6B, true);
+                    if (result instanceof KhachHang kh) {
+                        ctxKhachHang = kh;
+                        navigateTo(STEP_5B, true);
                     }
                 });
                 yield m.getView();
             }
 
-            case STEP_6A -> {
-                BanVeStep6aTienMatModule m = new BanVeStep6aTienMatModule(calcTotal());
+            case STEP_5B -> {
+                Tuyen   tuyen      = (ctxLich != null) ? ctxLich.getTuyen() : null;
+                LoaiGhe loaiGhe    = (ctxToa  != null) ? ctxToa.getLoaiGhe() : null;
+                double  unitPrice  = loaiGhe  != null ? ctxPriceMap.getOrDefault(loaiGhe, 0.0) : 0.0;
+                double  baseTotal  = unitPrice * ctxGhes.size();
+                BanVeStep5bModule m5b = new BanVeStep5bModule(tuyen, loaiGhe, baseTotal);
+                m5b.setOnResult(result -> {
+                    if (result == null) { goBack(); return; }
+                    ctxChiTietKM = (result instanceof ChiTietKhuyenMai c) ? c : null;
+                    navigateTo(STEP_6, true);
+                });
+                yield m5b.getView();
+            }
+
+            case STEP_6 -> {
+                BanVeStep6Module m = new BanVeStep6Module(
+                    ctxLich, ctxToa, Collections.unmodifiableList(ctxGhes),
+                    ctxPriceMap, ctxKhachHang, ctxChiTietKM);
+                m.setOnResult(result -> {
+                    if (result == null) { goBack(); return; }
+                    if (result instanceof String paymentType) {
+                        ctxPaymentType = paymentType;
+                        navigateTo("TIEN_MAT".equals(ctxPaymentType) ? STEP_7A : STEP_7B, true);
+                    }
+                });
+                yield m.getView();
+            }
+
+            case STEP_7A -> {
+                BanVeStep7TienMatModule m = new BanVeStep7TienMatModule(calcTotal());
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     if ("CONFIRMED".equals(result)) {
                         saveTransaction();
-                        navigateTo(STEP_7, true);
+                        navigateTo(STEP_8, true);
                     }
                 });
                 yield m.getView();
             }
 
-            case STEP_6B -> {
-                BanVeStep6bChuyenKhoanModule m = new BanVeStep6bChuyenKhoanModule(calcTotal());
+            case STEP_7B -> {
+                BanVeStep7ChuyenKhoanModule m = new BanVeStep7ChuyenKhoanModule(calcTotal());
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     if ("CONFIRMED".equals(result)) {
                         saveTransaction();
-                        navigateTo(STEP_7, true);
+                        navigateTo(STEP_8, true);
                     }
                 });
                 yield m.getView();
             }
 
-            case STEP_7 -> {
-                BanVeStep7Module m = new BanVeStep7Module();
+            case STEP_8 -> {
+                BanVeStep8Module m = new BanVeStep8Module();
                 m.setOnResult(result -> reset());
                 yield m.getView();
             }
@@ -373,30 +409,45 @@ public class BanVeModule extends JPanel implements AppModule {
 
     private BigDecimal calcTotal() {
         if (ctxToa == null || ctxGhes.isEmpty()) return BigDecimal.ZERO;
-        LoaiGhe loai = ctxToa.getLoaiGhe();
-        double  unit = ctxPriceMap.getOrDefault(loai, 0.0);
-        return BigDecimal.valueOf(unit * ctxGhes.size());
+        LoaiGhe loai  = ctxToa.getLoaiGhe();
+        double  unit  = ctxPriceMap.getOrDefault(loai, 0.0);
+        double  total = unit * ctxGhes.size();
+        if (ctxChiTietKM != null) {
+            double discount = ctxChiTietKM.getPhanTramGiam(); // đã là 0–1 (vd: 0.20)
+            total = total * (1.0 - discount);
+        }
+        return BigDecimal.valueOf(total);
     }
 
     private void saveTransaction() {
         try {
-            // 1. Find or create KhachHang
-            KhachHang kh = daoKH.findByCCCD(ctxKhachHang.getCccd());
-            if (kh == null) {
+            // 1. Lưu / cập nhật KhachHang
+            KhachHang kh;
+            if (ctxKhachHang.getMaKhachHang() != null) {
+                // Khách cũ — ghi đè thông tin
+                daoKH.update(ctxKhachHang);
+                kh = ctxKhachHang;
+            } else {
+                // Khách mới — tạo mới
                 ctxKhachHang.setMaKhachHang(genId("KH"));
                 daoKH.insert(ctxKhachHang);
                 kh = ctxKhachHang;
             }
 
-            // 2. Create HoaDon
-            String  maHD = daoHD.phatSinhMaHoaDon();
-            HoaDon  hd   = new HoaDon(maHD, currentUser, kh, LocalDateTime.now());
+            // 2. Tạo HoaDon
+            String maHD = daoHD.phatSinhMaHoaDon();
+            HoaDon hd   = new HoaDon(maHD, currentUser, kh, LocalDateTime.now());
             daoHD.insert(hd);
 
-            // 3. Create Ve + ChiTietHoaDon for each seat
+            // 3. Tính đơn giá sau khuyến mãi
             LoaiGhe loai      = ctxToa != null ? ctxToa.getLoaiGhe() : null;
-            double  unitPrice = loai != null ? ctxPriceMap.getOrDefault(loai, 0.0) : 0.0;
+            double  unitPrice = loai   != null ? ctxPriceMap.getOrDefault(loai, 0.0) : 0.0;
+            if (ctxChiTietKM != null) {
+                double discount = ctxChiTietKM.getPhanTramGiam(); // đã là 0–1 (vd: 0.20)
+                unitPrice = unitPrice * (1.0 - discount);
+            }
 
+            // 4. Tạo Ve + ChiTietHoaDon (+ ApDungKM nếu có KM) cho từng ghế
             for (Ghe ghe : ctxGhes) {
                 Ve ve = new Ve(genId("VE"), ctxLich, ghe, TrangThaiVe.DA_BAN, null, null);
                 daoVe.insert(ve);
@@ -404,6 +455,11 @@ public class BanVeModule extends JPanel implements AppModule {
                 ChiTietHoaDon cthd = new ChiTietHoaDon(
                     genId("CTHD"), hd, ve, BigDecimal.valueOf(unitPrice));
                 daoCTHD.insert(cthd);
+
+                if (ctxChiTietKM != null) {
+                    ApDungKM adkm = new ApDungKM(genId("ADKM"), cthd, ctxChiTietKM);
+                    daoADKM.insert(adkm);
+                }
             }
 
         } catch (Exception ex) {
@@ -439,10 +495,10 @@ public class BanVeModule extends JPanel implements AppModule {
 
     @Override
     public void reset() {
-        ctxGaDi   = null; ctxGaDen = null; ctxNgayDi = null;
+        ctxGaDi   = null; ctxGaDen = null; ctxNgayDiFrom = null; ctxNgayDiTo = null;
         ctxLich   = null; ctxPriceMap.clear();
         ctxToa    = null; ctxGhes.clear();
-        ctxKhachHang = null; ctxPaymentType = null;
+        ctxKhachHang = null; ctxChiTietKM = null; ctxPaymentType = null;
         stepHistory.clear();
         navigateTo(STEP_1, false);
     }

@@ -47,6 +47,23 @@ public class DAO_KhachHang {
         return null;
     }
 
+    public List<KhachHang> findBySoDienThoaiLike(String sdt) {
+        List<KhachHang> ds = new ArrayList<>();
+        Connection con = ConnectDB.getCon();
+        if (con == null) return ds;
+
+        String sql = "SELECT * FROM KhachHang WHERE soDienThoai LIKE ? ORDER BY hoTen";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, sdt + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) ds.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("Loi khi tim khach hang theo SDT: " + e.getMessage());
+        }
+        return ds;
+    }
+
     public KhachHang findByCCCD(String cccd) {
         Connection con = ConnectDB.getCon();
         if (con == null) return null;

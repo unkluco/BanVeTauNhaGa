@@ -125,7 +125,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel {
         leftSection.setLayout(new BoxLayout(leftSection, BoxLayout.Y_AXIS));
         leftSection.setOpaque(false);
 
-        JLabel lblBack = new JLabel("\u2190 Quay lại danh sách");
+        JLabel lblBack = new JLabel("← Quay lại danh sách");
         lblBack.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblBack.setForeground(PRIMARY);
         lblBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -133,9 +133,9 @@ public class ChinhSuaKhuyenMaiModule extends JPanel {
         lblBack.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) { if (onBack != null) onBack.run(); }
             @Override public void mouseEntered(MouseEvent e) {
-                lblBack.setText("<html><u>\u2190 Quay lại danh sách</u></html>"); }
+                lblBack.setText("<html><u>← Quay lại danh sách</u></html>"); }
             @Override public void mouseExited(MouseEvent e)  {
-                lblBack.setText("\u2190 Quay lại danh sách"); }
+                lblBack.setText("← Quay lại danh sách"); }
         });
 
         JLabel lblTitle = new JLabel("Chi tiết khuyến mãi");
@@ -212,7 +212,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel {
         iconTitle.add(icon);
         iconTitle.add(lblCardTitle);
 
-        JButton btnEdit = new JButton("\u270E Chỉnh sửa");
+        JButton btnEdit = new JButton("✎ Chỉnh sửa");
         btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnEdit.setForeground(PRIMARY);
         btnEdit.setContentAreaFilled(false); btnEdit.setBorderPainted(false);
@@ -575,7 +575,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel {
 
     private void rebuildPagination(int totalPages) {
         paginationPanel.removeAll();
-        addNavBtn("❮", currentPage > 1, () -> { currentPage--; refreshTable(); });
+        addNavBtn("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
         for (int i = 1; i <= totalPages; i++) {
             final int pg = i;
             JButton btn = new JButton(String.valueOf(pg)) {
@@ -598,7 +598,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel {
             btn.addActionListener(e -> { currentPage = pg; refreshTable(); });
             paginationPanel.add(btn);
         }
-        addNavBtn("❯", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
+        addNavBtn("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
         paginationPanel.revalidate(); paginationPanel.repaint();
     }
 

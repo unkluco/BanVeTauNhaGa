@@ -57,9 +57,9 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         JPanel breadcrumb = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         breadcrumb.setOpaque(false);
         breadcrumb.setBorder(new EmptyBorder(0, 0, 20, 0));
-        addLabel(breadcrumb, "Nh\u00E2n s\u1EF1", Font.PLAIN, 12, TEXT_MUTED);
-        addLabel(breadcrumb, " \u203A ", Font.PLAIN, 12, TEXT_MUTED);
-        addLabel(breadcrumb, "Th\u00F4ng tin c\u00E1 nh\u00E2n", Font.BOLD, 12, PRIMARY);
+        addLabel(breadcrumb, "Nhân sự", Font.PLAIN, 12, TEXT_MUTED);
+        addLabel(breadcrumb, " › ", Font.PLAIN, 12, TEXT_MUTED);
+        addLabel(breadcrumb, "Thông tin cá nhân", Font.BOLD, 12, PRIMARY);
         content.add(breadcrumb, BorderLayout.NORTH);
 
         // Two-column layout: left gets its preferred height (top-aligned), right fills
@@ -168,7 +168,7 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         card.add(lblName);
         card.add(Box.createVerticalStrut(4));
 
-        JLabel lblId = new JLabel("M\u00E3 NV: " + currentUser.getMaNV(), SwingConstants.CENTER);
+        JLabel lblId = new JLabel("Mã NV: " + currentUser.getMaNV(), SwingConstants.CENTER);
         lblId.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblId.setForeground(PRIMARY);
         lblId.setAlignmentX(CENTER_ALIGNMENT);
@@ -178,10 +178,10 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
 
         // Info rows
         String roleName = currentUser.getVaiTro() != null ? currentUser.getVaiTro().toString() : "";
-        card.add(buildInfoRow("B\u1ED9 ph\u1EADn", formatRole(roleName)));
+        card.add(buildInfoRow("Bộ phận", formatRole(roleName)));
         card.add(Box.createVerticalStrut(8));
         String gaName = resolveGaName(currentUser.getGaLamViec());
-        card.add(buildInfoRow("Khu v\u1EF1c", gaName != null ? gaName : "Ch\u01B0a x\u00E1c \u0111\u1ECBnh"));
+        card.add(buildInfoRow("Khu vực", gaName != null ? gaName : "Chưa xác định"));
         card.add(Box.createVerticalStrut(24));
 
         // Change password button
@@ -193,7 +193,7 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         btnChangePass.setBorder(new EmptyBorder(0, 16, 0, 16));
         btnChangePass.setAlignmentX(CENTER_ALIGNMENT);
 
-        JLabel lblChangePass = new JLabel("\u0110\u1ED5i m\u1EADt kh\u1EA9u");
+        JLabel lblChangePass = new JLabel("Đổi mật khẩu");
         lblChangePass.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblChangePass.setForeground(TEXT_MUTED);
         lblChangePass.setIcon(createLockIcon());
@@ -249,7 +249,7 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         titleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
         JPanel bar = new JPanel(); bar.setBackground(PRIMARY); bar.setPreferredSize(new Dimension(4, 18));
         titleRow.add(bar);
-        JLabel lblPwTitle = new JLabel("\u0110\u1ED5i m\u1EADt kh\u1EA9u");
+        JLabel lblPwTitle = new JLabel("Đổi mật khẩu");
         lblPwTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lblPwTitle.setForeground(TEXT_DARK);
         titleRow.add(lblPwTitle);
@@ -257,17 +257,17 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         passwordPanel.add(titleRow);
         passwordPanel.add(Box.createVerticalStrut(16));
 
-        passwordPanel.add(createFieldLabel("M\u1EADt kh\u1EA9u c\u0169"));
+        passwordPanel.add(createFieldLabel("Mật khẩu cũ"));
         txtOldPass = new JPasswordField(); stylePasswordField(txtOldPass);
         passwordPanel.add(txtOldPass);
         passwordPanel.add(Box.createVerticalStrut(10));
 
-        passwordPanel.add(createFieldLabel("M\u1EADt kh\u1EA9u m\u1EDBi"));
+        passwordPanel.add(createFieldLabel("Mật khẩu mới"));
         txtNewPass = new JPasswordField(); stylePasswordField(txtNewPass);
         passwordPanel.add(txtNewPass);
         passwordPanel.add(Box.createVerticalStrut(10));
 
-        passwordPanel.add(createFieldLabel("X\u00E1c nh\u1EADn m\u1EADt kh\u1EA9u m\u1EDBi"));
+        passwordPanel.add(createFieldLabel("Xác nhận mật khẩu mới"));
         txtConfirmPass = new JPasswordField(); stylePasswordField(txtConfirmPass);
         passwordPanel.add(txtConfirmPass);
         passwordPanel.add(Box.createVerticalStrut(20));
@@ -284,9 +284,9 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         btnRow.setOpaque(false);
         btnRow.setAlignmentX(LEFT_ALIGNMENT);
         btnRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        JButton btnPwCancel = createTextButton("H\u1EE7y", TEXT_MUTED);
+        JButton btnPwCancel = createTextButton("Hủy", TEXT_MUTED);
         btnPwCancel.addActionListener(e -> togglePasswordPanel());
-        JButton btnPwConfirm = createFilledButton("X\u00E1c nh\u1EADn");
+        JButton btnPwConfirm = createFilledButton("Xác nhận");
         btnPwConfirm.addActionListener(e -> handleChangePassword());
         btnRow.add(btnPwCancel);
         btnRow.add(btnPwConfirm);
@@ -315,10 +315,10 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         titleRow.setOpaque(false);
         JPanel bar = new JPanel(); bar.setBackground(PRIMARY); bar.setPreferredSize(new Dimension(4, 20));
         titleRow.add(bar);
-        addLabel(titleRow, "Th\u00F4ng tin \u0111\u1ECBnh danh", Font.BOLD, 16, TEXT_DARK);
+        addLabel(titleRow, "Thông tin định danh", Font.BOLD, 16, TEXT_DARK);
         header.add(titleRow, BorderLayout.WEST);
 
-        JLabel lblNote = new JLabel("* Th\u00F4ng tin n\u00E0y do nh\u00E2n s\u1EF1 qu\u1EA3n l\u00FD");
+        JLabel lblNote = new JLabel("* Thông tin này do nhân sự quản lý");
         lblNote.setFont(new Font("Segoe UI", Font.ITALIC, 11));
         lblNote.setForeground(TEXT_MUTED);
         header.add(lblNote, BorderLayout.EAST);
@@ -330,17 +330,17 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         grid.setAlignmentX(LEFT_ALIGNMENT);
         grid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
 
-        String cccd = currentUser.getCccd() != null ? currentUser.getCccd() : "\u2014";
+        String cccd = currentUser.getCccd() != null ? currentUser.getCccd() : "—";
         String ngaySinh = currentUser.getNgaySinh() != null
-                ? currentUser.getNgaySinh().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "\u2014";
+                ? currentUser.getNgaySinh().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "—";
         String gioiTinh = currentUser.getGioiTinh() != null
-                ? ("NAM".equalsIgnoreCase(currentUser.getGioiTinh()) ? "Nam" : "N\u1EEF") : "\u2014";
-        String quocTich = currentUser.getQuocTich() != null ? currentUser.getQuocTich() : "\u2014";
+                ? ("NAM".equalsIgnoreCase(currentUser.getGioiTinh()) ? "Nam" : "Nữ") : "—";
+        String quocTich = currentUser.getQuocTich() != null ? currentUser.getQuocTich() : "—";
 
-        grid.add(buildReadOnlyField("S\u1ED1 CCCD / H\u1ED9 chi\u1EBFu", cccd));
-        grid.add(buildReadOnlyField("Ng\u00E0y sinh", ngaySinh));
-        grid.add(buildReadOnlyField("Gi\u1EDBi t\u00EDnh", gioiTinh));
-        grid.add(buildReadOnlyField("Qu\u1ED1c t\u1ECBch", quocTich));
+        grid.add(buildReadOnlyField("Số CCCD / Hộ chiếu", cccd));
+        grid.add(buildReadOnlyField("Ngày sinh", ngaySinh));
+        grid.add(buildReadOnlyField("Giới tính", gioiTinh));
+        grid.add(buildReadOnlyField("Quốc tịch", quocTich));
         card.add(grid);
 
         return card;
@@ -363,7 +363,7 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         titleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
         JPanel bar = new JPanel(); bar.setBackground(PRIMARY); bar.setPreferredSize(new Dimension(4, 20));
         titleRow.add(bar);
-        addLabel(titleRow, "Th\u00F4ng tin li\u00EAn l\u1EA1c", Font.BOLD, 16, TEXT_DARK);
+        addLabel(titleRow, "Thông tin liên lạc", Font.BOLD, 16, TEXT_DARK);
         card.add(titleRow);
         card.add(Box.createVerticalStrut(20));
 
@@ -376,7 +376,7 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         JPanel phoneGroup = new JPanel();
         phoneGroup.setLayout(new BoxLayout(phoneGroup, BoxLayout.Y_AXIS));
         phoneGroup.setOpaque(false);
-        phoneGroup.add(createFieldLabel("S\u1ED1 \u0111i\u1EC7n tho\u1EA1i"));
+        phoneGroup.add(createFieldLabel("Số điện thoại"));
         txtPhone = new JTextField(currentUser.getSoDienThoai() != null ? currentUser.getSoDienThoai() : "");
         styleTextField(txtPhone);
         phoneGroup.add(txtPhone);
@@ -384,7 +384,7 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         JPanel emailGroup = new JPanel();
         emailGroup.setLayout(new BoxLayout(emailGroup, BoxLayout.Y_AXIS));
         emailGroup.setOpaque(false);
-        emailGroup.add(createFieldLabel("Email c\u00E1 nh\u00E2n"));
+        emailGroup.add(createFieldLabel("Email cá nhân"));
         txtEmail = new JTextField(currentUser.getEmail() != null ? currentUser.getEmail() : "");
         styleTextField(txtEmail);
         emailGroup.add(txtEmail);
@@ -400,7 +400,7 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         addrGroup.setOpaque(false);
         addrGroup.setAlignmentX(LEFT_ALIGNMENT);
         addrGroup.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
-        addrGroup.add(createFieldLabel("\u0110\u1ECBa ch\u1EC9 th\u01B0\u1EDDng tr\u00FA"));
+        addrGroup.add(createFieldLabel("Địa chỉ thường trú"));
         txtAddress = new JTextField(currentUser.getDiaChiThuongTru() != null ? currentUser.getDiaChiThuongTru() : "");
         styleTextField(txtAddress);
         addrGroup.add(txtAddress);
@@ -418,9 +418,9 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         btnRow.setOpaque(false);
         btnRow.setAlignmentX(LEFT_ALIGNMENT);
         btnRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        JButton btnCancel = createTextButton("H\u1EE7y thay \u0111\u1ED5i", TEXT_MUTED);
+        JButton btnCancel = createTextButton("Hủy thay đổi", TEXT_MUTED);
         btnCancel.addActionListener(e -> resetContactFields());
-        JButton btnSave = createFilledButton("L\u01B0u th\u00F4ng tin");
+        JButton btnSave = createFilledButton("Lưu thông tin");
         btnSave.addActionListener(e -> handleSaveContact());
         btnRow.add(btnCancel);
         btnRow.add(btnSave);
@@ -470,24 +470,24 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         String confirm = new String(txtConfirmPass.getPassword());
 
         if (oldPass.isEmpty() || newPass.isEmpty() || confirm.isEmpty()) {
-            showMessage("Vui l\u00F2ng nh\u1EADp \u0111\u1EA7y \u0111\u1EE7 th\u00F4ng tin.", ERROR_COLOR); return;
+            showMessage("Vui lòng nhập đầy đủ thông tin.", ERROR_COLOR); return;
         }
         if (!oldPass.equals(currentUser.getPassword())) {
-            showMessage("M\u1EADt kh\u1EA9u c\u0169 kh\u00F4ng ch\u00EDnh x\u00E1c.", ERROR_COLOR); return;
+            showMessage("Mật khẩu cũ không chính xác.", ERROR_COLOR); return;
         }
         if (!newPass.equals(confirm)) {
-            showMessage("M\u1EADt kh\u1EA9u m\u1EDBi v\u00E0 x\u00E1c nh\u1EADn kh\u00F4ng kh\u1EDBp.", ERROR_COLOR); return;
+            showMessage("Mật khẩu mới và xác nhận không khớp.", ERROR_COLOR); return;
         }
         if (newPass.length() < 4) {
-            showMessage("M\u1EADt kh\u1EA9u m\u1EDBi ph\u1EA3i c\u00F3 \u00EDt nh\u1EA5t 4 k\u00FD t\u1EF1.", ERROR_COLOR); return;
+            showMessage("Mật khẩu mới phải có ít nhất 4 ký tự.", ERROR_COLOR); return;
         }
 
         if (daoNV.updatePassword(currentUser.getMaNV(), newPass)) {
             currentUser.setPassword(newPass);
-            showMessage("\u0110\u1ED5i m\u1EADt kh\u1EA9u th\u00E0nh c\u00F4ng!", SUCCESS);
+            showMessage("Đổi mật khẩu thành công!", SUCCESS);
             togglePasswordPanel();
         } else {
-            showMessage("L\u1ED7i khi \u0111\u1ED5i m\u1EADt kh\u1EA9u.", ERROR_COLOR);
+            showMessage("Lỗi khi đổi mật khẩu.", ERROR_COLOR);
         }
     }
 
@@ -501,15 +501,15 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         String phone = txtPhone.getText().trim();
         String email = txtEmail.getText().trim();
         String address = txtAddress.getText().trim();
-        if (phone.isEmpty()) { showMessage("S\u0110T kh\u00F4ng \u0111\u01B0\u1EE3c tr\u1ED1ng.", ERROR_COLOR); return; }
+        if (phone.isEmpty()) { showMessage("SĐT không được trống.", ERROR_COLOR); return; }
 
         if (daoNV.updateContactInfo(currentUser.getMaNV(), phone, email, address)) {
             currentUser.setSoDienThoai(phone);
             currentUser.setEmail(email);
             currentUser.setDiaChiThuongTru(address);
-            showMessage("C\u1EADp nh\u1EADt th\u00E0nh c\u00F4ng!", SUCCESS);
+            showMessage("Cập nhật thành công!", SUCCESS);
         } else {
-            showMessage("L\u1ED7i khi c\u1EADp nh\u1EADt.", ERROR_COLOR);
+            showMessage("Lỗi khi cập nhật.", ERROR_COLOR);
         }
     }
 
@@ -686,11 +686,11 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
     }
 
     private String formatRole(String role) {
-        if (role == null) return "\u2014";
+        if (role == null) return "—";
         return switch (role) {
-            case "ADMIN" -> "Qu\u1EA3n tr\u1ECB vi\u00EAn";
-            case "DIEU_PHOI" -> "\u0110i\u1EC1u ph\u1ED1i";
-            case "BAN_VE" -> "Nh\u00E2n vi\u00EAn qu\u1EA7y v\u00E9";
+            case "ADMIN" -> "Quản trị viên";
+            case "DIEU_PHOI" -> "Điều phối";
+            case "BAN_VE" -> "Nhân viên quầy vé";
             default -> role;
         };
     }
@@ -701,7 +701,7 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         return maGa;
     }
 
-    @Override public String getTitle() { return "Th\u00F4ng tin c\u00E1 nh\u00E2n"; }
+    @Override public String getTitle() { return "Thông tin cá nhân"; }
     @Override public JPanel getView() { return this; }
     @Override public void setOnResult(Consumer<Object> cb) { this.callback = cb; }
     @Override public void reset() { }

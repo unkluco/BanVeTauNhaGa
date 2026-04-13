@@ -136,11 +136,11 @@ public class EntityDetailModule extends JPanel implements AppModule {
         lbl.setForeground(TEXT_SUB);
         lbl.setPreferredSize(new Dimension(180, 20));
 
-        String display = (value == null || value.isBlank()) ? "\u2014" : value;
+        String display = (value == null || value.isBlank()) ? "—" : value;
         JLabel val = new JLabel(display);
         val.setFont(new Font("Segoe UI",
-            "\u2014".equals(display) ? Font.ITALIC : Font.PLAIN, 13));
-        val.setForeground("\u2014".equals(display) ? TEXT_SUB : TEXT_MAIN);
+            "—".equals(display) ? Font.ITALIC : Font.PLAIN, 13));
+        val.setForeground("—".equals(display) ? TEXT_SUB : TEXT_MAIN);
 
         row.add(lbl, BorderLayout.WEST);
         row.add(val, BorderLayout.CENTER);
@@ -153,7 +153,7 @@ public class EntityDetailModule extends JPanel implements AppModule {
         btnPanel.setBackground(FOOTER_BG);
         btnPanel.setBorder(new MatteBorder(1, 0, 0, 0, DIVIDER));
 
-        btnClose = new JButton("  \u00D3ng  ");
+        btnClose = new JButton("  Óng  ");
         btnClose.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnClose.setBackground(typeColor);
         btnClose.setForeground(Color.WHITE);

@@ -57,7 +57,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
     private JLabel lblErrGia;
 
     public ChinhSuaChiTietGiaDialog(Window owner, Gia gia, ChiTietGia ctg, Runnable onSaved) {
-        super(owner, ctg == null ? "Th\u00EAm chi ti\u1EBFt gi\u00E1" : "Ch\u1EC9nh s\u1EEDa chi ti\u1EBFt gi\u00E1",
+        super(owner, ctg == null ? "Thêm chi tiết giá" : "Chỉnh sửa chi tiết giá",
                 ModalityType.APPLICATION_MODAL);
         this.gia       = gia;
         this.ctg       = ctg;
@@ -144,7 +144,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
                 g2.setColor(PRIMARY);
                 g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
                 FontMetrics fm = g2.getFontMetrics();
-                String s = isAddMode ? "+" : "\u270E";
+                String s = isAddMode ? "+" : "✎";
                 g2.drawString(s, (40 - fm.stringWidth(s)) / 2, 27);
                 g2.dispose();
             }
@@ -157,15 +157,15 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
         textArea.setOpaque(false);
 
         JLabel lblTitle = new JLabel(isAddMode
-                ? "Th\u00EAm chi ti\u1EBFt bi\u1EC3u gi\u00E1"
-                : "C\u1EADp nh\u1EADt chi ti\u1EBFt bi\u1EC3u gi\u00E1");
+                ? "Thêm chi tiết biểu giá"
+                : "Cập nhật chi tiết biểu giá");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(ON_SURFACE);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel lblDesc = new JLabel(isAddMode
-                ? "Th\u00EAm th\u00F4ng s\u1ED1 cho tuy\u1EBFn \u0111\u01B0\u1EE3ng v\u00E0 h\u1EA1ng gh\u1EBF"
-                : "Ch\u1EC9nh s\u1EEDa th\u00F4ng s\u1ED1 cho tuy\u1EBFn \u0111\u01B0\u1EE3ng v\u00E0 h\u1EA1ng gh\u1EBF");
+                ? "Thêm thông số cho tuyến đượng và hạng ghế"
+                : "Chỉnh sửa thông số cho tuyến đượng và hạng ghế");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -177,7 +177,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
         iconTitle.add(icon);
         iconTitle.add(textArea);
 
-        JButton btnClose = new JButton("\u2715");
+        JButton btnClose = new JButton("✕");
         btnClose.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         btnClose.setForeground(ON_SURF_VAR);
         btnClose.setContentAreaFilled(false);
@@ -206,7 +206,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
                 ? "CTG-" + gia.getMaGia() + "-" + String.format("%05d", (int)(System.currentTimeMillis() % 100000))
                 : ctg.getMaChiTietGia();
         txtMaChiTiet = createReadonlyField(codeValue, FONT_MONO);
-        form.add(buildFieldRow("M\u00C3 CHI TI\u1EBET (T\u1EF1 \u0111\u1ED9ng)", txtMaChiTiet, null));
+        form.add(buildFieldRow("MÃ CHI TIẾT (Tự động)", txtMaChiTiet, null));
         form.add(Box.createVerticalStrut(16));
 
         // TUYẾN — searchable (full width)
@@ -214,7 +214,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
             t -> {
                 String gaDi  = t.getGaDi()  != null ? t.getGaDi().getTenGa()  : "?";
                 String gaDen = t.getGaDen() != null ? t.getGaDen().getTenGa() : "?";
-                return t.getMaTuyen() + "  |  " + gaDi + " \u2192 " + gaDen;
+                return t.getMaTuyen() + "  |  " + gaDi + " → " + gaDen;
             },
             (t, q) -> {
                 String gaDiName  = t.getGaDi()  != null ? t.getGaDi().getTenGa().toLowerCase()  : "";
@@ -225,15 +225,15 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
             }
         );
         searchTuyen.setItems(tuyenList);
-        searchTuyen.setPlaceholder("Nh\u1EADp m\u00E3 tuy\u1EBFn, ga \u0111i ho\u1EB7c ga \u0111\u1EBFn...");
+        searchTuyen.setPlaceholder("Nhập mã tuyến, ga đi hoặc ga đến...");
         lblErrTuyen = createErrLabel();
-        form.add(buildFieldRow("TUY\u1EBCN \u0110\u01AF\u1EDCNG", searchTuyen, lblErrTuyen));
+        form.add(buildFieldRow("TUYẼN ĐƯỜNG", searchTuyen, lblErrTuyen));
         form.add(Box.createVerticalStrut(16));
 
         // Loại ghế (hàng riêng)
         cboLoaiGhe = createStyledCombo();
         for (LoaiGhe lg : LoaiGhe.values()) cboLoaiGhe.addItem(lg.toString());
-        form.add(buildFieldRow("LO\u1EA0I GH\u1EBE", cboLoaiGhe, null));
+        form.add(buildFieldRow("LOẠI GHẾ", cboLoaiGhe, null));
         form.add(Box.createVerticalStrut(16));
 
         // Giá niêm yết
@@ -244,7 +244,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
             @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { formatMoneyField(); }
             @Override public void changedUpdate(javax.swing.event.DocumentEvent e) {}
         });
-        form.add(buildFieldRow("GI\u00C1 NI\u00CAM Y\u1EBET (VN\u0110)", txtGiaNiemYet, lblErrGia));
+        form.add(buildFieldRow("GIÁ NIÊM YẾT (VNĐ)", txtGiaNiemYet, lblErrGia));
         form.add(Box.createVerticalStrut(8));
 
         return form;
@@ -284,7 +284,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
         footer.setBackground(FOOTER_BG);
         footer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE));
 
-        JButton btnCancel = new JButton("H\u1EE7y b\u1ECF");
+        JButton btnCancel = new JButton("Hủy bỏ");
         btnCancel.setFont(FONT_BTN);
         btnCancel.setForeground(ON_SURF_VAR);
         btnCancel.setContentAreaFilled(false);
@@ -293,7 +293,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
         btnCancel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnCancel.addActionListener(e -> dispose());
 
-        String saveLabel = isAddMode ? "Th\u00EAm chi ti\u1EBFt" : "C\u1EADp nh\u1EADt chi ti\u1EBFt";
+        String saveLabel = isAddMode ? "Thêm chi tiết" : "Cập nhật chi tiết";
         JButton btnSave = new JButton(saveLabel) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -331,34 +331,34 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
         // ── Validate tuyến ─────────────────────────────────────────────
         Tuyen selectedTuyen = searchTuyen.getSelectedItem();
         if (selectedTuyen == null) {
-            showError(lblErrTuyen, "Vui l\u00F2ng ch\u1ECDn tuy\u1EBFn \u0111\u01B0\u1EE3ng");
+            showError(lblErrTuyen, "Vui lòng chọn tuyến đượng");
             return;
         }
 
         // ── Validate giá ──────────────────────────────────────────────
         String giaStr = txtGiaNiemYet.getText().trim();
         if (giaStr.isEmpty()) {
-            showError(lblErrGia, "Vui l\u00F2ng nh\u1EADp gi\u00E1 ni\u00EAm y\u1EBFt");
+            showError(lblErrGia, "Vui lòng nhập giá niêm yết");
             return;
         }
         double giaNiemYet;
         try {
             long raw = Long.parseLong(giaStr.replaceAll("\\.", ""));
             if (raw <= 0) {
-                showError(lblErrGia, "Gi\u00E1 ph\u1EA3i l\u1EDBn h\u01A1n 0");
+                showError(lblErrGia, "Giá phải lớn hơn 0");
                 return;
             }
             if (raw < 1_000) {
-                showError(lblErrGia, "Gi\u00E1 t\u1ED1i thi\u1EC3u l\u00E0 1.000 VN\u0110");
+                showError(lblErrGia, "Giá tối thiểu là 1.000 VNĐ");
                 return;
             }
             if (raw > 100_000_000) {
-                showError(lblErrGia, "Gi\u00E1 kh\u00F4ng \u0111\u01B0\u1EE3c v\u01B0\u1EE3t qu\u00E1 100.000.000 VN\u0110");
+                showError(lblErrGia, "Giá không được vượt quá 100.000.000 VNĐ");
                 return;
             }
             giaNiemYet = (double) raw;
         } catch (NumberFormatException ex) {
-            showError(lblErrGia, "Gi\u00E1 kh\u00F4ng h\u1EE3p l\u1EC7, ch\u1EC9 \u0111\u01B0\u1EE3c nh\u1EADp s\u1ED1");
+            showError(lblErrGia, "Giá không hợp lệ, chỉ được nhập số");
             return;
         }
 
@@ -392,13 +392,13 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
                         dispose();
                     } else {
                         JOptionPane.showMessageDialog(ChinhSuaChiTietGiaDialog.this,
-                                isAddMode ? "Kh\u00F4ng th\u1EC3 th\u00EAm chi ti\u1EBFt gi\u00E1!"
-                                          : "Kh\u00F4ng th\u1EC3 c\u1EADp nh\u1EADt chi ti\u1EBFt gi\u00E1!",
-                                "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                                isAddMode ? "Không thể thêm chi tiết giá!"
+                                          : "Không thể cập nhật chi tiết giá!",
+                                "Lỗi", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(ChinhSuaChiTietGiaDialog.this,
-                            "L\u1ED7i: " + ex.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                            "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();

@@ -9,9 +9,10 @@ import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+import java.time.LocalTime;
+import java.util.Calendar;
 
 public class ThemKhuyenMaiDialog extends JDialog {
 
@@ -34,13 +35,13 @@ public class ThemKhuyenMaiDialog extends JDialog {
     private static final Font FONT_HINT  = new Font("Segoe UI", Font.ITALIC, 10);
     private static final Font FONT_ERR   = new Font("Segoe UI", Font.PLAIN, 11);
 
-    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-
     private JTextField        txtMaKM;
     private JTextField        txtTenKM;
     private JTextField        txtMoTa;
-    private JTextField        txtBatDau;
-    private JTextField        txtKetThuc;
+    private DatePickerField   dpBatDau;
+    private JSpinner          spTimeBatDau;
+    private DatePickerField   dpKetThuc;
+    private JSpinner          spTimeKetThuc;
     private JComboBox<String> cboTrangThai;
 
     private JLabel lblErrMaKM;
@@ -153,13 +154,15 @@ public class ThemKhuyenMaiDialog extends JDialog {
         row4.setOpaque(false);
         row4.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
 
-        txtBatDau = createInputField("dd/MM/yyyy HH:mm");
+        dpBatDau     = new DatePickerField();
+        spTimeBatDau = createTimeSpinner();
         lblErrBatDau = createErrorLabel();
-        row4.add(buildFieldGroup("Thời gian bắt đầu", txtBatDau, "* Định dạng: dd/MM/yyyy HH:mm", true, lblErrBatDau));
+        row4.add(buildFieldGroup("Thời gian bắt đầu", buildDateTimePanel(dpBatDau, spTimeBatDau), null, true, lblErrBatDau));
 
-        txtKetThuc = createInputField("dd/MM/yyyy HH:mm");
+        dpKetThuc     = new DatePickerField();
+        spTimeKetThuc = createTimeSpinner();
         lblErrKetThuc = createErrorLabel();
-        row4.add(buildFieldGroup("Thời gian kết thúc", txtKetThuc, "* Định dạng: dd/MM/yyyy HH:mm", true, lblErrKetThuc));
+        row4.add(buildFieldGroup("Thời gian kết thúc", buildDateTimePanel(dpKetThuc, spTimeKetThuc), null, true, lblErrKetThuc));
 
         form.add(row4);
         return form;
@@ -186,11 +189,12 @@ public class ThemKhuyenMaiDialog extends JDialog {
     private void doSave() {
         clearAllErrors();
 
-        String maKM     = getFieldText(txtMaKM,     "VD: KM-2025-01");
-        String tenKM    = getFieldText(txtTenKM,    "VD: Giảm giá dịp Tết 2025");
-        String moTa     = getFieldText(txtMoTa,     "VD: Giảm giá vé tàu các tuyến dịp Tết Nguyên Đán");
-        String batDauStr = getFieldText(txtBatDau,  "dd/MM/yyyy HH:mm");
-        String ketThucStr = getFieldText(txtKetThuc,"dd/MM/yyyy HH:mm");
+        String maKM  = getFieldText(txtMaKM,  "VD: KM-2025-01");
+        String tenKM = getFieldText(txtTenKM, "VD: Giảm giá dịp Tết 2025");
+        String moTa  = getFieldText(txtMoTa,  "VD: Giảm giá vé tàu các tuyến dịp Tết Nguyên Đán");
+
+        LocalDate dateBatDau  = dpBatDau.getValue();
+        LocalDate dateKetThuc = dpKetThuc.getValue();
 
         if (maKM.isEmpty()) {
             showFieldError(txtMaKM, lblErrMaKM, "Vui lòng nhập mã khuyến mãi");
@@ -200,33 +204,23 @@ public class ThemKhuyenMaiDialog extends JDialog {
             showFieldError(txtTenKM, lblErrTenKM, "Vui lòng nhập tên chương trình");
             return;
         }
-        if (batDauStr.isEmpty()) {
-            showFieldError(txtBatDau, lblErrBatDau, "Vui lòng nhập thời gian bắt đầu");
+        if (dateBatDau == null) {
+            lblErrBatDau.setText("Vui lòng chọn ngày bắt đầu");
+            lblErrBatDau.setVisible(true);
             return;
         }
-        if (ketThucStr.isEmpty()) {
-            showFieldError(txtKetThuc, lblErrKetThuc, "Vui lòng nhập thời gian kết thúc");
-            return;
-        }
-
-        LocalDateTime batDau;
-        try {
-            batDau = LocalDateTime.parse(batDauStr, DT_FMT);
-        } catch (DateTimeParseException ex) {
-            showFieldError(txtBatDau, lblErrBatDau, "Sai định dạng (dd/MM/yyyy HH:mm)");
+        if (dateKetThuc == null) {
+            lblErrKetThuc.setText("Vui lòng chọn ngày kết thúc");
+            lblErrKetThuc.setVisible(true);
             return;
         }
 
-        LocalDateTime ketThuc;
-        try {
-            ketThuc = LocalDateTime.parse(ketThucStr, DT_FMT);
-        } catch (DateTimeParseException ex) {
-            showFieldError(txtKetThuc, lblErrKetThuc, "Sai định dạng (dd/MM/yyyy HH:mm)");
-            return;
-        }
+        LocalDateTime batDau  = LocalDateTime.of(dateBatDau,  readTime(spTimeBatDau));
+        LocalDateTime ketThuc = LocalDateTime.of(dateKetThuc, readTime(spTimeKetThuc));
 
         if (!ketThuc.isAfter(batDau)) {
-            showFieldError(txtKetThuc, lblErrKetThuc, "Thời gian kết thúc phải sau thời gian bắt đầu");
+            lblErrKetThuc.setText("Thời gian kết thúc phải sau thời gian bắt đầu");
+            lblErrKetThuc.setVisible(true);
             return;
         }
 
@@ -259,7 +253,35 @@ public class ThemKhuyenMaiDialog extends JDialog {
 
     public boolean isSaved() { return saved; }
 
-    // ───────────────────────── helpers ─────────────────────────
+    // ───────────────────────── date-time helpers ─────────────────────────
+
+    private JSpinner createTimeSpinner() {
+        SpinnerDateModel m = new SpinnerDateModel();
+        JSpinner sp = new JSpinner(m);
+        sp.setEditor(new JSpinner.DateEditor(sp, "HH:mm"));
+        sp.setFont(FONT_INPUT);
+        sp.setPreferredSize(new Dimension(72, 40));
+        sp.setMaximumSize(new Dimension(72, 40));
+        return sp;
+    }
+
+    private JPanel buildDateTimePanel(DatePickerField dp, JSpinner timeSp) {
+        JPanel p = new JPanel(new BorderLayout(6, 0));
+        p.setOpaque(false);
+        p.setPreferredSize(new Dimension(0, 40));
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        p.add(dp,    BorderLayout.CENTER);
+        p.add(timeSp, BorderLayout.EAST);
+        return p;
+    }
+
+    private LocalTime readTime(JSpinner sp) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime((java.util.Date) sp.getValue());
+        return LocalTime.of(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE));
+    }
+
+    // ───────────────────────── error helpers ─────────────────────────
 
     private void showFieldError(JComponent field, JLabel errLabel, String msg) {
         errLabel.setText(msg);
@@ -271,11 +293,11 @@ public class ThemKhuyenMaiDialog extends JDialog {
     }
 
     private void clearAllErrors() {
-        JLabel[]     errs = {lblErrMaKM, lblErrTenKM, lblErrBatDau, lblErrKetThuc};
-        JComponent[] flds = {txtMaKM,    txtTenKM,    txtBatDau,    txtKetThuc};
-        for (int i = 0; i < errs.length; i++) {
-            errs[i].setText(""); errs[i].setVisible(false);
-            flds[i].setBorder(BorderFactory.createCompoundBorder(
+        for (JLabel lbl : new JLabel[]{lblErrMaKM, lblErrTenKM, lblErrBatDau, lblErrKetThuc}) {
+            lbl.setText(""); lbl.setVisible(false);
+        }
+        for (JTextField f : new JTextField[]{txtMaKM, txtTenKM}) {
+            f.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(OUTLINE, 1, true),
                     new EmptyBorder(8, 12, 8, 12)));
         }
@@ -313,7 +335,7 @@ public class ThemKhuyenMaiDialog extends JDialog {
         group.add(Box.createVerticalStrut(6));
 
         input.setAlignmentX(Component.LEFT_ALIGNMENT);
-        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         group.add(input);
 
         if (hint != null && !hint.isEmpty()) {

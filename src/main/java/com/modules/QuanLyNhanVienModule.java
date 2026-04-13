@@ -114,12 +114,12 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Qu\u1EA3n l\u00FD nh\u00E2n vi\u00EAn");
+        JLabel lblTitle = new JLabel("Quản lý nhân viên");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(ON_SURFACE);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDesc = new JLabel("Qu\u1EA3n l\u00FD th\u00F4ng tin v\u00E0 tr\u1EA1ng th\u00E1i l\u00E0m vi\u1EC7c c\u1EE7a nh\u00E2n vi\u00EAn");
+        JLabel lblDesc = new JLabel("Quản lý thông tin và trạng thái làm việc của nhân viên");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -129,7 +129,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         left.add(lblDesc);
 
         // Right: add button
-        btnAddNew = createPrimaryButton("+ Th\u00EAm nh\u00E2n vi\u00EAn");
+        btnAddNew = createPrimaryButton("+ Thêm nhân viên");
         btnAddNew.setPreferredSize(new Dimension(170, 40));
         btnAddNew.addActionListener(e -> openThemNhanVienDialog());
 
@@ -187,7 +187,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
                     g2.setColor(new Color(0x9E, 0xA7, 0xB0));
                     g2.setFont(FONT_BODY);
                     Insets insets = getInsets();
-                    g2.drawString("T\u00ECm ki\u1EBFm theo t\u00EAn, m\u00E3 NV, SĐT...", insets.left, getHeight() / 2 + 5);
+                    g2.drawString("Tìm kiếm theo tên, mã NV, SĐT...", insets.left, getHeight() / 2 + 5);
                     g2.dispose();
                 }
             }
@@ -211,24 +211,24 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
 
         // Vai tro dropdown
         cboVaiTro = createFilterCombo(new String[]{
-                "T\u1EA5t c\u1EA3 b\u1ED9 ph\u1EADn",
-                "Nh\u00E2n vi\u00EAn qu\u1EA7y v\u00E9",
-                "\u0110i\u1EC1u ph\u1ED1i",
+                "Tất cả bộ phận",
+                "Nhân viên quầy vé",
+                "Điều phối",
                 "Admin"
         });
         cboVaiTro.addActionListener(e -> applyFilter());
 
         // Trang thai dropdown
         cboTrangThai = createFilterCombo(new String[]{
-                "T\u1EA5t c\u1EA3 tr\u1EA1ng th\u00E1i",
-                "\u0110ang l\u00E0m",
-                "Ngh\u1EC9 ph\u00E9p",
-                "\u0110\u00E3 ngh\u1EC9"
+                "Tất cả trạng thái",
+                "Đang làm",
+                "Nghỉ phép",
+                "Đã nghỉ"
         });
         cboTrangThai.addActionListener(e -> applyFilter());
 
         // Bo loc button
-        JButton btnReset = new JButton("B\u1ECF l\u1ECDc") {
+        JButton btnReset = new JButton("Bỏ lọc") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -260,11 +260,11 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         JPanel filtersInner = new JPanel();
         filtersInner.setLayout(new BoxLayout(filtersInner, BoxLayout.X_AXIS));
         filtersInner.setOpaque(false);
-        filtersInner.add(createFilterLabel("B\u1ED9 ph\u1EADn:"));
+        filtersInner.add(createFilterLabel("Bộ phận:"));
         filtersInner.add(Box.createHorizontalStrut(6));
         filtersInner.add(cboVaiTro);
         filtersInner.add(Box.createHorizontalStrut(12));
-        filtersInner.add(createFilterLabel("Tr\u1EA1ng th\u00E1i:"));
+        filtersInner.add(createFilterLabel("Trạng thái:"));
         filtersInner.add(Box.createHorizontalStrut(6));
         filtersInner.add(cboTrangThai);
         filtersInner.add(Box.createHorizontalStrut(12));
@@ -590,8 +590,8 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         tableModel.setData(filteredData.subList(start, end));
 
         lblPageInfo.setText(totalRecords == 0
-                ? "Kh\u00F4ng t\u00ECm th\u1EA5y nh\u00E2n vi\u00EAn n\u00E0o"
-                : "Hi\u1EC3n th\u1ECB " + (start + 1) + " \u2013 " + end + " / " + totalRecords + " nh\u00E2n vi\u00EAn");
+                ? "Không tìm thấy nhân viên nào"
+                : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " nhân viên");
 
         rebuildPagination(totalPages);
         } finally {
@@ -602,14 +602,14 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     private void rebuildPagination(int totalPages) {
         paginationPanel.removeAll();
 
-        addNavButton("\u276E", currentPage > 1, () -> { currentPage--; refreshTable(); });
+        addNavButton("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
 
         for (int i = 1; i <= totalPages; i++) {
             if (totalPages > 7) {
                 if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
                     addPageButton(i);
                 } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("\u2026");
+                    JLabel dots = new JLabel("…");
                     dots.setFont(FONT_SMALL);
                     dots.setForeground(ON_SURF_VAR);
                     dots.setBorder(new EmptyBorder(0, 6, 0, 6));
@@ -620,7 +620,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
             }
         }
 
-        addNavButton("\u276F", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
+        addNavButton("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
 
         paginationPanel.revalidate();
         paginationPanel.repaint();
@@ -672,7 +672,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     // =================================================================
 
     private class NhanVienTableModel extends AbstractTableModel {
-        private final String[] COLUMNS = {"M\u00E3 NV", "H\u1ECD v\u00E0 t\u00EAn", "B\u1ED9 ph\u1EADn", "S\u0110T", "Tr\u1EA1ng th\u00E1i", ""};
+        private final String[] COLUMNS = {"Mã NV", "Họ và tên", "Bộ phận", "SĐT", "Trạng thái", ""};
         private List<NhanVien> data = new ArrayList<>();
 
         void setData(List<NhanVien> data) {
@@ -701,7 +701,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
                 case 2 -> nv.getVaiTro() != null ? nv.getVaiTro() : VaiTro.BAN_VE;
                 case 3 -> nv.getSoDienThoai() != null ? nv.getSoDienThoai() : "";
                 case 4 -> nv.getTrangThai() != null ? nv.getTrangThai() : TrangThaiNhanVien.DANG_LAM;
-                case 5 -> "Ch\u1EC9nh s\u1EEDa";
+                case 5 -> "Chỉnh sửa";
                 default -> "";
             };
         }
@@ -751,8 +751,8 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
                             nv.setSoDienThoai(oldSdt);
                             nv.setTrangThai(oldTrangThai);
                             JOptionPane.showMessageDialog(QuanLyNhanVienModule.this,
-                                    "Kh\u00F4ng th\u1EC3 l\u01B0u thay \u0111\u1ED5i!",
-                                    "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                                    "Không thể lưu thay đổi!",
+                                    "Lỗi", JOptionPane.ERROR_MESSAGE);
                         } else {
                             // Sync nguoc ve allData
                             allData.stream()
@@ -874,7 +874,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         @Override
         public Component getTableCellRendererComponent(JTable tbl, Object value,
                 boolean isSel, boolean hasFocus, int row, int col) {
-            lbl.setText(value != null ? value.toString() : "Ch\u1EC9nh s\u1EEDa");
+            lbl.setText(value != null ? value.toString() : "Chỉnh sửa");
             setBackground(getRowBg(tbl, isSel, row));
             return this;
         }
@@ -907,7 +907,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
             panel = new JPanel(new GridBagLayout());
             panel.setOpaque(true);
 
-            button = new JButton("Ch\u1EC9nh s\u1EEDa");
+            button = new JButton("Chỉnh sửa");
             button.setFont(FONT_BADGE);
             button.setForeground(PRIMARY);
             button.setBackground(PRIMARY_LIGHT);
@@ -955,7 +955,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         }
 
         @Override
-        public Object getCellEditorValue() { return "Ch\u1EC9nh s\u1EEDa"; }
+        public Object getCellEditorValue() { return "Chỉnh sửa"; }
     }
 
     /** Row background helper: hover > selected > zebra */
@@ -979,7 +979,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     //  AppModule interface
     // =================================================================
 
-    @Override public String getTitle() { return "Qu\u1EA3n l\u00FD nh\u00E2n vi\u00EAn"; }
+    @Override public String getTitle() { return "Quản lý nhân viên"; }
     @Override public JPanel getView()  { return this; }
     @Override public void setOnResult(Consumer<Object> cb) {
         this.callback = cb;

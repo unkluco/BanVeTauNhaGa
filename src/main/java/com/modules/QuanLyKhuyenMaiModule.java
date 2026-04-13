@@ -33,8 +33,8 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
 
     // --- UI components ---
     private JTextField        txtSearch;
-    private JTextField        txtTuNgay;
-    private JTextField        txtDenNgay;
+    private DatePickerField   dpTuNgay;
+    private DatePickerField   dpDenNgay;
     private JComboBox<String> cboTrangThai;
     private JButton           btnAddNew;
     private JTable            table;
@@ -137,12 +137,12 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Qu\u1EA3n l\u00FD Khuy\u1EBFn m\u00E3i");
+        JLabel lblTitle = new JLabel("Quản lý Khuyến mãi");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(ON_SURFACE);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDesc = new JLabel("Qu\u1EA3n l\u00FD c\u00E1c ch\u01B0\u01A1ng tr\u00ECnh khuy\u1EBFn m\u00E3i v\u00E0 chi ti\u1EBFt gi\u1EA3m gi\u00E1 theo tuy\u1EBFn.");
+        JLabel lblDesc = new JLabel("Quản lý các chương trình khuyến mãi và chi tiết giảm giá theo tuyến.");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -151,7 +151,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         left.add(Box.createVerticalStrut(4));
         left.add(lblDesc);
 
-        btnAddNew = createPrimaryButton("+ Th\u00EAm KM m\u1EDBi");
+        btnAddNew = createPrimaryButton("+ Thêm KM mới");
         btnAddNew.setPreferredSize(new Dimension(160, 40));
         btnAddNew.addActionListener(e -> openThemKhuyenMaiDialog());
 
@@ -212,7 +212,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
                     g2.setColor(new Color(0x9E, 0xA7, 0xB0));
                     g2.setFont(FONT_BODY);
                     Insets insets = getInsets();
-                    g2.drawString("T\u00ECm ki\u1EBFm theo m\u00E3 KM, t\u00EAn, m\u00F4 t\u1EA3...", insets.left, getHeight() / 2 + 5);
+                    g2.drawString("Tìm kiếm theo mã KM, tên, mô tả...", insets.left, getHeight() / 2 + 5);
                     g2.dispose();
                 }
             }
@@ -236,19 +236,26 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         row1.add(txtSearch, BorderLayout.CENTER);
 
         // Row 2: date range + trang thai + reset
-        txtTuNgay  = createPlainDateField();
-        txtDenNgay = createPlainDateField();
+        dpTuNgay  = new DatePickerField();
+        dpTuNgay.setPreferredSize(new Dimension(158, 38));
+        dpTuNgay.setMaximumSize(new Dimension(158, 38));
+        dpTuNgay.addPropertyChangeListener("value", e -> applyFilter());
+
+        dpDenNgay = new DatePickerField();
+        dpDenNgay.setPreferredSize(new Dimension(158, 38));
+        dpDenNgay.setMaximumSize(new Dimension(158, 38));
+        dpDenNgay.addPropertyChangeListener("value", e -> applyFilter());
 
         cboTrangThai = createFilterCombo(new String[]{
-                "T\u1EA5t c\u1EA3 tr\u1EA1ng th\u00E1i",
-                "\u0110ang \u00E1p d\u1EE5ng",
-                "Ng\u1EEBng \u00E1p d\u1EE5ng"
+                "Tất cả trạng thái",
+                "Đang áp dụng",
+                "Ngừng áp dụng"
         });
         cboTrangThai.setPreferredSize(new Dimension(170, 38));
         cboTrangThai.setMaximumSize(new Dimension(170, 38));
         cboTrangThai.addActionListener(e -> applyFilter());
 
-        JButton btnReset = new JButton("B\u1ECF l\u1ECDc") {
+        JButton btnReset = new JButton("Bỏ lọc") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -270,8 +277,8 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         btnReset.addActionListener(e -> {
             txtSearch.setText("");
             cboTrangThai.setSelectedIndex(0);
-            txtTuNgay.setText("");
-            txtDenNgay.setText("");
+            dpTuNgay.setValue(null);
+            dpDenNgay.setValue(null);
             applyFilter();
         });
 
@@ -280,15 +287,15 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         row2.setOpaque(false);
         row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
 
-        row2.add(createFilterLabel("T\u1EEB ng\u00E0y:"));
+        row2.add(createFilterLabel("Từ ngày:"));
         row2.add(Box.createHorizontalStrut(6));
-        row2.add(createDateInputPanel(txtTuNgay));
+        row2.add(dpTuNgay);
         row2.add(Box.createHorizontalStrut(16));
-        row2.add(createFilterLabel("\u0110\u1EBFn ng\u00E0y:"));
+        row2.add(createFilterLabel("Đến ngày:"));
         row2.add(Box.createHorizontalStrut(6));
-        row2.add(createDateInputPanel(txtDenNgay));
+        row2.add(dpDenNgay);
         row2.add(Box.createHorizontalStrut(20));
-        row2.add(createFilterLabel("Tr\u1EA1ng th\u00E1i:"));
+        row2.add(createFilterLabel("Trạng thái:"));
         row2.add(Box.createHorizontalStrut(6));
         row2.add(cboTrangThai);
         row2.add(Box.createHorizontalStrut(12));
@@ -338,7 +345,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         panel.setMaximumSize(new Dimension(158, 38));
         panel.setPreferredSize(new Dimension(158, 38));
 
-        JButton btnCal = new JButton("\u25BC") {
+        JButton btnCal = new JButton("▼") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -385,7 +392,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         jCal.setDate(cal.getTime());
         jCal.setWeekOfYearVisible(false);
 
-        JButton btnOk = new JButton("Ch\u1ECDn") {
+        JButton btnOk = new JButton("Chọn") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -404,7 +411,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         btnOk.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnOk.setPreferredSize(new Dimension(80, 32));
 
-        JButton btnClear = new JButton("X\u00F3a") {
+        JButton btnClear = new JButton("Xóa") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -677,8 +684,8 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
     private void applyFilter() {
         String keyword    = txtSearch.getText().trim().toLowerCase();
         int trangThaiIdx  = cboTrangThai.getSelectedIndex();
-        LocalDate tuNgay  = parseDateField(txtTuNgay);
-        LocalDate denNgay = parseDateField(txtDenNgay);
+        LocalDate tuNgay  = dpTuNgay.getValue();
+        LocalDate denNgay = dpDenNgay.getValue();
 
         filteredData = new ArrayList<>();
         for (KhuyenMai km : allData) {
@@ -749,8 +756,8 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
             tableModel.setData(filteredData.subList(start, end));
 
             lblPageInfo.setText(totalRecords == 0
-                    ? "Kh\u00F4ng t\u00ECm th\u1EA5y ch\u01B0\u01A1ng tr\u00ECnh khuy\u1EBFn m\u00E3i n\u00E0o"
-                    : "Hi\u1EC3n th\u1ECB " + (start + 1) + " \u2013 " + end + " / " + totalRecords + " khuy\u1EBFn m\u00E3i");
+                    ? "Không tìm thấy chương trình khuyến mãi nào"
+                    : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " khuyến mãi");
 
             rebuildPagination(totalPages);
         } finally {
@@ -761,14 +768,14 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
     private void rebuildPagination(int totalPages) {
         paginationPanel.removeAll();
 
-        addNavButton("\u276E", currentPage > 1, () -> { currentPage--; refreshTable(); });
+        addNavButton("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
 
         for (int i = 1; i <= totalPages; i++) {
             if (totalPages > 7) {
                 if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
                     addPageButton(i);
                 } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("\u2026");
+                    JLabel dots = new JLabel("…");
                     dots.setFont(FONT_SMALL);
                     dots.setForeground(ON_SURF_VAR);
                     dots.setBorder(new EmptyBorder(0, 6, 0, 6));
@@ -779,7 +786,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
             }
         }
 
-        addNavButton("\u276F", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
+        addNavButton("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
 
         paginationPanel.revalidate();
         paginationPanel.repaint();
@@ -832,8 +839,8 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
 
     private class KhuyenMaiTableModel extends AbstractTableModel {
         private final String[] COLUMNS = {
-            "M\u00E3 KM", "T\u00EAn ch\u01B0\u01A1ng tr\u00ECnh",
-            "B\u1EAFt \u0111\u1EA7u", "K\u1EBFt th\u00FAc", "Tr\u1EA1ng th\u00E1i", ""
+            "Mã KM", "Tên chương trình",
+            "Bắt đầu", "Kết thúc", "Trạng thái", ""
         };
         private List<KhuyenMai> data = new ArrayList<>();
 
@@ -860,7 +867,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
                 case 2 -> km.getThoiGianBatDau()  != null ? km.getThoiGianBatDau().format(DT_FMT_DIS)  : "";
                 case 3 -> km.getThoiGianKetThuc() != null ? km.getThoiGianKetThuc().format(DT_FMT_DIS) : "";
                 case 4 -> km.isTrangThai();
-                case 5 -> "Chi ti\u1EBFt";
+                case 5 -> "Chi tiết";
                 default -> "";
             };
         }
@@ -917,11 +924,11 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
             if (active) {
                 badgeBg = STATUS_GREEN_BG;
                 badgeFg = STATUS_GREEN_FG;
-                badge.setText("\u0110ang \u00E1p d\u1EE5ng");
+                badge.setText("Đang áp dụng");
             } else {
                 badgeBg = STATUS_RED_BG;
                 badgeFg = STATUS_RED_FG;
-                badge.setText("Ng\u1EEBng \u00E1p d\u1EE5ng");
+                badge.setText("Ngừng áp dụng");
             }
             badge.setForeground(badgeFg);
             setBackground(getRowBg(tbl, isSel, row));
@@ -958,7 +965,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         @Override
         public Component getTableCellRendererComponent(JTable tbl, Object value,
                 boolean isSel, boolean hasFocus, int row, int col) {
-            lbl.setText(value != null ? value.toString() : "Chi ti\u1EBFt");
+            lbl.setText(value != null ? value.toString() : "Chi tiết");
             setBackground(getRowBg(tbl, isSel, row));
             return this;
         }
@@ -988,7 +995,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
             panel  = new JPanel(new GridBagLayout());
             panel.setOpaque(true);
 
-            button = new JButton("Chi ti\u1EBFt");
+            button = new JButton("Chi tiết");
             button.setFont(FONT_BADGE);
             button.setForeground(PRIMARY);
             button.setBackground(PRIMARY_LIGHT);
@@ -1035,7 +1042,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         }
 
         @Override
-        public Object getCellEditorValue() { return "Chi ti\u1EBFt"; }
+        public Object getCellEditorValue() { return "Chi tiết"; }
     }
 
     private Color getRowBg(JTable tbl, boolean isSel, int row) {
@@ -1064,7 +1071,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
     //  AppModule interface
     // =================================================================
 
-    @Override public String getTitle() { return "Qu\u1EA3n l\u00FD khuy\u1EBFn m\u00E3i"; }
+    @Override public String getTitle() { return "Quản lý khuyến mãi"; }
     @Override public JPanel getView()  { return this; }
 
     @Override
@@ -1077,8 +1084,8 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         rootCard.show(this, "LIST");
         txtSearch.setText("");
         cboTrangThai.setSelectedIndex(0);
-        txtTuNgay.setText("");
-        txtDenNgay.setText("");
+        dpTuNgay.setValue(null);
+        dpDenNgay.setValue(null);
         loadData();
     }
 }

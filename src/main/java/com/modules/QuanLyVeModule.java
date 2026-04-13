@@ -147,12 +147,12 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Qu\u1EA3n l\u00FD v\u00E9");
+        JLabel lblTitle = new JLabel("Quản lý vé");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(ON_SURFACE);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDesc = new JLabel("Theo d\u00F5i giao d\u1ECBch, xu\u1EA5t h\u00F3a \u0111\u01A1n v\u00E0 x\u1EED l\u00FD ho\u00E0n tr\u1EA3 kh\u00E1ch h\u00E0ng.");
+        JLabel lblDesc = new JLabel("Theo dõi giao dịch, xuất hóa đơn và xử lý hoàn trả khách hàng.");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -177,9 +177,9 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         lblStatDoanhThu = new JLabel("0");
         lblStatTyLeHuy = new JLabel("0%");
 
-        row.add(buildStatCard("T\u1ED4NG V\u00C9", lblStatTongHoaDon, PRIMARY));
-        row.add(buildStatCard("\u0110\u00C3 B\u00C1N", lblStatDoanhThu, PRIMARY));
-        row.add(buildStatCard("T\u1EF6 L\u1EC6 H\u1EE6Y V\u00C9", lblStatTyLeHuy, ERROR));
+        row.add(buildStatCard("TỔNG VÉ", lblStatTongHoaDon, PRIMARY));
+        row.add(buildStatCard("ĐÃ BÁN", lblStatDoanhThu, PRIMARY));
+        row.add(buildStatCard("TỶ LỆ HỦY VÉ", lblStatTyLeHuy, ERROR));
 
         return row;
     }
@@ -239,7 +239,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
-        JLabel lbl1 = new JLabel("T\u00CCM THEO M\u00C3 H\u00D3A \u0110\u01A0N");
+        JLabel lbl1 = new JLabel("TÌM THEO MÃ HÓA ĐƠN");
         lbl1.setFont(FONT_STAT_LBL);
         lbl1.setForeground(ON_SURF_VAR);
         lbl1.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -249,7 +249,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         row1.setAlignmentX(Component.LEFT_ALIGNMENT);
         row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
 
-        txtSearchHoaDon = createSearchField("Nh\u1EADp m\u00E3 HD-...");
+        txtSearchHoaDon = createSearchField("Nhập mã HD-...");
         JButton btn1 = createSearchButton();
         btn1.addActionListener(e -> searchByHoaDon());
         txtSearchHoaDon.addActionListener(e -> searchByHoaDon());
@@ -266,7 +266,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
         right.setOpaque(false);
 
-        JLabel lbl2 = new JLabel("T\u00CCM THEO M\u00C3 V\u00C9");
+        JLabel lbl2 = new JLabel("TÌM THEO MÃ VÉ");
         lbl2.setFont(FONT_STAT_LBL);
         lbl2.setForeground(ON_SURF_VAR);
         lbl2.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -276,7 +276,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         row2.setAlignmentX(Component.LEFT_ALIGNMENT);
         row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
 
-        txtSearchVe = createSearchField("Nh\u1EADp m\u00E3 v\u00E9...");
+        txtSearchVe = createSearchField("Nhập mã vé...");
         JButton btn2 = createSearchButton();
         btn2.addActionListener(e -> searchByMaVe());
         txtSearchVe.addActionListener(e -> searchByMaVe());
@@ -329,7 +329,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                 new EmptyBorder(16, 20, 16, 20)
         ));
 
-        JLabel lbl = new JLabel("Danh s\u00E1ch v\u00E9");
+        JLabel lbl = new JLabel("Danh sách vé");
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lbl.setForeground(ON_SURFACE);
 
@@ -347,7 +347,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         tabs.setOpaque(false);
         tabs.setLayout(new FlowLayout(FlowLayout.CENTER, 2, 3));
 
-        String[] tabNames = {"T\u1EA5t c\u1EA3", "\u0110\u00E3 b\u00E1n", "\u0110\u00E3 h\u1EE7y"};
+        String[] tabNames = {"Tất cả", "Đã bán", "Đã hủy"};
         JButton[] tabButtons = new JButton[tabNames.length];
 
         for (int i = 0; i < tabNames.length; i++) {
@@ -559,7 +559,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     }
 
     private JButton createSearchButton() {
-        JButton btn = new JButton("T\u00ECm") {
+        JButton btn = new JButton("Tìm") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -720,8 +720,8 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         tableModel.setData(rows);
 
         lblPageInfo.setText(totalRecords == 0
-                ? "Kh\u00F4ng t\u00ECm th\u1EA5y v\u00E9 n\u00E0o"
-                : "Hi\u1EC3n th\u1ECB " + (start + 1) + " \u2013 " + end + " / " + totalRecords + " v\u00E9");
+                ? "Không tìm thấy vé nào"
+                : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " vé");
 
         rebuildPagination(totalPages);
         } finally {
@@ -731,13 +731,13 @@ public class QuanLyVeModule extends JPanel implements AppModule {
 
     private void rebuildPagination(int totalPages) {
         paginationPanel.removeAll();
-        addNavButton("\u276E", currentPage > 1, () -> { currentPage--; refreshTable(); });
+        addNavButton("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
         for (int i = 1; i <= totalPages; i++) {
             if (totalPages > 7) {
                 if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
                     addPageButton(i);
                 } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("\u2026");
+                    JLabel dots = new JLabel("…");
                     dots.setFont(FONT_SMALL);
                     dots.setForeground(ON_SURF_VAR);
                     dots.setBorder(new EmptyBorder(0, 6, 0, 6));
@@ -747,7 +747,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                 addPageButton(i);
             }
         }
-        addNavButton("\u276F", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
+        addNavButton("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
         paginationPanel.revalidate();
         paginationPanel.repaint();
     }
@@ -800,7 +800,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     // Non-static inner class de setValueAt co the truy cap allData va DAO
     private class VeTableModel extends AbstractTableModel {
         record VeRow(Ve ve, String gaDi, String gaDen, String khoiHanh, String tenKhachHang) {}
-        private final String[] COLUMNS = {"M\u00C3 V\u00C9", "H\u00C0NH KH\u00C1CH", "GA \u0110I", "GA \u0110\u1EBEN", "KH\u1EDEI H\u00C0NH", "TR\u1EA0NG TH\u00C1I", "THAO T\u00C1C"};
+        private final String[] COLUMNS = {"MÃ VÉ", "HÀNH KHÁCH", "GA ĐI", "GA ĐẾN", "KHỞI HÀNH", "TRẠNG THÁI", "THAO TÁC"};
         private List<VeRow> data = new ArrayList<>();
 
         void setData(List<VeRow> data) {
@@ -883,11 +883,11 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             if (tt == TrangThaiVe.DA_BAN) {
                 badgeBg = STATUS_GREEN_BG;
                 badge.setForeground(STATUS_GREEN_FG);
-                badge.setText("\u0110\u00E3 thanh to\u00E1n");
+                badge.setText("Đã thanh toán");
             } else {
                 badgeBg = STATUS_GRAY_BG;
                 badge.setForeground(STATUS_GRAY_FG);
-                badge.setText("\u0110\u00E3 h\u1EE7y");
+                badge.setText("Đã hủy");
             }
             setBackground(getRowBg(isSel, row));
             return this;
@@ -915,7 +915,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     /** Action buttons: Chi tiet + Hoan ve */
     private class ActionButtonRenderer extends JPanel implements TableCellRenderer {
         private final JLabel lblDetail = new JLabel("Xem");
-        private final JLabel lblRefund = new JLabel("Ho\u00E0n v\u00E9");
+        private final JLabel lblRefund = new JLabel("Hoàn vé");
         private boolean isCancelled = false;
 
         ActionButtonRenderer() {
@@ -964,7 +964,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     private class ActionButtonEditor extends AbstractCellEditor implements TableCellEditor {
         private final JPanel  panel     = new JPanel(new GridBagLayout());
         private final JButton btnDetail = new JButton("Xem");
-        private final JButton btnRefund = new JButton("Ho\u00E0n v\u00E9");
+        private final JButton btnRefund = new JButton("Hoàn vé");
         private int editingRow;
 
         ActionButtonEditor() {
@@ -990,21 +990,21 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             btnRefund.setPreferredSize(new Dimension(72, 28));
             panel.add(btnRefund, gbc);
 
-            btnDetail.setToolTipText("Xem chi ti\u1EBFt");
-            btnRefund.setToolTipText("Ho\u00E0n v\u00E9");
+            btnDetail.setToolTipText("Xem chi tiết");
+            btnRefund.setToolTipText("Hoàn vé");
 
             btnDetail.addActionListener(e -> {
                 fireEditingStopped();
                 var veRow = tableModel.getRowAt(editingRow);
                 if (veRow != null) {
                     Ve ve = veRow.ve();
-                    String info = "M\u00E3 v\u00E9: " + ve.getMaVe()
-                            + "\nH\u00E0nh kh\u00E1ch: " + veRow.tenKhachHang()
-                            + "\nTuy\u1EBFn: " + veRow.gaDi() + " \u2192 " + veRow.gaDen()
-                            + "\nKh\u1EDFi h\u00E0nh: " + veRow.khoiHanh()
-                            + "\nTr\u1EA1ng th\u00E1i: " + ve.getTrangThai();
+                    String info = "Mã vé: " + ve.getMaVe()
+                            + "\nHành khách: " + veRow.tenKhachHang()
+                            + "\nTuyến: " + veRow.gaDi() + " → " + veRow.gaDen()
+                            + "\nKhởi hành: " + veRow.khoiHanh()
+                            + "\nTrạng thái: " + ve.getTrangThai();
                     JOptionPane.showMessageDialog(QuanLyVeModule.this,
-                            info, "Chi ti\u1EBFt v\u00E9", JOptionPane.INFORMATION_MESSAGE);
+                            info, "Chi tiết vé", JOptionPane.INFORMATION_MESSAGE);
                 }
             });
 
@@ -1015,21 +1015,21 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                     Ve ve = veRow.ve();
                     if (ve.getTrangThai() == TrangThaiVe.DA_HUY) {
                         JOptionPane.showMessageDialog(QuanLyVeModule.this,
-                                "V\u00E9 n\u00E0y \u0111\u00E3 \u0111\u01B0\u1EE3c h\u1EE7y tr\u01B0\u1EDBc \u0111\u00F3.",
-                                "Th\u00F4ng b\u00E1o", JOptionPane.WARNING_MESSAGE);
+                                "Vé này đã được hủy trước đó.",
+                                "Thông báo", JOptionPane.WARNING_MESSAGE);
                         return;
                     }
                     int confirm = JOptionPane.showConfirmDialog(QuanLyVeModule.this,
-                            "X\u00E1c nh\u1EADn ho\u00E0n v\u00E9 " + ve.getMaVe() + "?",
-                            "Ho\u00E0n v\u00E9", JOptionPane.YES_NO_OPTION);
+                            "Xác nhận hoàn vé " + ve.getMaVe() + "?",
+                            "Hoàn vé", JOptionPane.YES_NO_OPTION);
                     if (confirm == JOptionPane.YES_OPTION) {
                         String lyDo = JOptionPane.showInputDialog(QuanLyVeModule.this,
-                                "L\u00FD do h\u1EE7y v\u00E9:", "L\u00FD do", JOptionPane.QUESTION_MESSAGE);
+                                "Lý do hủy vé:", "Lý do", JOptionPane.QUESTION_MESSAGE);
                         if (lyDo != null) {
                             boolean ok = new DAO_Ve().huyVe(ve.getMaVe(), lyDo);
                             if (ok) {
                                 JOptionPane.showMessageDialog(QuanLyVeModule.this,
-                                        "Ho\u00E0n v\u00E9 th\u00E0nh c\u00F4ng!", "Th\u00E0nh c\u00F4ng", JOptionPane.INFORMATION_MESSAGE);
+                                        "Hoàn vé thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
                                 loadData();
                             }
                         }
@@ -1061,10 +1061,15 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     }
 
     // =================================================================
+    public void applySearchVe(String text) {
+        txtSearchVe.setText(text);
+        searchByMaVe();
+    }
+
     //  AppModule interface
     // =================================================================
 
-    @Override public String getTitle() { return "Qu\u1EA3n l\u00FD v\u00E9"; }
+    @Override public String getTitle() { return "Quản lý vé"; }
     @Override public JPanel getView() { return this; }
     @Override public void setOnResult(Consumer<Object> cb) {
         this.callback = cb;

@@ -67,7 +67,7 @@ public class LoginModule extends JPanel implements AppModule {
         JPanel logoRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         logoRow.setOpaque(false);
         logoRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel lblBrand = new JLabel("Quầy V\u00E9 Azure Rail");
+        JLabel lblBrand = new JLabel("Quầy Vé Azure Rail");
         lblBrand.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblBrand.setForeground(ON_PRIMARY);
         logoRow.add(lblBrand);
@@ -76,7 +76,7 @@ public class LoginModule extends JPanel implements AppModule {
         heroPanel.add(Box.createVerticalStrut(40));
 
         JLabel lblHeroTitle = new JLabel("<html><div style='width:280px'>"
-                + "H\u1EC7 th\u1ED1ng Qu\u1EA3n l\u00FD B\u00E1n v\u00E9 t\u1EA1i Qu\u1EA7y</div></html>");
+                + "Hệ thống Quản lý Bán vé tại Quầy</div></html>");
         lblHeroTitle.setFont(new Font("Segoe UI", Font.BOLD, 36));
         lblHeroTitle.setForeground(ON_PRIMARY);
         lblHeroTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -84,9 +84,9 @@ public class LoginModule extends JPanel implements AppModule {
         heroPanel.add(Box.createVerticalStrut(20));
 
         JLabel lblHeroDesc = new JLabel("<html><div style='width:300px'>"
-                + "C\u00F4ng c\u1EE5 nghi\u1EC7p v\u1EE5 chuy\u00EAn nghi\u1EC7p cho vi\u1EC7c xu\u1EA5t v\u00E9, "
-                + "qu\u1EA3n l\u00FD ca l\u00E0m vi\u1EC7c v\u00E0 \u0111i\u1EC1u ph\u1ED1i h\u00E0nh tr\u00ECnh "
-                + "t\u1EA1i nh\u00E0 ga.</div></html>");
+                + "Công cụ nghiệp vụ chuyên nghiệp cho việc xuất vé, "
+                + "quản lý ca làm việc và điều phối hành trình "
+                + "tại nhà ga.</div></html>");
         lblHeroDesc.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         lblHeroDesc.setForeground(new Color(0xF3, 0xF7, 0xFF));
         lblHeroDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -94,7 +94,7 @@ public class LoginModule extends JPanel implements AppModule {
 
         heroPanel.add(Box.createVerticalGlue());
 
-        JLabel lblFooterHero = new JLabel("H\u01A1n 500 nh\u00E2n vi\u00EAn \u0111ang l\u00E0m vi\u1EC7c");
+        JLabel lblFooterHero = new JLabel("Hơn 500 nhân viên đang làm việc");
         lblFooterHero.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblFooterHero.setForeground(new Color(0xF3, 0xF7, 0xFF, 200));
         lblFooterHero.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -110,45 +110,45 @@ public class LoginModule extends JPanel implements AppModule {
         formPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
         formPanel.setPreferredSize(new Dimension(360, 480));
 
-        JLabel lblTitle = new JLabel("\u0110\u0103ng nh\u1EADp");
+        JLabel lblTitle = new JLabel("Đăng nhập");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 28));
         lblTitle.setForeground(ON_SURFACE);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         formPanel.add(lblTitle);
         formPanel.add(Box.createVerticalStrut(6));
 
-        JLabel lblSubtitle = new JLabel("Ch\u00E0o m\u1EEBng quay tr\u1EDF l\u1EA1i. Vui l\u00F2ng nh\u1EADp th\u00F4ng tin \u0111\u1EC3 truy c\u1EADp.");
+        JLabel lblSubtitle = new JLabel("Chào mừng quay trở lại. Vui lòng nhập thông tin để truy cập.");
         lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblSubtitle.setForeground(ON_SURFACE_VAR);
         lblSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         formPanel.add(lblSubtitle);
         formPanel.add(Box.createVerticalStrut(30));
 
-        JLabel lblUser = new JLabel("M\u00E3 nh\u00E2n vi\u00EAn");
+        JLabel lblUser = new JLabel("Mã nhân viên");
         lblUser.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblUser.setForeground(ON_SURFACE_VAR);
         lblUser.setAlignmentX(Component.LEFT_ALIGNMENT);
         formPanel.add(lblUser);
         formPanel.add(Box.createVerticalStrut(6));
 
-        txtUsername = createStyledTextField("V\u00ED d\u1EE5: NV-0001");
+        txtUsername = createStyledTextField("Ví dụ: NV-0001");
         txtUsername.setAlignmentX(Component.LEFT_ALIGNMENT);
         formPanel.add(txtUsername);
         formPanel.add(Box.createVerticalStrut(18));
 
-        JLabel lblPass = new JLabel("M\u1EADt kh\u1EA9u");
+        JLabel lblPass = new JLabel("Mật khẩu");
         lblPass.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblPass.setForeground(ON_SURFACE_VAR);
         lblPass.setAlignmentX(Component.LEFT_ALIGNMENT);
         formPanel.add(lblPass);
         formPanel.add(Box.createVerticalStrut(6));
 
-        txtPassword = createStyledPasswordField("\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022");
+        txtPassword = createStyledPasswordField("••••••••••");
         txtPassword.setAlignmentX(Component.LEFT_ALIGNMENT);
         formPanel.add(txtPassword);
         formPanel.add(Box.createVerticalStrut(8));
 
-        chkShowPassword = new JCheckBox("Hi\u1EC7n m\u1EADt kh\u1EA9u");
+        chkShowPassword = new JCheckBox("Hiện mật khẩu");
         chkShowPassword.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         chkShowPassword.setForeground(ON_SURFACE_VAR);
         chkShowPassword.setBackground(Color.WHITE);
@@ -157,7 +157,7 @@ public class LoginModule extends JPanel implements AppModule {
             if (chkShowPassword.isSelected()) {
                 txtPassword.setEchoChar((char) 0);
             } else {
-                txtPassword.setEchoChar('\u2022');
+                txtPassword.setEchoChar('•');
             }
         });
         formPanel.add(chkShowPassword);
@@ -170,7 +170,7 @@ public class LoginModule extends JPanel implements AppModule {
         formPanel.add(lblError);
         formPanel.add(Box.createVerticalStrut(12));
 
-        btnSubmit = new JButton("\u0110\u0103ng nh\u1EADp") {
+        btnSubmit = new JButton("Đăng nhập") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -201,7 +201,7 @@ public class LoginModule extends JPanel implements AppModule {
         formPanel.add(btnSubmit);
         formPanel.add(Box.createVerticalStrut(10));
 
-        JButton btnExit = new JButton("Tho\u00E1t") {
+        JButton btnExit = new JButton("Thoát") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -232,7 +232,7 @@ public class LoginModule extends JPanel implements AppModule {
         formPanel.add(btnExit);
 
         formPanel.add(Box.createVerticalGlue());
-        JLabel lblFooter = new JLabel("\u00A9 2024 The Fluid Terminal Corporate");
+        JLabel lblFooter = new JLabel("© 2024 The Fluid Terminal Corporate");
         lblFooter.setFont(new Font("Segoe UI", Font.PLAIN, 10));
         lblFooter.setForeground(OUTLINE);
         lblFooter.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -306,7 +306,7 @@ public class LoginModule extends JPanel implements AppModule {
         field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         field.setForeground(ON_SURFACE);
         field.setBackground(SURFACE_HIGH);
-        field.setEchoChar('\u2022');
+        field.setEchoChar('•');
         field.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(SURFACE_HIGH, 1),
                 BorderFactory.createEmptyBorder(12, 14, 12, 14)
@@ -322,18 +322,18 @@ public class LoginModule extends JPanel implements AppModule {
         String password = new String(txtPassword.getPassword());
 
         if (maNV.isEmpty()) {
-            lblError.setText("Vui l\u00F2ng nh\u1EADp m\u00E3 nh\u00E2n vi\u00EAn.");
+            lblError.setText("Vui lòng nhập mã nhân viên.");
             txtUsername.requestFocusInWindow();
             return;
         }
         if (password.isEmpty()) {
-            lblError.setText("Vui l\u00F2ng nh\u1EADp m\u1EADt kh\u1EA9u.");
+            lblError.setText("Vui lòng nhập mật khẩu.");
             txtPassword.requestFocusInWindow();
             return;
         }
 
         btnSubmit.setEnabled(false);
-        btnSubmit.setText("\u0110ang x\u00E1c th\u1EF1c...");
+        btnSubmit.setText("Đang xác thực...");
 
         SwingWorker<NhanVien, Void> worker = new SwingWorker<>() {
             @Override
@@ -352,25 +352,25 @@ public class LoginModule extends JPanel implements AppModule {
             @Override
             protected void done() {
                 btnSubmit.setEnabled(true);
-                btnSubmit.setText("\u0110\u0103ng nh\u1EADp");
+                btnSubmit.setText("Đăng nhập");
                 try {
                     NhanVien nv = get();
                     if (nv != null) {
                         if (callback != null) callback.accept(nv);
                     } else {
-                        lblError.setText("Sai m\u00E3 nh\u00E2n vi\u00EAn ho\u1EB7c m\u1EADt kh\u1EA9u. Vui l\u00F2ng th\u1EED l\u1EA1i.");
+                        lblError.setText("Sai mã nhân viên hoặc mật khẩu. Vui lòng thử lại.");
                         txtPassword.setText("");
                         txtPassword.requestFocusInWindow();
                     }
                 } catch (Exception ex) {
-                    lblError.setText("L\u1ED7i k\u1EBFt n\u1ED1i database. Vui l\u00F2ng th\u1EED l\u1EA1i.");
+                    lblError.setText("Lỗi kết nối database. Vui lòng thử lại.");
                 }
             }
         };
         worker.execute();
     }
 
-    @Override public String getTitle() { return "\u0110\u0103ng nh\u1EADp | Qu\u1EA7y V\u00E9 Azure Rail"; }
+    @Override public String getTitle() { return "Đăng nhập | Quầy Vé Azure Rail"; }
     @Override public JPanel getView()  { return this; }
     @Override public void setOnResult(Consumer<Object> cb) { this.callback = cb; }
     @Override public void reset() {
@@ -378,8 +378,8 @@ public class LoginModule extends JPanel implements AppModule {
         txtPassword.setText("");
         lblError.setText(" ");
         chkShowPassword.setSelected(false);
-        txtPassword.setEchoChar('\u2022');
+        txtPassword.setEchoChar('•');
         btnSubmit.setEnabled(true);
-        btnSubmit.setText("\u0110\u0103ng nh\u1EADp");
+        btnSubmit.setText("Đăng nhập");
     }
 }

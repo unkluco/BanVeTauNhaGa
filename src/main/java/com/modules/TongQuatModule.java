@@ -121,8 +121,14 @@ public class TongQuatModule extends JPanel implements AppModule {
             new EmptyBorder(8, 14, 8, 14)
         ));
 
-        JLabel icon = new JLabel("\uD83D\uDD0D");
-        icon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
+        JLabel icon = new JLabel();
+        try {
+            java.net.URL iconUrl = getClass().getResource("/icons/bieuTuongTraCuu.png");
+            if (iconUrl != null) {
+                Image img = new ImageIcon(iconUrl).getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
+                icon.setIcon(new ImageIcon(img));
+            }
+        } catch (Exception ignored) {}
 
         txtSearch = new JTextField();
         txtSearch.setBorder(BorderFactory.createEmptyBorder());
@@ -130,7 +136,7 @@ public class TongQuatModule extends JPanel implements AppModule {
         txtSearch.setBackground(CARD_BG);
         txtSearch.setForeground(TEXT_MAIN);
         txtSearch.putClientProperty("JTextField.placeholderText",
-            "T\u00ECm ki\u1EBFm nh\u00E2n vi\u00EAn, kh\u00E1ch h\u00E0ng, v\u00E9, h\u00F3a \u0111\u01A1n, ga, \u0111o\u00E0n t\u00E0u...");
+            "Tìm kiếm nhân viên, khách hàng, vé, hóa đơn, ga, đoàn tàu...");
 
         searchCard.add(icon,      BorderLayout.WEST);
         searchCard.add(txtSearch, BorderLayout.CENTER);
@@ -205,20 +211,19 @@ public class TongQuatModule extends JPanel implements AppModule {
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
 
-        card.add(makeSectionLabel("TRA C\u1EACU V\u00C9 NHANH"), BorderLayout.NORTH);
+        card.add(makeSectionLabel("TRA CỨU VÉ NHANH"), BorderLayout.NORTH);
 
         JPanel fields = new JPanel(new GridLayout(1, 5, 10, 0));
         fields.setBackground(CARD_BG);
 
-        JTextField txtGaDi  = makeInput("T\u1EEB \u0111\u00E2u?");
-        JTextField txtGaDen = makeInput("\u0110i\u1EC3m \u0111\u1EBFn");
+        JTextField txtGaDi  = makeInput("Từ đâu?");
+        JTextField txtGaDen = makeInput("Điểm đến");
         JTextField txtNgay  = makeInput("YYYY-MM-DD");
         JComboBox<String> cbo = new JComboBox<>(new String[]{
-            "H\u1EA1ng Ph\u1ED5 th\u00F4ng", "H\u1EA1ng Th\u01B0\u01A1ng nh\u00E2n",
-            "H\u1EA1ng Nh\u1EA5t", "Nh\u00F3m (5+)"
+            "Tất cả", "Ghế cứng", "Ghế mềm", "Giường nằm"
         });
         styleCombo(cbo);
-        JButton btn = makePrimaryBtn("T\u00ECm v\u00E9");
+        JButton btn = makePrimaryBtn("Tìm vé");
 
         btn.addActionListener(e -> {
             String gaDi  = txtGaDi.getText().trim();
@@ -226,18 +231,22 @@ public class TongQuatModule extends JPanel implements AppModule {
             String query = (gaDi + " " + gaDen).trim();
             if (query.isEmpty()) {
                 JOptionPane.showMessageDialog(this,
-                    "Vui l\u00F2ng nh\u1EADp ga \u0111i ho\u1EB7c ga \u0111\u1EBFn.",
-                    "Th\u00F4ng b\u00E1o", JOptionPane.INFORMATION_MESSAGE);
+                    "Vui lòng nhập ga đi hoặc ga đến.",
+                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            txtSearch.setText(query);
-            doSearch(query);
+            if (callback != null) {
+                callback.accept(new String[]{"QL_LICH_CHAY", "Quản lý lịch chạy", query});
+            } else {
+                txtSearch.setText(query);
+                doSearch(query);
+            }
         });
 
-        fields.add(wrapFieldGroup("GA \u0110I",     txtGaDi));
-        fields.add(wrapFieldGroup("GA \u0110\u1EAEN", txtGaDen));
-        fields.add(wrapFieldGroup("NG\u00C0Y \u0110I",   txtNgay));
-        fields.add(wrapFieldGroup("LO\u1EA0I GH\u1EBE", cbo));
+        fields.add(wrapFieldGroup("GA ĐI",    txtGaDi));
+        fields.add(wrapFieldGroup("GA ĐẾN",   txtGaDen));
+        fields.add(wrapFieldGroup("NGÀY ĐI",  txtNgay));
+        fields.add(wrapFieldGroup("LOẠI GHẾ", cbo));
         fields.add(wrapBtnGroup(btn));
 
         card.add(fields, BorderLayout.CENTER);
@@ -252,30 +261,38 @@ public class TongQuatModule extends JPanel implements AppModule {
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
 
-        card.add(makeSectionLabel("TRA C\u1EACU L\u1ECACH TR\u00CCNH NHANH"), BorderLayout.NORTH);
+        card.add(makeSectionLabel("TRA CỨU HÓA ĐƠN & VÉ NHANH"), BorderLayout.NORTH);
 
         JPanel row = new JPanel(new GridLayout(1, 2, 16, 0));
         row.setBackground(CARD_BG);
 
         JTextField txtHD = makeInput("VD: HD-001");
-        JButton btnHD = makeSecBtn("T\u00CCM");
+        JButton btnHD = makeSecBtn("TÌM");
         btnHD.addActionListener(e -> {
             String ma = txtHD.getText().trim();
             if (ma.isEmpty()) return;
-            txtSearch.setText(ma);
-            doSearch(ma);
+            if (callback != null) {
+                callback.accept(new String[]{"QL_HOA_DON", "Quản lý hóa đơn", ma});
+            } else {
+                txtSearch.setText(ma);
+                doSearch(ma);
+            }
         });
-        row.add(wrapSearchGroup("NH\u1EAAP M\u00C3 H\u00D3A \u0110\u01A0N", txtHD, btnHD));
+        row.add(wrapSearchGroup("NHẬP MÃ HÓA ĐƠN", txtHD, btnHD));
 
         JTextField txtVe = makeInput("VD: VE-001");
-        JButton btnVe = makeSecBtn("T\u00CCM");
+        JButton btnVe = makeSecBtn("TÌM");
         btnVe.addActionListener(e -> {
             String ma = txtVe.getText().trim();
             if (ma.isEmpty()) return;
-            txtSearch.setText(ma);
-            doSearch(ma);
+            if (callback != null) {
+                callback.accept(new String[]{"QL_VE_HOA_DON", "Quản lý vé", ma});
+            } else {
+                txtSearch.setText(ma);
+                doSearch(ma);
+            }
         });
-        row.add(wrapSearchGroup("NH\u1EAAP M\u00C3 V\u00C9", txtVe, btnVe));
+        row.add(wrapSearchGroup("NHẬP MÃ VÉ", txtVe, btnVe));
 
         card.add(row, BorderLayout.CENTER);
         return card;
@@ -329,10 +346,10 @@ public class TongQuatModule extends JPanel implements AppModule {
         lblVeBan     = new JLabel("--");
         lblHoaDon    = new JLabel("--");
 
-        row.add(kpiCard("Nh\u00E2n vi\u00EAn",                    lblNhanVien,  PRIMARY));
-        row.add(kpiCard("Kh\u00E1ch h\u00E0ng",                   lblKhachHang, GREEN));
-        row.add(kpiCard("V\u00E9 \u0111\u00E3 b\u00E1n",          lblVeBan,     ORANGE));
-        row.add(kpiCard("H\u00F3a \u0111\u01A1n h\u00F4m nay",    lblHoaDon,    PURPLE));
+        row.add(kpiCard("Nhân viên",                    lblNhanVien,  PRIMARY));
+        row.add(kpiCard("Khách hàng",                   lblKhachHang, GREEN));
+        row.add(kpiCard("Vé đã bán",          lblVeBan,     ORANGE));
+        row.add(kpiCard("Hóa đơn hôm nay",    lblHoaDon,    PURPLE));
         return row;
     }
 
@@ -379,21 +396,21 @@ public class TongQuatModule extends JPanel implements AppModule {
             new MatteBorder(0, 0, 1, 0, SURF_CONT),
             new EmptyBorder(14, 20, 14, 20)
         ));
-        JLabel title = new JLabel("GIAO D\u1ECACH G\u1EA6N \u0110\u00C2Y");
+        JLabel title = new JLabel("GIAO DỊCH GẦN ĐÂY");
         title.setFont(new Font("Segoe UI", Font.BOLD, 13));
         title.setForeground(TEXT_MAIN);
-        JButton btnExport = makeLinkBtn("Xu\u1EA5t nh\u1EADt k\u00FD ng\u00E0y");
+        JButton btnExport = makeLinkBtn("Xuất nhật ký ngày");
         hdr.add(title,     BorderLayout.WEST);
         hdr.add(btnExport, BorderLayout.EAST);
         card.add(hdr, BorderLayout.NORTH);
 
         // Table
         String[] cols = {
-            "M\u00C3 H\u00D3A \u0110\u01A0N",
-            "KH\u00C1CH H\u00C0NG",
-            "NG\u00C0Y L\u1EAAP",
-            "S\u1ED0 V\u00C9",
-            "T\u1ED4NG TI\u1EC0N"
+            "MÃ HÓA ĐƠN",
+            "KHÁCH HÀNG",
+            "NGÀY LẬP",
+            "SỐ VÉ",
+            "TỔNG TIỀN"
         };
         recentTableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -492,7 +509,7 @@ public class TongQuatModule extends JPanel implements AppModule {
         lblClock.setForeground(PRIMARY);
         lblClock.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel syncLbl = new JLabel("\u25CF  Th\u1EDDi gian h\u1EC7 th\u1ED1ng \u0111\u1ED3ng b\u1ED9");
+        JLabel syncLbl = new JLabel("●  Thời gian hệ thống đồng bộ");
         syncLbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
         syncLbl.setForeground(new Color(0x22C55E));
         syncLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -526,10 +543,10 @@ public class TongQuatModule extends JPanel implements AppModule {
         // Header
         JPanel hdr = new JPanel(new BorderLayout());
         hdr.setBackground(CARD_BG);
-        JLabel title = new JLabel("B\u1EA2NG KH\u1EDFI H\u00C0NH");
+        JLabel title = new JLabel("BẢNG KHởI HÀNH");
         title.setFont(new Font("Segoe UI", Font.BOLD, 13));
         title.setForeground(TEXT_MAIN);
-        JLabel liveLbl = new JLabel("\u25CF Live");
+        JLabel liveLbl = new JLabel("● Live");
         liveLbl.setFont(new Font("Segoe UI", Font.BOLD, 9));
         liveLbl.setForeground(new Color(0x22C55E));
         hdr.add(title,   BorderLayout.WEST);
@@ -541,7 +558,7 @@ public class TongQuatModule extends JPanel implements AppModule {
         departurePanel.setLayout(new BoxLayout(departurePanel, BoxLayout.Y_AXIS));
         departurePanel.setBackground(CARD_BG);
 
-        JLabel loading = new JLabel("\u0110ang t\u1EA3i l\u1ECBch tr\u00ECnh...");
+        JLabel loading = new JLabel("Đang tải lịch trình...");
         loading.setForeground(TEXT_SUB);
         loading.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         loading.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -549,7 +566,7 @@ public class TongQuatModule extends JPanel implements AppModule {
         card.add(departurePanel, BorderLayout.CENTER);
 
         // View all button
-        JButton btnAll = new JButton("XEM TO\u00C0N B\u1ED8 L\u1ECACH TR\u00CCNH");
+        JButton btnAll = new JButton("XEM TOÀN BỘ LỊCH TRÌNH");
         btnAll.setFont(new Font("Segoe UI", Font.BOLD, 11));
         btnAll.setForeground(TEXT_SUB);
         btnAll.setBackground(CARD_BG);
@@ -566,8 +583,8 @@ public class TongQuatModule extends JPanel implements AppModule {
 
     // ── BUTTON PANEL ──────────────────────────────────────────────────────────
     private JPanel buildBtnPanel() {
-        btnSubmit = new JButton("X\u00E1c nh\u1EADn");
-        btnCancel = new JButton("H\u1EE7y");
+        btnSubmit = new JButton("Xác nhận");
+        btnCancel = new JButton("Hủy");
         btnSubmit.addActionListener(e -> { if (callback != null) callback.accept("ok"); });
         btnCancel.addActionListener(e -> { if (callback != null) callback.accept(null); });
         btnPanel = new JPanel();
@@ -582,8 +599,8 @@ public class TongQuatModule extends JPanel implements AppModule {
         DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm:ss");
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         String[] days = {
-            "Ch\u1EE7 Nh\u1EADt", "Th\u1EE9 Hai", "Th\u1EE9 Ba",
-            "Th\u1EE9 T\u01B0",   "Th\u1EE9 N\u0103m", "Th\u1EE9 S\u00E1u", "Th\u1EE9 B\u1EA3y"
+            "Chủ Nhật", "Thứ Hai", "Thứ Ba",
+            "Thứ Tư",   "Thứ Năm", "Thứ Sáu", "Thứ Bảy"
         };
         clockTimer = new Timer(1000, e -> {
             LocalDateTime now = LocalDateTime.now();
@@ -608,7 +625,7 @@ public class TongQuatModule extends JPanel implements AppModule {
                     searchModel.clear();
                     if (list.isEmpty())
                         searchModel.addElement(new SearchResult(
-                            "INFO", "Kh\u00F4ng t\u00ECm th\u1EA5y k\u1EBFt qu\u1EA3", "", ""));
+                            "INFO", "Không tìm thấy kết quả", "", ""));
                     else
                         list.forEach(searchModel::addElement);
                     showPopup();
@@ -627,7 +644,7 @@ public class TongQuatModule extends JPanel implements AppModule {
             "SELECT TOP 4 maNV, hoTen, vaiTro, soDienThoai " +
             "FROM NhanVien WHERE maNV LIKE ? OR hoTen LIKE ? OR soDienThoai LIKE ?",
             rs -> new SearchResult("NV", rs.getString("maNV"), rs.getString("hoTen"),
-                rs.getString("vaiTro") + "  \u00B7  " + rs.getString("soDienThoai")),
+                rs.getString("vaiTro") + "  ·  " + rs.getString("soDienThoai")),
             p, p, p);
 
         search(con, out,
@@ -641,15 +658,15 @@ public class TongQuatModule extends JPanel implements AppModule {
             "SELECT TOP 4 maHoaDon, maNV, CONVERT(varchar,ngayLap,120) AS nd " +
             "FROM HoaDon WHERE maHoaDon LIKE ?",
             rs -> new SearchResult("HD", rs.getString("maHoaDon"),
-                "H\u00F3a \u0111\u01A1n " + rs.getString("maHoaDon"),
-                "NV: " + rs.getString("maNV") + "  \u00B7  " + clip(rs.getString("nd"), 10)),
+                "Hóa đơn " + rs.getString("maHoaDon"),
+                "NV: " + rs.getString("maNV") + "  ·  " + clip(rs.getString("nd"), 10)),
             p);
 
         search(con, out,
             "SELECT TOP 4 maVe, trangThai FROM Ve WHERE maVe LIKE ?",
             rs -> new SearchResult("VE", rs.getString("maVe"),
-                "V\u00E9 " + rs.getString("maVe"),
-                "Tr\u1EA1ng th\u00E1i: " + rs.getString("trangThai")),
+                "Vé " + rs.getString("maVe"),
+                "Trạng thái: " + rs.getString("trangThai")),
             p);
 
         search(con, out,
@@ -663,7 +680,7 @@ public class TongQuatModule extends JPanel implements AppModule {
             "FROM DoanTau WHERE maDoanTau LIKE ? OR tenDoanTau LIKE ?",
             rs -> new SearchResult("DT", rs.getString("maDoanTau"),
                 rs.getString("tenDoanTau"),
-                "M\u00E3: " + rs.getString("maDoanTau")),
+                "Mã: " + rs.getString("maDoanTau")),
             p, p);
 
         search(con, out,
@@ -671,7 +688,7 @@ public class TongQuatModule extends JPanel implements AppModule {
             "FROM KhuyenMai WHERE maKhuyenMai LIKE ? OR tenKhuyenMai LIKE ?",
             rs -> new SearchResult("KM", rs.getString("maKhuyenMai"),
                 rs.getString("tenKhuyenMai"),
-                rs.getBoolean("trangThai") ? "Ho\u1EA1t \u0111\u1ED9ng" : "D\u1EEBng"),
+                rs.getBoolean("trangThai") ? "Hoạt động" : "Dừng"),
             p, p);
 
         return out;
@@ -901,14 +918,14 @@ public class TongQuatModule extends JPanel implements AppModule {
                     NumberFormat nf = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
                     while (rs.next()) {
                         String tenKH = rs.getString("tenKH");
-                        if (tenKH == null) tenKH = "Kh\u00E1ch v\u00E3ng lai";
+                        if (tenKH == null) tenKH = "Khách vãng lai";
                         java.math.BigDecimal tong = rs.getBigDecimal("tong");
                         rows.add(new Object[]{
                             rs.getString("maHoaDon"),
                             tenKH,
                             clip(rs.getString("nd"), 16),
-                            rs.getInt("soVe") + " v\u00E9",
-                            (tong != null ? nf.format(tong) : "0") + " \u20AB"
+                            rs.getInt("soVe") + " vé",
+                            (tong != null ? nf.format(tong) : "0") + " ₫"
                         });
                     }
                 } catch (SQLException e) {
@@ -965,7 +982,7 @@ public class TongQuatModule extends JPanel implements AppModule {
                     List<String[]> results = get();
                     departurePanel.removeAll();
                     if (results.isEmpty()) {
-                        JLabel empty = new JLabel("Kh\u00F4ng c\u00F3 l\u1ECBch tr\u00ECnh n\u00E0o.");
+                        JLabel empty = new JLabel("Không có lịch trình nào.");
                         empty.setForeground(TEXT_SUB);
                         empty.setFont(new Font("Segoe UI", Font.ITALIC, 12));
                         empty.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -1015,11 +1032,11 @@ public class TongQuatModule extends JPanel implements AppModule {
         center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
         center.setBackground(SURF_CONT);
 
-        JLabel routeLbl = new JLabel(gaDi + " \u2192 " + gaDen);
+        JLabel routeLbl = new JLabel(gaDi + " → " + gaDen);
         routeLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
         routeLbl.setForeground(TEXT_MAIN);
 
-        JLabel infoLbl = new JLabel("T\u00E0u: " + code);
+        JLabel infoLbl = new JLabel("Tàu: " + code);
         infoLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         infoLbl.setForeground(TEXT_SUB);
 
@@ -1037,7 +1054,7 @@ public class TongQuatModule extends JPanel implements AppModule {
         timeLbl.setForeground(TEXT_MAIN);
         timeLbl.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
-        JLabel statusLbl = new JLabel("S\u1EAFp kh\u1EF9i h\u00E0nh", SwingConstants.RIGHT);
+        JLabel statusLbl = new JLabel("Sắp khỹi hành", SwingConstants.RIGHT);
         statusLbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
         statusLbl.setForeground(GREEN);
         statusLbl.setAlignmentX(Component.RIGHT_ALIGNMENT);
@@ -1170,13 +1187,13 @@ public class TongQuatModule extends JPanel implements AppModule {
         private static final Map<String, Color>  COLORS = new LinkedHashMap<>();
         private static final Map<String, String> LABELS = new LinkedHashMap<>();
         static {
-            COLORS.put("NV", new Color(0x005D90)); LABELS.put("NV", "Nh\u00E2n vi\u00EAn");
-            COLORS.put("KH", new Color(0x16A34A)); LABELS.put("KH", "Kh\u00E1ch h\u00E0ng");
-            COLORS.put("HD", new Color(0x7C3AED)); LABELS.put("HD", "H\u00F3a \u0111\u01A1n");
-            COLORS.put("VE", new Color(0xEA580C)); LABELS.put("VE", "V\u00E9");
+            COLORS.put("NV", new Color(0x005D90)); LABELS.put("NV", "Nhân viên");
+            COLORS.put("KH", new Color(0x16A34A)); LABELS.put("KH", "Khách hàng");
+            COLORS.put("HD", new Color(0x7C3AED)); LABELS.put("HD", "Hóa đơn");
+            COLORS.put("VE", new Color(0xEA580C)); LABELS.put("VE", "Vé");
             COLORS.put("GA", new Color(0x0891B2)); LABELS.put("GA", "Ga");
-            COLORS.put("DT", new Color(0xB45309)); LABELS.put("DT", "\u0110o\u00E0n t\u00E0u");
-            COLORS.put("KM", new Color(0xDB2777)); LABELS.put("KM", "Khuy\u1EBFn m\u00E3i");
+            COLORS.put("DT", new Color(0xB45309)); LABELS.put("DT", "Đoàn tàu");
+            COLORS.put("KM", new Color(0xDB2777)); LABELS.put("KM", "Khuyến mãi");
         }
 
         @Override
@@ -1232,7 +1249,7 @@ public class TongQuatModule extends JPanel implements AppModule {
     }
 
     // ── AppModule ─────────────────────────────────────────────────────────────
-    @Override public String getTitle() { return "T\u1ED5ng quan"; }
+    @Override public String getTitle() { return "Tổng quan"; }
     @Override public JPanel getView()  { return this; }
 
     @Override public void setOnResult(Consumer<Object> cb) {

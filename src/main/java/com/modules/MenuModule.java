@@ -62,7 +62,7 @@ public class MenuModule extends JPanel implements AppModule {
         lblBrand.setForeground(PRIMARY);
         lblBrand.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblSub = new JLabel("H\u1EC7 th\u1ED1ng Qu\u1EA3n l\u00FD");
+        JLabel lblSub = new JLabel("Hệ thống Quản lý");
         lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         lblSub.setForeground(TEXT_MUTED);
         lblSub.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -78,30 +78,42 @@ public class MenuModule extends JPanel implements AppModule {
         nav.setBorder(new EmptyBorder(0, 12, 0, 12));
 
         // Primary action button
-        JPanel btnDatVe = createPrimaryButton("\u0110\u1EB7t v\u00E9 m\u1EDBi");
+        JPanel btnDatVe = createPrimaryButton("Đặt vé mới");
         btnDatVe.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 setActive(null);
-                showPlaceholder("\u0110\u1EB7t v\u00E9 m\u1EDBi",
-                        "Ch\u1EE9c n\u0103ng \u0111\u1EB7t v\u00E9 m\u1EDBi s\u1EBD \u0111\u01B0\u1EE3c tri\u1EC3n khai t\u1EA1i \u0111\u00E2y.");
+                lblPageTitle.setText("Đặt vé mới");
+                BanVeModule banVeModule = new BanVeModule(currentUser);
+                banVeModule.setOnResult(null);
+                contentPanel.removeAll();
+                contentPanel.add(banVeModule.getView(), BorderLayout.CENTER);
+                contentPanel.revalidate();
+                contentPanel.repaint();
             }
         });
         nav.add(btnDatVe);
         nav.add(Box.createVerticalStrut(16));
 
-        // Menu items (only Vietnamese labels)
-        addMenuItem(nav, "T\u1ED5ng quan",                                              "TONG_QUAN");
-        addMenuItem(nav, "Th\u1ED1ng k\u00EA",                                           "THONG_KE");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD gi\u00E1",                                  "QL_GIA");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD khuy\u1EBFn m\u00E3i",                      "QL_KHUYEN_MAI");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD v\u00E9",                                    "QL_VE_HOA_DON");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD h\u00F3a \u0111\u01A1n",                    "QL_HOA_DON");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD \u0111o\u00E0n t\u00E0u",                   "QL_DOAN_TAU");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD Toa v\u00E0 \u0110\u1EA7u m\u00E1y",        "QL_TOA");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD tuy\u1EBFn",                                "QL_TUYEN");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD l\u1ECBch ch\u1EA1y",                       "QL_LICH_CHAY");
-        addMenuItem(nav, "Qu\u1EA3n l\u00FD nh\u00E2n vi\u00EAn",                       "QL_NHAN_VIEN");
+        // Menu items — grouped by domain
+        addMenuGroup(nav, "Tổng quan");
+        addMenuItem(nav, "Tổng quan",                                              "TONG_QUAN");
+        addMenuItem(nav, "Thống kê",                                           "THONG_KE");
+
+        addMenuGroup(nav, "Nghiệp vụ");
+        addMenuItem(nav, "Quản lý giá",                                  "QL_GIA");
+        addMenuItem(nav, "Quản lý khuyến mãi",                      "QL_KHUYEN_MAI");
+        addMenuItem(nav, "Quản lý vé",                                    "QL_VE_HOA_DON");
+        addMenuItem(nav, "Quản lý hóa đơn",                    "QL_HOA_DON");
+
+        addMenuGroup(nav, "Dữ liệu tàu");
+        addMenuItem(nav, "Quản lý đoàn tàu",                   "QL_DOAN_TAU");
+        addMenuItem(nav, "Quản lý Toa và Đầu máy",        "QL_TOA");
+        addMenuItem(nav, "Quản lý tuyến",                                "QL_TUYEN");
+        addMenuItem(nav, "Quản lý lịch chạy",                       "QL_LICH_CHAY");
+
+        addMenuGroup(nav, "Hệ thống");
+        addMenuItem(nav, "Quản lý nhân viên",                       "QL_NHAN_VIEN");
 
         applyRoleRestrictions();
 
@@ -113,7 +125,7 @@ public class MenuModule extends JPanel implements AppModule {
         sidebarFooter.setBackground(SIDEBAR_BG);
         sidebarFooter.setBorder(new EmptyBorder(12, 12, 16, 12));
 
-        NavItem btnThongTinCaNhan = createNavItem("Th\u00F4ng tin c\u00E1 nh\u00E2n");
+        NavItem btnThongTinCaNhan = createNavItem("Thông tin cá nhân");
         btnThongTinCaNhan.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -123,11 +135,11 @@ public class MenuModule extends JPanel implements AppModule {
         sidebarFooter.add(btnThongTinCaNhan);
         sidebarFooter.add(Box.createVerticalStrut(2));
 
-        NavItem btnCaiDat = createNavItem("C\u00E0i \u0111\u1EB7t");
+        NavItem btnCaiDat = createNavItem("Cài đặt");
         sidebarFooter.add(btnCaiDat);
         sidebarFooter.add(Box.createVerticalStrut(2));
 
-        NavItem btnDangXuat = createNavItem("\u0110\u0103ng xu\u1EA5t");
+        NavItem btnDangXuat = createNavItem("Đăng xuất");
         btnDangXuat.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -165,7 +177,7 @@ public class MenuModule extends JPanel implements AppModule {
                 new EmptyBorder(0, 32, 0, 32)
         ));
 
-        lblPageTitle = new JLabel("Qu\u1EA3n l\u00FD B\u00E1n v\u00E9");
+        lblPageTitle = new JLabel("Quản lý Bán vé");
         lblPageTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblPageTitle.setForeground(PRIMARY);
 
@@ -227,9 +239,14 @@ public class MenuModule extends JPanel implements AppModule {
         contentPanel = new JPanel(new BorderLayout());
         contentPanel.setBackground(SURFACE);
 
-        showPlaceholder("T\u1ED5ng quan",
-                "Ch\u00E0o m\u1EEBng " + currentUser.getHoTen()
-                        + "! H\u00E3y ch\u1ECDn ch\u1EE9c n\u0103ng t\u1EEB menu b\u00EAn tr\u00E1i.");
+        // Load Tổng quan thật ngay khi đăng nhập — không dùng placeholder
+        handleMenuAction("TONG_QUAN", "Tổng quan");
+        for (NavItem item : menuItems) {
+            if ("TONG_QUAN".equals(item.getName())) {
+                setActive(item);
+                break;
+            }
+        }
 
         // ============ MAIN (header + content) ============
         JPanel mainArea = new JPanel(new BorderLayout());
@@ -247,6 +264,8 @@ public class MenuModule extends JPanel implements AppModule {
     private static class NavItem extends JPanel {
         private Color bgColor = null;    // null = transparent
         private boolean rightBorder = false;
+        private boolean locked = false;
+        JLabel lockLabel = null;
 
         NavItem() {
             super(new BorderLayout());
@@ -265,19 +284,27 @@ public class MenuModule extends JPanel implements AppModule {
             repaint();
         }
 
+        void setLocked() {
+            this.locked = true;
+            repaint();
+        }
+
         @Override
         protected void paintComponent(Graphics g) {
-            if (bgColor != null) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            if (locked) {
+                g2.setColor(new Color(0xF2, 0xF1, 0xF0));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+            } else if (bgColor != null) {
                 g2.setColor(bgColor);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 if (rightBorder) {
                     g2.setColor(PRIMARY);
                     g2.fillRoundRect(getWidth() - 3, 4, 3, getHeight() - 8, 3, 3);
                 }
-                g2.dispose();
             }
+            g2.dispose();
             super.paintComponent(g);
         }
     }
@@ -304,6 +331,35 @@ public class MenuModule extends JPanel implements AppModule {
         nav.add(Box.createVerticalStrut(2));
     }
 
+    private void addMenuGroup(JPanel nav, String label) {
+        nav.add(Box.createVerticalStrut(10));
+
+        JPanel header = new JPanel(new BorderLayout(6, 0));
+        header.setOpaque(false);
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
+        header.setBorder(new EmptyBorder(0, 16, 0, 16));
+
+        JLabel lbl = new JLabel(label.toUpperCase());
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        lbl.setForeground(TEXT_MUTED);
+        header.add(lbl, BorderLayout.WEST);
+
+        JPanel line = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(SIDEBAR_BORDER);
+                g2.fillRect(0, getHeight() / 2, getWidth(), 1);
+                g2.dispose();
+            }
+        };
+        line.setOpaque(false);
+        header.add(line, BorderLayout.CENTER);
+
+        nav.add(header);
+        nav.add(Box.createVerticalStrut(4));
+    }
+
     private NavItem createNavItem(String label) {
         NavItem panel = new NavItem();
         panel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -315,6 +371,20 @@ public class MenuModule extends JPanel implements AppModule {
         lblText.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblText.setForeground(TEXT_MUTED);
         panel.add(lblText, BorderLayout.CENTER);
+
+        // Lock icon (hidden until disabled) — dùng icon từ resources
+        JLabel lockIcon = new JLabel();
+        try {
+            java.net.URL url = getClass().getResource("/icons/bieuTuongTuChoi.png");
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage().getScaledInstance(12, 12, Image.SCALE_SMOOTH);
+                lockIcon.setIcon(new ImageIcon(img));
+            }
+        } catch (Exception ignored) {}
+        lockIcon.setVisible(false);
+        lockIcon.setBorder(new EmptyBorder(0, 2, 0, 6));
+        panel.add(lockIcon, BorderLayout.EAST);
+        panel.lockLabel = lockIcon;
 
         // Hover effect
         panel.addMouseListener(new MouseAdapter() {
@@ -415,13 +485,19 @@ public class MenuModule extends JPanel implements AppModule {
             if (actionKey.equals(item.getName())) {
                 item.setEnabled(false);
                 item.setCursor(Cursor.getDefaultCursor());
+                item.setLocked();
                 for (Component c : item.getComponents()) {
                     c.setEnabled(false);
-                    if (c instanceof JLabel lbl) {
+                    if (c instanceof JLabel lbl && lbl != item.lockLabel) {
                         lbl.setForeground(TEXT_DISABLED);
+                        lbl.setFont(lbl.getFont().deriveFont(Font.ITALIC));
                     }
                 }
-                item.setToolTipText("B\u1EA1n kh\u00F4ng c\u00F3 quy\u1EC1n truy c\u1EADp ch\u1EE9c n\u0103ng n\u00E0y");
+                if (item.lockLabel != null) {
+                    item.lockLabel.setForeground(TEXT_DISABLED);
+                    item.lockLabel.setVisible(true);
+                }
+                item.setToolTipText("Bạn không có quyền truy cập chức năng này");
                 break;
             }
         }
@@ -437,7 +513,11 @@ public class MenuModule extends JPanel implements AppModule {
         switch (actionKey) {
             case "TONG_QUAN" -> {
                 TongQuatModule tqModule = new TongQuatModule();
-                tqModule.setOnResult(null);
+                tqModule.setOnResult(result -> {
+                    if (result instanceof String[] nav && nav.length == 3) {
+                        navigateWithSearch(nav[0], nav[1], nav[2]);
+                    }
+                });
                 contentPanel.removeAll();
                 contentPanel.add(tqModule.getView(), BorderLayout.CENTER);
                 contentPanel.revalidate();
@@ -452,9 +532,9 @@ public class MenuModule extends JPanel implements AppModule {
                     contentPanel.revalidate();
                     contentPanel.repaint();
                 } catch (Exception ex) {
-                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF ThongKeModule:");
+                    System.err.println("[ERROR] Không thể mở ThongKeModule:");
                     ex.printStackTrace();
-                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Th\u1ED1ng k\u00EA: " + ex.getMessage());
+                    showPlaceholder("Lỗi", "Không thể tải module Thống kê: " + ex.getMessage());
                 }
             }
             case "QL_NHAN_VIEN" -> {
@@ -482,9 +562,9 @@ public class MenuModule extends JPanel implements AppModule {
                     contentPanel.revalidate();
                     contentPanel.repaint();
                 } catch (Exception ex) {
-                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyKhuyenMaiModule:");
+                    System.err.println("[ERROR] Không thể mở QuanLyKhuyenMaiModule:");
                     ex.printStackTrace();
-                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD khuy\u1EBFn m\u00E3i: " + ex.getMessage());
+                    showPlaceholder("Lỗi", "Không thể tải module Quản lý khuyến mãi: " + ex.getMessage());
                 }
             }
             case "QL_VE_HOA_DON" -> {
@@ -510,9 +590,9 @@ public class MenuModule extends JPanel implements AppModule {
                     contentPanel.revalidate();
                     contentPanel.repaint();
                 } catch (Exception ex) {
-                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyHoaDonModule:");
+                    System.err.println("[ERROR] Không thể mở QuanLyHoaDonModule:");
                     ex.printStackTrace();
-                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD h\u00F3a \u0111\u01A1n: " + ex.getMessage());
+                    showPlaceholder("Lỗi", "Không thể tải module Quản lý hóa đơn: " + ex.getMessage());
                 }
             }
             case "QL_TUYEN" -> {
@@ -524,9 +604,9 @@ public class MenuModule extends JPanel implements AppModule {
                     contentPanel.revalidate();
                     contentPanel.repaint();
                 } catch (Exception ex) {
-                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyTuyenModule:");
+                    System.err.println("[ERROR] Không thể mở QuanLyTuyenModule:");
                     ex.printStackTrace();
-                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD tuy\u1EBFn: " + ex.getMessage());
+                    showPlaceholder("Lỗi", "Không thể tải module Quản lý tuyến: " + ex.getMessage());
                 }
             }
             case "QL_DOAN_TAU" -> {
@@ -538,9 +618,9 @@ public class MenuModule extends JPanel implements AppModule {
                     contentPanel.revalidate();
                     contentPanel.repaint();
                 } catch (Exception ex) {
-                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyDoanTauModule:");
+                    System.err.println("[ERROR] Không thể mở QuanLyDoanTauModule:");
                     ex.printStackTrace();
-                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD \u0111o\u00E0n t\u00E0u: " + ex.getMessage());
+                    showPlaceholder("Lỗi", "Không thể tải module Quản lý đoàn tàu: " + ex.getMessage());
                 }
             }
             case "QL_TOA" -> {
@@ -552,9 +632,9 @@ public class MenuModule extends JPanel implements AppModule {
                     contentPanel.revalidate();
                     contentPanel.repaint();
                 } catch (Exception ex) {
-                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyToaModule:");
+                    System.err.println("[ERROR] Không thể mở QuanLyToaModule:");
                     ex.printStackTrace();
-                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD toa: " + ex.getMessage());
+                    showPlaceholder("Lỗi", "Không thể tải module Quản lý toa: " + ex.getMessage());
                 }
             }
             case "QL_LICH_CHAY" -> {
@@ -566,20 +646,64 @@ public class MenuModule extends JPanel implements AppModule {
                     contentPanel.revalidate();
                     contentPanel.repaint();
                 } catch (Exception ex) {
-                    System.err.println("[ERROR] Kh\u00F4ng th\u1EC3 m\u1EDF QuanLyLichChayModule:");
+                    System.err.println("[ERROR] Không thể mở QuanLyLichChayModule:");
                     ex.printStackTrace();
-                    showPlaceholder("L\u1ED7i", "Kh\u00F4ng th\u1EC3 t\u1EA3i module Qu\u1EA3n l\u00FD l\u1ECBch ch\u1EA1y: " + ex.getMessage());
+                    showPlaceholder("Lỗi", "Không thể tải module Quản lý lịch chạy: " + ex.getMessage());
                 }
             }
             default -> showPlaceholder(label,
-                    "Ch\u1EE9c n\u0103ng \"" + label
-                            + "\" s\u1EBD \u0111\u01B0\u1EE3c tri\u1EC3n khai t\u1EA1i \u0111\u00E2y.");
+                    "Chức năng \"" + label
+                            + "\" sẽ được triển khai tại đây.");
+        }
+    }
+
+    private void navigateWithSearch(String actionKey, String label, String searchText) {
+        lblPageTitle.setText(label);
+        for (NavItem item : menuItems) {
+            if (actionKey.equals(item.getName()) && item.isEnabled()) {
+                setActive(item);
+                break;
+            }
+        }
+        try {
+            switch (actionKey) {
+                case "QL_LICH_CHAY" -> {
+                    QuanLyLichChayModule module = new QuanLyLichChayModule();
+                    module.setOnResult(null);
+                    contentPanel.removeAll();
+                    contentPanel.add(module.getView(), BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                    if (!searchText.isEmpty()) module.applySearch(searchText);
+                }
+                case "QL_HOA_DON" -> {
+                    QuanLyHoaDonModule module = new QuanLyHoaDonModule();
+                    module.setOnResult(null);
+                    contentPanel.removeAll();
+                    contentPanel.add(module.getView(), BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                    if (!searchText.isEmpty()) module.applySearch(searchText);
+                }
+                case "QL_VE_HOA_DON" -> {
+                    QuanLyVeModule module = new QuanLyVeModule();
+                    module.setOnResult(null);
+                    contentPanel.removeAll();
+                    contentPanel.add(module.getView(), BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                    if (!searchText.isEmpty()) module.applySearchVe(searchText);
+                }
+                default -> handleMenuAction(actionKey, label);
+            }
+        } catch (Exception ex) {
+            showPlaceholder("Lỗi", "Không thể mở module: " + ex.getMessage());
         }
     }
 
     private void openThongTinCaNhan() {
         setActive(null);
-        lblPageTitle.setText("Th\u00F4ng tin c\u00E1 nh\u00E2n");
+        lblPageTitle.setText("Thông tin cá nhân");
         ThongTinCaNhanModule module = new ThongTinCaNhanModule(currentUser);
         module.setOnResult(null);
         contentPanel.removeAll();
@@ -618,13 +742,13 @@ public class MenuModule extends JPanel implements AppModule {
     //  AppModule interface
     // =====================================================================
 
-    @Override public String getTitle() { return "Menu Ch\u00EDnh"; }
+    @Override public String getTitle() { return "Menu Chính"; }
     @Override public JPanel getView()  { return this; }
     @Override public void setOnResult(Consumer<Object> cb) { this.callback = cb; }
     @Override public void reset() {
         setActive(null);
-        showPlaceholder("T\u1ED5ng quan",
-                "Ch\u00E0o m\u1EEBng " + currentUser.getHoTen()
-                        + "! H\u00E3y ch\u1ECDn ch\u1EE9c n\u0103ng t\u1EEB menu b\u00EAn tr\u00E1i.");
+        showPlaceholder("Tổng quan",
+                "Chào mừng " + currentUser.getHoTen()
+                        + "! Hãy chọn chức năng từ menu bên trái.");
     }
 }

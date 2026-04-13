@@ -6,16 +6,17 @@ import com.entity.Ga;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalDate;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.function.Consumer;
 
 /**
  * Bước 1 — Nhập thông tin hành trình.
- * Input: ga đi, ga đến, ngày đi.
- * Output: Object[]{ Ga gaDi, Ga gaDen, LocalDate ngayDi }
+ * Output: Object[]{ Ga gaDi, Ga gaDen, LocalDate ngayDiFrom, LocalDate ngayDiTo }
+ *   Chế độ "Ngày cụ thể" → ngayDiFrom == ngayDiTo
+ *   Chế độ "Khoảng ngày"  → ngayDiFrom &lt; ngayDiTo
  */
 public class BanVeStep1Module extends JPanel implements AppModule {
 
@@ -24,9 +25,24 @@ public class BanVeStep1Module extends JPanel implements AppModule {
     private final DAO_Ga daoGa = new DAO_Ga();
 
     // UI fields
-    private JComboBox<Ga> cbGaDi;
-    private JComboBox<Ga> cbGaDen;
-    private JSpinner      spNgayDi;
+    private JComboBox<Ga>   cbGaDi;
+    private JComboBox<Ga>   cbGaDen;
+    private DatePickerField dpExact;        // chế độ ngày cụ thể
+    private DatePickerField dpRangeFrom;   // chế độ khoảng — từ
+    private DatePickerField dpRangeTo;     // chế độ khoảng — đến
+
+    // Date mode
+    private static final int MODE_EXACT = 0;
+    private static final int MODE_RANGE = 1;
+    private int dateMode = MODE_EXACT;
+
+    // Mode cards (for border styling)
+    private JPanel cardExact;
+    private JPanel cardRange;
+    private JPanel dotExact;   // radio dot indicators
+    private JPanel dotRange;
+    private JLabel lblModeExact; // header labels (for dynamic font/color update)
+    private JLabel lblModeRange;
 
     // Design tokens
     private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
@@ -37,7 +53,6 @@ public class BanVeStep1Module extends JPanel implements AppModule {
     private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
     private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
 
-    // AppModule buttons
     private JButton btnSubmit;
     private JButton btnCancel;
     private JPanel  btnPanel;
@@ -59,11 +74,10 @@ public class BanVeStep1Module extends JPanel implements AppModule {
     private void buildUI() {
         List<Ga> gaList = daoGa.getAll();
 
-        // ---- Main content ----
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBackground(CARD_BG);
-        content.setBorder(new EmptyBorder(48, 80, 32, 80));
+        content.setBorder(new EmptyBorder(40, 80, 28, 80));
 
         // Title
         JLabel title = new JLabel("Thông tin hành trình");
@@ -77,11 +91,11 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         sub.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         content.add(title);
-        content.add(Box.createVerticalStrut(6));
+        content.add(Box.createVerticalStrut(4));
         content.add(sub);
-        content.add(Box.createVerticalStrut(36));
+        content.add(Box.createVerticalStrut(30));
 
-        // ---- Form ----
+        // Form
         JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(CARD_BG);
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -103,17 +117,12 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         styleCombo(cbGaDen);
         if (gaList.size() > 1) cbGaDen.setSelectedIndex(1);
 
-        // Ngày đi — default = today
-        SpinnerDateModel dateModel = new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_MONTH);
-        spNgayDi = new JSpinner(dateModel);
-        JSpinner.DateEditor dateEditor = new JSpinner.DateEditor(spNgayDi, "dd/MM/yyyy");
-        spNgayDi.setEditor(dateEditor);
-        spNgayDi.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        spNgayDi.setPreferredSize(new Dimension(320, 42));
+        // Ngày đi — two-mode selector
+        JPanel dateModePanel = buildDateModePanel();
 
-        addRow(form, gbc, 0, "Ga đi:", cbGaDi);
-        addRow(form, gbc, 1, "Ga đến:", cbGaDen);
-        addRow(form, gbc, 2, "Ngày đi:", spNgayDi);
+        addFormRow(form, gbc, 0, "Ga đi:",    cbGaDi);
+        addFormRow(form, gbc, 1, "Ga đến:",   cbGaDen);
+        addFormRowWide(form, gbc, 2, "Ngày đi:", dateModePanel);
 
         content.add(form);
 
@@ -122,7 +131,7 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         scroll.getViewport().setBackground(CARD_BG);
         add(scroll, BorderLayout.CENTER);
 
-        // ---- Buttons ----
+        // Buttons
         btnSubmit = new JButton("Tìm chuyến →");
         styleBtn(btnSubmit, true);
         btnSubmit.addActionListener(e -> execute());
@@ -140,15 +149,188 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         add(btnPanel, BorderLayout.SOUTH);
     }
 
-    private void addRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
+    // =========================================================================
+    //  DATE MODE PANEL
+    // =========================================================================
+
+    private JPanel buildDateModePanel() {
+        JPanel outer = new JPanel(new GridLayout(1, 2, 10, 0));
+        outer.setBackground(CARD_BG);
+        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
+
+        // ── Card: Ngày cụ thể ──────────────────────────────────────────────
+        cardExact = new JPanel(new BorderLayout(0, 8));
+        cardExact.setBackground(CARD_BG);
+        cardExact.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(PRIMARY, 2),
+            new EmptyBorder(10, 14, 10, 14)
+        ));
+        cardExact.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        cardExact.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { selectMode(MODE_EXACT); }
+        });
+
+        JPanel headerExact = buildModeHeader("Ngày cụ thể", MODE_EXACT);
+        addModeListener(headerExact, MODE_EXACT);
+        dpExact = new DatePickerField(LocalDate.now(), LocalDate.now());
+        dpExact.setPreferredSize(new Dimension(200, 38));
+
+        cardExact.add(headerExact, BorderLayout.NORTH);
+        cardExact.add(dpExact,     BorderLayout.CENTER);
+
+        // ── Card: Khoảng ngày ─────────────────────────────────────────────
+        cardRange = new JPanel(new BorderLayout(0, 8));
+        cardRange.setBackground(CARD_BG);
+        cardRange.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(OUTLINE, 1),
+            new EmptyBorder(10, 14, 10, 14)
+        ));
+        cardRange.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        cardRange.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { selectMode(MODE_RANGE); }
+        });
+
+        JPanel headerRange = buildModeHeader("Khoảng ngày", MODE_RANGE);
+        JPanel rangeInputs = buildRangeInputs();
+
+        // Thêm listener cho header + children vì Swing không bubble events lên parent
+        addModeListener(headerRange, MODE_RANGE);
+
+        cardRange.add(headerRange, BorderLayout.NORTH);
+        cardRange.add(rangeInputs, BorderLayout.CENTER);
+
+        outer.add(cardExact);
+        outer.add(cardRange);
+        return outer;
+    }
+
+    /** Thêm selectMode listener cho panel và tất cả child components */
+    private void addModeListener(JPanel header, int mode) {
+        MouseAdapter ma = new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { selectMode(mode); }
+        };
+        header.addMouseListener(ma);
+        header.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        for (Component c : header.getComponents()) {
+            c.addMouseListener(ma);
+            c.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+    }
+
+    private JPanel buildModeHeader(String title, int targetMode) {
+        JPanel hdr = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        hdr.setBackground(CARD_BG);
+        hdr.setOpaque(false);
+
+        // Radio dot — đọc dateMode động mỗi lần repaint
+        JPanel dot = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                boolean sel = (dateMode == targetMode);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(sel ? PRIMARY : OUTLINE);
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawOval(1, 1, getWidth()-3, getHeight()-3);
+                if (sel) {
+                    g2.setColor(PRIMARY);
+                    g2.fillOval(4, 4, getWidth()-9, getHeight()-9);
+                }
+                g2.dispose();
+            }
+        };
+        dot.setPreferredSize(new Dimension(16, 16));
+        dot.setOpaque(false);
+
+        if (targetMode == MODE_EXACT) dotExact = dot;
+        else dotRange = dot;
+
+        boolean initialSel = (dateMode == targetMode);
+        JLabel lbl = new JLabel(title);
+        lbl.setFont(new Font("Segoe UI", initialSel ? Font.BOLD : Font.PLAIN, 13));
+        lbl.setForeground(initialSel ? PRIMARY : ON_SURF_VAR);
+
+        if (targetMode == MODE_EXACT) lblModeExact = lbl;
+        else lblModeRange = lbl;
+
+        hdr.add(dot);
+        hdr.add(lbl);
+        return hdr;
+    }
+
+    private JPanel buildRangeInputs() {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        row.setBackground(CARD_BG);
+        row.setOpaque(false);
+
+        dpRangeFrom = new DatePickerField(LocalDate.now(), LocalDate.now());
+        dpRangeFrom.setPreferredSize(new Dimension(145, 38));
+
+        dpRangeTo = new DatePickerField(LocalDate.now().plusDays(7), LocalDate.now());
+        dpRangeTo.setPreferredSize(new Dimension(145, 38));
+
+        // Keep to-date >= from-date
+        dpRangeFrom.addPropertyChangeListener("value", e -> {
+            LocalDate from = dpRangeFrom.getValue();
+            LocalDate to   = dpRangeTo.getValue();
+            if (from != null && to != null && to.isBefore(from)) {
+                dpRangeTo.setValue(from);
+            }
+            dpRangeTo.setMinDate(from);
+        });
+
+        JLabel arrow = new JLabel("→");
+        arrow.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        arrow.setForeground(ON_SURF_VAR);
+
+        row.add(dpRangeFrom);
+        row.add(arrow);
+        row.add(dpRangeTo);
+        return row;
+    }
+
+    private void selectMode(int mode) {
+        this.dateMode = mode;
+        boolean exact = (mode == MODE_EXACT);
+
+        // Update card borders
+        cardExact.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(exact ? PRIMARY : OUTLINE, exact ? 2 : 1),
+            new EmptyBorder(10, 14, 10, 14)
+        ));
+        cardRange.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(!exact ? PRIMARY : OUTLINE, !exact ? 2 : 1),
+            new EmptyBorder(10, 14, 10, 14)
+        ));
+
+        // Repaint radio dots (chúng đọc dateMode động nên repaint là đủ)
+        if (dotExact != null) dotExact.repaint();
+        if (dotRange != null) dotRange.repaint();
+
+        // Update header labels
+        if (lblModeExact != null) {
+            lblModeExact.setFont(new Font("Segoe UI", exact ? Font.BOLD : Font.PLAIN, 13));
+            lblModeExact.setForeground(exact ? PRIMARY : ON_SURF_VAR);
+        }
+        if (lblModeRange != null) {
+            lblModeRange.setFont(new Font("Segoe UI", !exact ? Font.BOLD : Font.PLAIN, 13));
+            lblModeRange.setForeground(!exact ? PRIMARY : ON_SURF_VAR);
+        }
+    }
+
+    // =========================================================================
+    //  FORM HELPERS
+    // =========================================================================
+
+    private void addFormRow(JPanel form, GridBagConstraints gbc, int row,
+                            String label, JComponent field) {
         gbc.gridx   = 0; gbc.gridy  = row;
         gbc.weightx = 0; gbc.fill   = GridBagConstraints.NONE;
         gbc.insets  = new Insets(12, 0, 0, 24);
-
         JLabel lbl = new JLabel(label);
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lbl.setForeground(ON_SURFACE);
-        lbl.setPreferredSize(new Dimension(110, 28));
+        lbl.setPreferredSize(new Dimension(90, 28));
         form.add(lbl, gbc);
 
         gbc.gridx   = 1;
@@ -156,6 +338,27 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         gbc.fill    = GridBagConstraints.HORIZONTAL;
         form.add(field, gbc);
         gbc.fill = GridBagConstraints.NONE;
+    }
+
+    private void addFormRowWide(JPanel form, GridBagConstraints gbc, int row,
+                                String label, JComponent field) {
+        gbc.gridx   = 0; gbc.gridy  = row;
+        gbc.weightx = 0; gbc.fill   = GridBagConstraints.NONE;
+        gbc.insets  = new Insets(16, 0, 0, 24);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lbl.setForeground(ON_SURFACE);
+        lbl.setPreferredSize(new Dimension(90, 28));
+        lbl.setVerticalAlignment(SwingConstants.TOP);
+        form.add(lbl, gbc);
+
+        gbc.gridx   = 1;
+        gbc.weightx = 1;
+        gbc.fill    = GridBagConstraints.HORIZONTAL;
+        gbc.insets  = new Insets(16, 0, 0, 0);
+        form.add(field, gbc);
+        gbc.fill   = GridBagConstraints.NONE;
+        gbc.insets = new Insets(12, 0, 0, 24);
     }
 
     private void styleCombo(JComboBox<?> cb) {
@@ -197,17 +400,34 @@ public class BanVeStep1Module extends JPanel implements AppModule {
             return;
         }
 
-        Date     dateVal = (Date) spNgayDi.getValue();
-        LocalDate ngayDi = dateVal.toInstant()
-            .atZone(java.time.ZoneId.systemDefault())
-            .toLocalDate();
+        LocalDate from, to;
 
-        if (ngayDi.isBefore(LocalDate.now())) {
+        if (dateMode == MODE_EXACT) {
+            from = dpExact.getValue();
+            if (from == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày đi.");
+                return;
+            }
+            to = from;
+        } else {
+            from = dpRangeFrom.getValue();
+            to   = dpRangeTo.getValue();
+            if (from == null || to == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn khoảng ngày.");
+                return;
+            }
+            if (to.isBefore(from)) {
+                JOptionPane.showMessageDialog(this, "Ngày kết thúc phải sau ngày bắt đầu.");
+                return;
+            }
+        }
+
+        if (from.isBefore(LocalDate.now())) {
             JOptionPane.showMessageDialog(this, "Ngày đi phải từ hôm nay trở đi.");
             return;
         }
 
-        if (callback != null) callback.accept(new Object[]{ gaDi, gaDen, ngayDi });
+        if (callback != null) callback.accept(new Object[]{ gaDi, gaDen, from, to });
     }
 
     // =========================================================================
@@ -244,6 +464,9 @@ public class BanVeStep1Module extends JPanel implements AppModule {
     public void reset() {
         if (cbGaDi.getItemCount()  > 0) cbGaDi.setSelectedIndex(0);
         if (cbGaDen.getItemCount() > 1) cbGaDen.setSelectedIndex(1);
-        spNgayDi.setValue(new Date());
+        dpExact.setValue(LocalDate.now());
+        dpRangeFrom.setValue(LocalDate.now());
+        dpRangeTo.setValue(LocalDate.now().plusDays(7));
+        selectMode(MODE_EXACT);
     }
 }

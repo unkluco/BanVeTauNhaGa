@@ -30,7 +30,8 @@ public class BanVeStep2Module extends JPanel implements AppModule {
 
     // Input
     private final Ga        gaDi, gaDen;
-    private final LocalDate ngayDi;
+    private final LocalDate ngayDiFrom, ngayDiTo;
+    private final boolean   isRange;
 
     // DAOs
     private final DAO_Tuyen      daoTuyen = new DAO_Tuyen();
@@ -79,10 +80,12 @@ public class BanVeStep2Module extends JPanel implements AppModule {
     //  CONSTRUCTOR
     // =========================================================================
 
-    public BanVeStep2Module(Ga gaDi, Ga gaDen, LocalDate ngayDi) {
-        this.gaDi   = gaDi;
-        this.gaDen  = gaDen;
-        this.ngayDi = ngayDi;
+    public BanVeStep2Module(Ga gaDi, Ga gaDen, LocalDate ngayDiFrom, LocalDate ngayDiTo) {
+        this.gaDi       = gaDi;
+        this.gaDen      = gaDen;
+        this.ngayDiFrom = ngayDiFrom;
+        this.ngayDiTo   = ngayDiTo != null ? ngayDiTo : ngayDiFrom;
+        this.isRange    = !this.ngayDiFrom.equals(this.ngayDiTo);
         setLayout(new BorderLayout());
         setBackground(SURFACE);
         buildUI();
@@ -124,7 +127,11 @@ public class BanVeStep2Module extends JPanel implements AppModule {
         route.setFont(new Font("Segoe UI", Font.BOLD, 15));
         route.setForeground(PRIMARY);
 
-        JLabel date = new JLabel("Ngày: " + ngayDi.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        String dateText = isRange
+            ? "Từ " + ngayDiFrom.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+              + " đến " + ngayDiTo.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            : "Ngày: " + ngayDiFrom.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        JLabel date = new JLabel(dateText);
         date.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         date.setForeground(ON_SURF_VAR);
 
@@ -217,8 +224,8 @@ public class BanVeStep2Module extends JPanel implements AppModule {
         List<Tuyen> tuyens = daoTuyen.findByGaDiGaDen(gaDi.getMaGa(), gaDen.getMaGa());
         Gia  giaHH = daoGia.getGiaHienHanh();
 
-        LocalDateTime dayStart = ngayDi.atStartOfDay();
-        LocalDateTime dayEnd   = ngayDi.atTime(23, 59, 59);
+        LocalDateTime dayStart = ngayDiFrom.atStartOfDay();
+        LocalDateTime dayEnd   = ngayDiTo.atTime(23, 59, 59);
 
         for (Tuyen tuyen : tuyens) {
             List<Lich> lichs = daoLich.findByTuyenAndDate(tuyen.getMaTuyen(), dayStart, dayEnd);
@@ -231,7 +238,7 @@ public class BanVeStep2Module extends JPanel implements AppModule {
                         if (ctg != null) priceMap.put(loai, ctg.getGiaNiemYet());
                     }
                 }
-                rows.add(new LichRow(lich, priceMap));
+                if (!priceMap.isEmpty()) rows.add(new LichRow(lich, priceMap));
             }
         }
 

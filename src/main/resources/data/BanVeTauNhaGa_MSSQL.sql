@@ -56,7 +56,7 @@ CREATE TABLE Ga (
     maGa VARCHAR(20) PRIMARY KEY,
     tenGa NVARCHAR(100) NOT NULL,
     diaChi NVARCHAR(255) NOT NULL
-);
+);	
 
 -- 4. DauMay
 CREATE TABLE DauMay (

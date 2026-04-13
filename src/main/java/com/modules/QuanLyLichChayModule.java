@@ -7,7 +7,6 @@ import com.entity.DoanTau;
 import com.entity.Ga;
 import com.entity.Lich;
 import com.entity.Tuyen;
-import com.toedter.calendar.JDateChooser;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -51,8 +50,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     // --- Filter ---
     private SearchableComboBox<Ga> filterGaDi;
     private SearchableComboBox<Ga> filterGaDen;
-    private JDateChooser           dateFrom;
-    private JDateChooser           dateTo;
+    private DatePickerField         dateFrom;
+    private DatePickerField         dateTo;
 
     // --- UI ---
     private JTextField    txtSearch;
@@ -171,13 +170,13 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             JLabel lblIco = new JLabel(icoTitle);
             titleRow.add(lblIco);
         }
-        JLabel lblTitle = new JLabel("Qu\u1EA3n l\u00FD l\u1ECBch ch\u1EA1y");
+        JLabel lblTitle = new JLabel("Quản lý lịch chạy");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(ON_SURFACE);
         titleRow.add(lblTitle);
         titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDesc = new JLabel("Xem v\u00E0 qu\u1EA3n l\u00FD c\u00E1c l\u1ECBch ch\u1EA1y, \u0111o\u00E0n t\u00E0u v\u00E0 tuy\u1EBFn \u0111\u01B0\u1EDDng.");
+        JLabel lblDesc = new JLabel("Xem và quản lý các lịch chạy, đoàn tàu và tuyến đường.");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -198,9 +197,9 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         lblStatHomNay = new JLabel("0");
         lblStatTuyen  = new JLabel("0");
 
-        row.add(buildStatCard("T\u1ED4NG L\u1ECBCH CH\u1EA0Y", lblStatTong, PRIMARY, "bieuTuongLich.png"));
-        row.add(buildStatCard("L\u1ECBCH H\u00D4M NAY", lblStatHomNay, SUCCESS_FG, "bieuTuongThoiGian.png"));
-        row.add(buildStatCard("L\u01AF\u1EE3T \u0110O\u00C0N T\u00C0U", lblStatTuyen, WARN_FG, "bieuTuongTau.png"));
+        row.add(buildStatCard("TỔNG LịCH CHẠY", lblStatTong, PRIMARY, "bieuTuongLich.png"));
+        row.add(buildStatCard("LịCH HÔM NAY", lblStatHomNay, SUCCESS_FG, "bieuTuongThoiGian.png"));
+        row.add(buildStatCard("LƯợT ĐOÀN TÀU", lblStatTuyen, WARN_FG, "bieuTuongTau.png"));
         return row;
     }
 
@@ -266,7 +265,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         labelRow.setOpaque(false);
         ImageIcon icoSearch = loadScaledIcon("nutTimKiem.png", 14);
         if (icoSearch != null) labelRow.add(new JLabel(icoSearch));
-        JLabel lbl = new JLabel("T\u00CCM KI\u1EBEM L\u1ECBCH");
+        JLabel lbl = new JLabel("TÌM KIẾM LịCH");
         lbl.setFont(FONT_STAT_LBL);
         lbl.setForeground(ON_SURF_VAR);
         labelRow.add(lbl);
@@ -274,13 +273,13 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         JPanel fieldRow = new JPanel(new BorderLayout(8, 0));
         fieldRow.setOpaque(false);
 
-        txtSearch = createSearchField("Nh\u1EADp m\u00E3 l\u1ECBch, t\u00EAn tuy\u1EBFn, m\u00E3 \u0111o\u00E0n t\u00E0u...");
+        txtSearch = createSearchField("Nhập mã lịch, tên tuyến, mã đoàn tàu...");
         txtSearch.addActionListener(e -> doSearch());
 
         JButton btnSearch = createSearchButton();
         btnSearch.addActionListener(e -> doSearch());
 
-        JButton btnReset = new JButton("L\u00E0m m\u1EDBi");
+        JButton btnReset = new JButton("Làm mới");
         btnReset.setFont(FONT_BADGE);
         btnReset.setForeground(ON_SURF_VAR);
         btnReset.setBackground(CARD_BG);
@@ -331,7 +330,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         labelRow.setOpaque(false);
         ImageIcon icoFilter = loadScaledIcon("nutBoLoc.png", 13);
         if (icoFilter != null) labelRow.add(new JLabel(icoFilter));
-        JLabel lbl = new JLabel("B\u1ED8 L\u1ECDC");
+        JLabel lbl = new JLabel("BỘ LọC");
         lbl.setFont(FONT_STAT_LBL);
         lbl.setForeground(ON_SURF_VAR);
         labelRow.add(lbl);
@@ -348,44 +347,40 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         filterGaDi = new SearchableComboBox<>(
                 ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
                 (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
-        filterGaDi.setPlaceholder("T\u1EA5t c\u1EA3 ga \u0111i");
+        filterGaDi.setPlaceholder("Tất cả ga đi");
         filterGaDi.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         filterGaDi.setOnChanged(this::applyFilter);
         gbc.gridx = 0; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
-        fieldsRow.add(buildFilterGroupLich("GA \u0110I", filterGaDi), gbc);
+        fieldsRow.add(buildFilterGroupLich("GA ĐI", filterGaDi), gbc);
 
         // Ga đến
         filterGaDen = new SearchableComboBox<>(
                 ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
                 (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
-        filterGaDen.setPlaceholder("T\u1EA5t c\u1EA3 ga \u0111\u1EBFn");
+        filterGaDen.setPlaceholder("Tất cả ga đến");
         filterGaDen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         filterGaDen.setOnChanged(this::applyFilter);
         gbc.gridx = 1; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
-        fieldsRow.add(buildFilterGroupLich("GA \u0110\u1EBEN", filterGaDen), gbc);
+        fieldsRow.add(buildFilterGroupLich("GA ĐẾN", filterGaDen), gbc);
 
         // Từ ngày
-        dateFrom = new JDateChooser();
-        dateFrom.setDateFormatString("dd/MM/yyyy");
-        dateFrom.setFont(FONT_BODY);
+        dateFrom = new DatePickerField();
         dateFrom.setPreferredSize(new Dimension(0, 40));
         dateFrom.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        dateFrom.addPropertyChangeListener("date", e -> applyFilter());
+        dateFrom.addPropertyChangeListener("value", e -> applyFilter());
         gbc.gridx = 2; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
-        fieldsRow.add(buildFilterGroupLich("T\u1EEB NG\u00C0Y", dateFrom), gbc);
+        fieldsRow.add(buildFilterGroupLich("Từ NGÀY", dateFrom), gbc);
 
         // Đến ngày
-        dateTo = new JDateChooser();
-        dateTo.setDateFormatString("dd/MM/yyyy");
-        dateTo.setFont(FONT_BODY);
+        dateTo = new DatePickerField();
         dateTo.setPreferredSize(new Dimension(0, 40));
         dateTo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        dateTo.addPropertyChangeListener("date", e -> applyFilter());
+        dateTo.addPropertyChangeListener("value", e -> applyFilter());
         gbc.gridx = 3; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
-        fieldsRow.add(buildFilterGroupLich("\u0110\u1EBEN NG\u00C0Y", dateTo), gbc);
+        fieldsRow.add(buildFilterGroupLich("ĐẾN NGÀY", dateTo), gbc);
 
         // Bỏ lọc button
-        JButton btnClear = new JButton("B\u1ECF l\u1ECDc") {
+        JButton btnClear = new JButton("Bỏ lọc") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -405,8 +400,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         btnClear.addActionListener(e -> {
             if (filterGaDi  != null) filterGaDi.clearSelection();
             if (filterGaDen != null) filterGaDen.clearSelection();
-            if (dateFrom != null) dateFrom.setDate(null);
-            if (dateTo   != null) dateTo.setDate(null);
+            if (dateFrom != null) dateFrom.setValue(null);
+            if (dateTo   != null) dateTo.setValue(null);
             applyFilter();
         });
         // wrap so the button aligns at field level (below the label)
@@ -477,14 +472,14 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         left.setOpaque(false);
         ImageIcon icoList = loadScaledIcon("bieuTuongLich.png", 18);
         if (icoList != null) left.add(new JLabel(icoList));
-        JLabel lbl = new JLabel("Danh s\u00E1ch l\u1ECBch ch\u1EA1y");
+        JLabel lbl = new JLabel("Danh sách lịch chạy");
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lbl.setForeground(ON_SURFACE);
         left.add(lbl);
 
-        JButton btnThem = createPrimaryButton("\u2795  Th\u00EAm l\u1ECBch");
+        JButton btnThem = createPrimaryButton("+  Thêm lịch");
         ImageIcon icoThem = loadScaledIcon("nutThem.png", 15);
-        if (icoThem != null) { btnThem.setIcon(icoThem); btnThem.setText("  Th\u00EAm l\u1ECBch"); }
+        if (icoThem != null) { btnThem.setIcon(icoThem); btnThem.setText("  Thêm lịch"); }
         btnThem.addActionListener(e -> openDialog(null));
 
         bar.add(left, BorderLayout.WEST);
@@ -632,12 +627,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         String kw = txtSearch != null ? txtSearch.getText().trim().toLowerCase() : "";
         Ga selGaDi  = filterGaDi  != null ? filterGaDi.getSelectedItem()  : null;
         Ga selGaDen = filterGaDen != null ? filterGaDen.getSelectedItem() : null;
-        java.util.Date dFrom = dateFrom != null ? dateFrom.getDate() : null;
-        java.util.Date dTo   = dateTo   != null ? dateTo.getDate()   : null;
-        java.time.LocalDate ldFrom = dFrom != null
-                ? dFrom.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null;
-        java.time.LocalDate ldTo   = dTo   != null
-                ? dTo.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate()   : null;
+        java.time.LocalDate ldFrom = dateFrom != null ? dateFrom.getValue() : null;
+        java.time.LocalDate ldTo   = dateTo   != null ? dateTo.getValue()   : null;
 
         filteredData = new ArrayList<>();
         for (Lich l : allData) {
@@ -696,8 +687,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             tableModel.setData(filteredData.subList(start, end));
 
             lblPageInfo.setText(totalRecords == 0
-                    ? "Kh\u00F4ng t\u00ECm th\u1EA5y l\u1ECBch n\u00E0o"
-                    : "Hi\u1EC3n th\u1ECB " + (start + 1) + " \u2013 " + end + " / " + totalRecords + " l\u1ECBch");
+                    ? "Không tìm thấy lịch nào"
+                    : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " lịch");
 
             rebuildPagination(totalPages);
         } finally { isRefreshing = false; }
@@ -705,20 +696,20 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
 
     private void rebuildPagination(int totalPages) {
         paginationPanel.removeAll();
-        addNavBtn("\u276E", currentPage > 1, () -> { currentPage--; refreshTable(); });
+        addNavBtn("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
         for (int i = 1; i <= totalPages; i++) {
             if (totalPages > 7) {
                 if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
                     addPageBtn(i);
                 } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("\u2026");
+                    JLabel dots = new JLabel("…");
                     dots.setFont(FONT_SMALL); dots.setForeground(ON_SURF_VAR);
                     dots.setBorder(new EmptyBorder(0, 4, 0, 4));
                     paginationPanel.add(dots);
                 }
             } else { addPageBtn(i); }
         }
-        addNavBtn("\u276F", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
+        addNavBtn("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
         paginationPanel.revalidate(); paginationPanel.repaint();
     }
 
@@ -764,18 +755,18 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
 
     private void deleteLich(Lich lich) {
         int confirm = JOptionPane.showConfirmDialog(this,
-                "X\u00E1c nh\u1EADn x\u00F3a l\u1ECBch " + lich.getMaLich() + "?",
-                "X\u00F3a l\u1ECBch", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                "Xác nhận xóa lịch " + lich.getMaLich() + "?",
+                "Xóa lịch", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm != JOptionPane.YES_OPTION) return;
 
         Connection con = ConnectDB.getCon();
-        if (con == null) { JOptionPane.showMessageDialog(this, "L\u1ED7i k\u1EBFt n\u1ED1i.", "L\u1ED7i", JOptionPane.ERROR_MESSAGE); return; }
+        if (con == null) { JOptionPane.showMessageDialog(this, "Lỗi kết nối.", "Lỗi", JOptionPane.ERROR_MESSAGE); return; }
         try (PreparedStatement ps = con.prepareStatement("DELETE FROM Lich WHERE maLich = ?")) {
             ps.setString(1, lich.getMaLich());
             if (ps.executeUpdate() > 0) loadData();
-            else JOptionPane.showMessageDialog(this, "Kh\u00F4ng th\u1EC3 x\u00F3a l\u1ECBch n\u00E0y.", "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+            else JOptionPane.showMessageDialog(this, "Không thể xóa lịch này.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "L\u1ED7i: " + ex.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -787,14 +778,14 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         if (t == null) return "";
         String gaDi  = t.getGaDi()  != null ? t.getGaDi().getTenGa()  : t.getMaTuyen();
         String gaDen = t.getGaDen() != null ? t.getGaDen().getTenGa() : "";
-        return gaDi + (gaDen.isEmpty() ? "" : " \u2192 " + gaDen);
+        return gaDi + (gaDen.isEmpty() ? "" : " → " + gaDen);
     }
 
     private String formatDuration(String minutes) {
         try {
             int m = Integer.parseInt(minutes);
             int h = m / 60; int rem = m % 60;
-            return h > 0 ? h + " gi\u1EDD " + rem + " ph\u00FAt" : rem + " ph\u00FAt";
+            return h > 0 ? h + " giờ " + rem + " phút" : rem + " phút";
         } catch (Exception e) { return minutes; }
     }
 
@@ -846,8 +837,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             }
         };
         ImageIcon icoSearch = loadScaledIcon("nutTimKiem.png", 16);
-        if (icoSearch != null) { btn.setIcon(icoSearch); btn.setText("  T\u00ECm"); }
-        else btn.setText("T\u00ECm");
+        if (icoSearch != null) { btn.setIcon(icoSearch); btn.setText("  Tìm"); }
+        else btn.setText("Tìm");
         btn.setFont(FONT_BTN); btn.setForeground(Color.WHITE);
         btn.setContentAreaFilled(false); btn.setBorderPainted(false);
         btn.setFocusPainted(false); btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -878,8 +869,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
 
     private class LichTableModel extends AbstractTableModel {
         private final String[] COLS = {
-            "M\u00C3 L\u1ECBCH", "\u0110O\u00C0N T\u00C0U", "TUY\u1EBCN",
-            "TH\u1EDEI GIAN B\u1EEAT \u0110\u1EA6U", "TH\u1EDEI GIAN CH\u1EA0Y", "THAO T\u00C1C"
+            "MÃ LịCH", "ĐOÀN TÀU", "TUYẼN",
+            "THỞI GIAN BỪT ĐẦU", "THỞI GIAN CHẠY", "THAO TÁC"
         };
         private List<Lich> data = new ArrayList<>();
 
@@ -952,13 +943,13 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             lblSua.setHorizontalAlignment(SwingConstants.CENTER);
             lblSua.setPreferredSize(new Dimension(72, 28));
             if (iSua != null) lblSua.setIcon(iSua);
-            lblSua.setText(iSua != null ? "  S\u1EEDa" : "S\u1EEDa");
+            lblSua.setText(iSua != null ? "  Sửa" : "Sửa");
 
             lblXoa.setFont(FONT_BADGE); lblXoa.setForeground(ERROR_FG);
             lblXoa.setHorizontalAlignment(SwingConstants.CENTER);
             lblXoa.setPreferredSize(new Dimension(72, 28));
             if (iXoa != null) lblXoa.setIcon(iXoa);
-            lblXoa.setText(iXoa != null ? "  X\u00F3a" : "X\u00F3a");
+            lblXoa.setText(iXoa != null ? "  Xóa" : "Xóa");
 
             add(lblSua, g); add(lblXoa, g);
         }
@@ -996,8 +987,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             ImageIcon iSua = loadScaledIcon("nutSua.png", 14);
             ImageIcon iXoa = loadScaledIcon("nutXoa.png", 14);
 
-            styleActionBtn(btnSua, "S\u1EEDa", PRIMARY, PRIMARY_LIGHT, iSua);
-            styleActionBtn(btnXoa, "X\u00F3a", ERROR_FG, ERROR_BG, iXoa);
+            styleActionBtn(btnSua, "Sửa", PRIMARY, PRIMARY_LIGHT, iSua);
+            styleActionBtn(btnXoa, "Xóa", ERROR_FG, ERROR_BG, iXoa);
 
             panel.add(btnSua, g); panel.add(btnXoa, g);
 
@@ -1032,10 +1023,15 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     }
 
     // =====================================================================
+    public void applySearch(String text) {
+        txtSearch.setText(text);
+        applyFilter();
+    }
+
     //  AppModule
     // =====================================================================
 
-    @Override public String getTitle()  { return "Qu\u1EA3n l\u00FD l\u1ECBch ch\u1EA1y"; }
+    @Override public String getTitle()  { return "Quản lý lịch chạy"; }
     @Override public JPanel getView()   { return this; }
     @Override public void setOnResult(Consumer<Object> cb) { this.callback = cb; }
     @Override public void reset() { txtSearch.setText(""); loadData(); }

@@ -55,7 +55,7 @@ public class ThemGiaDialog extends JDialog {
     private Runnable onSaved;
 
     public ThemGiaDialog(Window owner, Runnable onSaved) {
-        super(owner, "Th\u00EAm k\u1EF3 gi\u00E1 m\u1EDBi", ModalityType.APPLICATION_MODAL);
+        super(owner, "Thêm kỳ giá mới", ModalityType.APPLICATION_MODAL);
         this.onSaved = onSaved;
         setUndecorated(true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -93,11 +93,11 @@ public class ThemGiaDialog extends JDialog {
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Th\u00EAm k\u1EF3 gi\u00E1 m\u1EDBi");
+        JLabel lblTitle = new JLabel("Thêm kỳ giá mới");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(PRIMARY);
 
-        JLabel lblDesc = new JLabel("Vui l\u00F2ng \u0111i\u1EC1n \u0111\u1EA7y \u0111\u1EE7 th\u00F4ng tin \u0111\u1EC3 t\u1EA1o k\u1EF3 gi\u00E1 m\u1EDBi.");
+        JLabel lblDesc = new JLabel("Vui lòng điền đầy đủ thông tin để tạo kỳ giá mới.");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
 
@@ -123,14 +123,14 @@ public class ThemGiaDialog extends JDialog {
 
         txtMaGia = createInputField("VD: MG0007");
         lblErrMaGia = createErrorLabel();
-        row1.add(buildFieldGroup("M\u00E3 gi\u00E1", txtMaGia, null, true, lblErrMaGia));
+        row1.add(buildFieldGroup("Mã giá", txtMaGia, null, true, lblErrMaGia));
 
-        cboTrangThai = new JComboBox<>(new String[]{"\u0110ang \u00E1p d\u1EE5ng", "Ng\u1EEBng \u00E1p d\u1EE5ng"});
+        cboTrangThai = new JComboBox<>(new String[]{"Đang áp dụng", "Ngừng áp dụng"});
         cboTrangThai.setFont(FONT_INPUT);
         cboTrangThai.setBackground(CARD_BG);
         cboTrangThai.setPreferredSize(new Dimension(0, 36));
         cboTrangThai.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        row1.add(buildFieldGroup("Tr\u1EA1ng th\u00E1i", cboTrangThai, null, false, null));
+        row1.add(buildFieldGroup("Trạng thái", cboTrangThai, null, false, null));
 
         form.add(row1);
         form.add(Box.createVerticalStrut(10));
@@ -140,9 +140,9 @@ public class ThemGiaDialog extends JDialog {
         row2.setOpaque(false);
         row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        txtMoTa = createInputField("VD: H\u00E0 N\u1ED9i - S\u00E0i G\u00F2n Economy");
+        txtMoTa = createInputField("VD: Hà Nội - Sài Gòn Economy");
         lblErrMoTa = createErrorLabel();
-        row2.add(buildFieldGroup("M\u00F4 t\u1EA3 / T\u00EAn k\u1EF3 gi\u00E1", txtMoTa, null, true, lblErrMoTa));
+        row2.add(buildFieldGroup("Mô tả / Tên kỳ giá", txtMoTa, null, true, lblErrMoTa));
 
         form.add(row2);
         form.add(Box.createVerticalStrut(10));
@@ -154,11 +154,11 @@ public class ThemGiaDialog extends JDialog {
 
         txtThoiGianBatDau = createInputField("dd/MM/yyyy");
         lblErrBatDau = createErrorLabel();
-        row3.add(buildFieldGroup("Th\u1EDDi gian \u00E1p d\u1EE5ng", txtThoiGianBatDau, "* \u0110\u1ECBnh d\u1EA1ng: dd/MM/yyyy", true, lblErrBatDau));
+        row3.add(buildFieldGroup("Thời gian áp dụng", txtThoiGianBatDau, "* Định dạng: dd/MM/yyyy", true, lblErrBatDau));
 
         txtThoiGianKetThuc = createInputField("dd/MM/yyyy");
         lblErrKetThuc = createErrorLabel();
-        row3.add(buildFieldGroup("Th\u1EDDi gian k\u1EBFt th\u00FAc", txtThoiGianKetThuc, "* \u0110\u1ECBnh d\u1EA1ng: dd/MM/yyyy", true, lblErrKetThuc));
+        row3.add(buildFieldGroup("Thời gian kết thúc", txtThoiGianKetThuc, "* Định dạng: dd/MM/yyyy", true, lblErrKetThuc));
 
         form.add(row3);
 
@@ -174,10 +174,10 @@ public class ThemGiaDialog extends JDialog {
                 new EmptyBorder(16, 28, 16, 28)
         ));
 
-        JButton btnCancel = createOutlineButton("H\u1EE7y b\u1ECF");
+        JButton btnCancel = createOutlineButton("Hủy bỏ");
         btnCancel.addActionListener(e -> dispose());
 
-        JButton btnSave = createPrimaryButton("L\u01B0u k\u1EF3 gi\u00E1");
+        JButton btnSave = createPrimaryButton("Lưu kỳ giá");
         btnSave.addActionListener(e -> doSave());
 
         footer.add(btnCancel);
@@ -190,25 +190,25 @@ public class ThemGiaDialog extends JDialog {
         clearAllErrors();
 
         String maGia = getFieldText(txtMaGia, "VD: MG0007");
-        String moTa = getFieldText(txtMoTa, "VD: H\u00E0 N\u1ED9i - S\u00E0i G\u00F2n Economy");
+        String moTa = getFieldText(txtMoTa, "VD: Hà Nội - Sài Gòn Economy");
         String batDauStr = getFieldText(txtThoiGianBatDau, "dd/MM/yyyy");
         String ketThucStr = getFieldText(txtThoiGianKetThuc, "dd/MM/yyyy");
 
         // Validation
         if (maGia.isEmpty()) {
-            showFieldError(txtMaGia, lblErrMaGia, "Vui l\u00F2ng nh\u1EADp m\u00E3 gi\u00E1");
+            showFieldError(txtMaGia, lblErrMaGia, "Vui lòng nhập mã giá");
             return;
         }
         if (moTa.isEmpty()) {
-            showFieldError(txtMoTa, lblErrMoTa, "Vui l\u00F2ng nh\u1EADp m\u00F4 t\u1EA3");
+            showFieldError(txtMoTa, lblErrMoTa, "Vui lòng nhập mô tả");
             return;
         }
         if (batDauStr.isEmpty()) {
-            showFieldError(txtThoiGianBatDau, lblErrBatDau, "Vui l\u00F2ng nh\u1EADp ng\u00E0y \u00E1p d\u1EE5ng");
+            showFieldError(txtThoiGianBatDau, lblErrBatDau, "Vui lòng nhập ngày áp dụng");
             return;
         }
         if (ketThucStr.isEmpty()) {
-            showFieldError(txtThoiGianKetThuc, lblErrKetThuc, "Vui l\u00F2ng nh\u1EADp ng\u00E0y k\u1EBFt th\u00FAc");
+            showFieldError(txtThoiGianKetThuc, lblErrKetThuc, "Vui lòng nhập ngày kết thúc");
             return;
         }
 
@@ -216,7 +216,7 @@ public class ThemGiaDialog extends JDialog {
         try {
             batDau = LocalDate.parse(batDauStr, DT_FMT);
         } catch (DateTimeParseException ex) {
-            showFieldError(txtThoiGianBatDau, lblErrBatDau, "Sai \u0111\u1ECBnh d\u1EA1ng (dd/MM/yyyy)");
+            showFieldError(txtThoiGianBatDau, lblErrBatDau, "Sai định dạng (dd/MM/yyyy)");
             return;
         }
 
@@ -224,12 +224,12 @@ public class ThemGiaDialog extends JDialog {
         try {
             ketThuc = LocalDate.parse(ketThucStr, DT_FMT);
         } catch (DateTimeParseException ex) {
-            showFieldError(txtThoiGianKetThuc, lblErrKetThuc, "Sai \u0111\u1ECBnh d\u1EA1ng (dd/MM/yyyy)");
+            showFieldError(txtThoiGianKetThuc, lblErrKetThuc, "Sai định dạng (dd/MM/yyyy)");
             return;
         }
 
         if (!ketThuc.isAfter(batDau)) {
-            showFieldError(txtThoiGianKetThuc, lblErrKetThuc, "Th\u1EDDi gian k\u1EBFt th\u00FAc ph\u1EA3i sau th\u1EDDi gian b\u1EAFt \u0111\u1EA7u");
+            showFieldError(txtThoiGianKetThuc, lblErrKetThuc, "Thời gian kết thúc phải sau thời gian bắt đầu");
             return;
         }
 
@@ -251,13 +251,13 @@ public class ThemGiaDialog extends JDialog {
                         dispose();
                     } else {
                         JOptionPane.showMessageDialog(ThemGiaDialog.this,
-                                "Kh\u00F4ng th\u1EC3 l\u01B0u! M\u00E3 gi\u00E1 c\u00F3 th\u1EC3 \u0111\u00E3 t\u1ED3n t\u1EA1i.",
-                                "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                                "Không thể lưu! Mã giá có thể đã tồn tại.",
+                                "Lỗi", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(ThemGiaDialog.this,
-                            "L\u1ED7i: " + ex.getMessage(),
-                            "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+                            "Lỗi: " + ex.getMessage(),
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();

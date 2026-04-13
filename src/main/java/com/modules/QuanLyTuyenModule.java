@@ -127,13 +127,13 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         titleRow.setOpaque(false);
         ImageIcon icoTitle = loadScaledIcon("bieuTuongTuyen.png", 28);
         if (icoTitle != null) titleRow.add(new JLabel(icoTitle));
-        JLabel lblTitle = new JLabel("Qu\u1EA3n l\u00FD Tuy\u1EBFn \u0111\u01B0\u1EDDng");
+        JLabel lblTitle = new JLabel("Quản lý Tuyến đường");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(PRIMARY);
         titleRow.add(lblTitle);
         titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDesc = new JLabel("C\u1EA5u h\u00ECnh v\u00E0 t\u1ED1i \u01B0u h\u00F3a c\u00E1c l\u1ED9 tr\u00ECnh v\u1EADn t\u1EA3i \u0111\u01B0\u1EDDng s\u1EAFt trong h\u1EC7 th\u1ED1ng.");
+        JLabel lblDesc = new JLabel("Cấu hình và tối ưu hóa các lộ trình vận tải đường sắt trong hệ thống.");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -161,7 +161,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         btnAdd.setPreferredSize(new Dimension(190, 42));
         btnAdd.addActionListener(e -> openAddDialog());
         ImageIcon icoAdd = loadScaledIcon("nutThem.png", 16);
-        if (icoAdd != null) { btnAdd.setIcon(icoAdd); btnAdd.setText("  Th\u00EAm Tuy\u1EBFn m\u1EDBi"); }
+        if (icoAdd != null) { btnAdd.setIcon(icoAdd); btnAdd.setText("  Thêm Tuyến mới"); }
 
         hdr.add(left,   BorderLayout.CENTER);
         hdr.add(btnAdd, BorderLayout.EAST);
@@ -198,11 +198,11 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         filterGaDi = new SearchableComboBox<>(
                 ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
                 (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
-        filterGaDi.setPlaceholder("T\u1EA5t c\u1EA3 c\u00E1c ga");
+        filterGaDi.setPlaceholder("Tất cả các ga");
         filterGaDi.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         filterGaDi.setOnChanged(this::applyFilter);
         gbc.gridx = 0; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 8);
-        bar.add(buildFilterGroup("Ga \u0111i", filterGaDi), gbc);
+        bar.add(buildFilterGroup("Ga đi", filterGaDi), gbc);
 
         // sync icon ⇄ — wrapped to align at field level
         JPanel syncWrap = new JPanel(new BorderLayout());
@@ -210,7 +210,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         JLabel syncSpacer = new JLabel(" ");
         syncSpacer.setFont(FONT_SMALL);
         syncWrap.add(syncSpacer, BorderLayout.NORTH);
-        JLabel syncLbl = new JLabel("\u21C4");
+        JLabel syncLbl = new JLabel("⇄");
         syncLbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
         syncLbl.setForeground(OUTLINE);
         syncLbl.setHorizontalAlignment(SwingConstants.CENTER);
@@ -223,15 +223,15 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         filterGaDen = new SearchableComboBox<>(
                 ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
                 (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
-        filterGaDen.setPlaceholder("T\u1EA5t c\u1EA3 c\u00E1c ga");
+        filterGaDen.setPlaceholder("Tất cả các ga");
         filterGaDen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         filterGaDen.setOnChanged(this::applyFilter);
         gbc.gridx = 2; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 0, 8);
-        bar.add(buildFilterGroup("Ga \u0111\u1EBFn", filterGaDen), gbc);
+        bar.add(buildFilterGroup("Ga đến", filterGaDen), gbc);
 
         // Bỏ lọc button
-        JButton btnClear = new JButton("B\u1ECF l\u1ECDc") {
+        JButton btnClear = new JButton("Bỏ lọc") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -730,8 +730,8 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
             } else {
                 JOptionPane.showMessageDialog(
                         this,
-                        "Kh\u00F4ng th\u1EC3 x\u00F3a tuy\u1EBFn n\u00E0y. Tuy\u1EBFn c\u00F3 th\u1EC3 \u0111ang \u0111\u01B0\u1EE3c s\u1EED d\u1EE5ng trong l\u1ECBch ch\u1EA1y.",
-                        "L\u1ED7i x\u00F3a",
+                        "Không thể xóa tuyến này. Tuyến có thể đang được sử dụng trong lịch chạy.",
+                        "Lỗi xóa",
                         JOptionPane.ERROR_MESSAGE);
             }
         }

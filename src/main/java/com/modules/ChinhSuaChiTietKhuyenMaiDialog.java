@@ -126,7 +126,7 @@ public class ChinhSuaChiTietKhuyenMaiDialog extends JDialog {
                 g2.setColor(PRIMARY);
                 g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
                 FontMetrics fm = g2.getFontMetrics();
-                String s = isAddMode ? "+" : "\u270E";
+                String s = isAddMode ? "+" : "✎";
                 g2.drawString(s, (40 - fm.stringWidth(s)) / 2, 27);
                 g2.dispose();
             }
