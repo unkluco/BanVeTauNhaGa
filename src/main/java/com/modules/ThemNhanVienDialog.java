@@ -114,13 +114,17 @@ public class ThemNhanVienDialog extends JDialog {
 
     static JPanel buildShadowWrapper(JPanel content) {
         final int PAD = 16;
+        final Color BG = new Color(0xEE, 0xF2, 0xF6);
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
+                // Fill background first to prevent rendering artifacts on transparent windows
+                g.setColor(getBackground());
+                g.fillRect(0, 0, getWidth(), getHeight());
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 for (int i = 1; i <= PAD; i++) {
-                    int alpha = Math.round(10f * i / PAD);
+                    int alpha = Math.round(18f * i / PAD);
                     g2.setColor(new Color(0, 0, 0, alpha));
                     int offset = PAD - i;
                     g2.fillRoundRect(offset, offset + 3, getWidth() - offset * 2,
@@ -129,7 +133,8 @@ public class ThemNhanVienDialog extends JDialog {
                 g2.dispose();
             }
         };
-        wrapper.setOpaque(false);
+        wrapper.setOpaque(true);
+        wrapper.setBackground(BG);
         wrapper.setBorder(BorderFactory.createEmptyBorder(PAD, PAD, PAD + 4, PAD));
         wrapper.add(content, BorderLayout.CENTER);
         return wrapper;

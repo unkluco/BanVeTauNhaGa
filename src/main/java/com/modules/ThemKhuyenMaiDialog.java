@@ -65,7 +65,6 @@ public class ThemKhuyenMaiDialog extends JDialog {
     }
 
     private void initUI() {
-        setBackground(new Color(0, 0, 0, 0));
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(CARD_BG);
         root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
@@ -107,18 +106,19 @@ public class ThemKhuyenMaiDialog extends JDialog {
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(20, 24, 12, 24));
 
-        // Row 1: Mã KM | Trạng thái
+        // Row 1: Mã KM (auto) | Trạng thái
         JPanel row1 = new JPanel(new GridLayout(1, 2, 16, 0));
         row1.setOpaque(false);
         row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
 
-        txtMaKM = createInputField("VD: KM-2025-01");
+        txtMaKM = createReadOnlyField(generateMaKM());
         lblErrMaKM = createErrorLabel();
-        row1.add(buildFieldGroup("Mã khuyến mãi", txtMaKM, null, true, lblErrMaKM));
+        row1.add(buildFieldGroup("Mã khuyến mãi (tự sinh)", txtMaKM, null, false, null));
 
         cboTrangThai = new JComboBox<>(new String[]{"Đang áp dụng", "Ngừng áp dụng"});
         cboTrangThai.setFont(FONT_INPUT);
         cboTrangThai.setBackground(CARD_BG);
+        cboTrangThai.setEditable(true);
         cboTrangThai.setPreferredSize(new Dimension(0, 36));
         cboTrangThai.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         row1.add(buildFieldGroup("Trạng thái", cboTrangThai, null, false, null));
@@ -189,17 +189,13 @@ public class ThemKhuyenMaiDialog extends JDialog {
     private void doSave() {
         clearAllErrors();
 
-        String maKM  = getFieldText(txtMaKM,  "VD: KM-2025-01");
+        String maKM  = txtMaKM.getText().trim();
         String tenKM = getFieldText(txtTenKM, "VD: Giảm giá dịp Tết 2025");
         String moTa  = getFieldText(txtMoTa,  "VD: Giảm giá vé tàu các tuyến dịp Tết Nguyên Đán");
 
         LocalDate dateBatDau  = dpBatDau.getValue();
         LocalDate dateKetThuc = dpKetThuc.getValue();
 
-        if (maKM.isEmpty()) {
-            showFieldError(txtMaKM, lblErrMaKM, "Vui lòng nhập mã khuyến mãi");
-            return;
-        }
         if (tenKM.isEmpty()) {
             showFieldError(txtTenKM, lblErrTenKM, "Vui lòng nhập tên chương trình");
             return;
@@ -224,7 +220,8 @@ public class ThemKhuyenMaiDialog extends JDialog {
             return;
         }
 
-        boolean trangThai = cboTrangThai.getSelectedIndex() == 0;
+        Object selTT = cboTrangThai.getSelectedItem();
+        boolean trangThai = selTT == null || selTT.toString().contains("Đang");
         KhuyenMai km = new KhuyenMai(maKM, tenKM, batDau, ketThuc,
                 moTa.isEmpty() ? null : moTa, trangThai);
 
@@ -293,14 +290,12 @@ public class ThemKhuyenMaiDialog extends JDialog {
     }
 
     private void clearAllErrors() {
-        for (JLabel lbl : new JLabel[]{lblErrMaKM, lblErrTenKM, lblErrBatDau, lblErrKetThuc}) {
+        for (JLabel lbl : new JLabel[]{lblErrTenKM, lblErrBatDau, lblErrKetThuc}) {
             lbl.setText(""); lbl.setVisible(false);
         }
-        for (JTextField f : new JTextField[]{txtMaKM, txtTenKM}) {
-            f.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(OUTLINE, 1, true),
-                    new EmptyBorder(8, 12, 8, 12)));
-        }
+        txtTenKM.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(8, 12, 8, 12)));
     }
 
     private JLabel createErrorLabel() {
@@ -351,6 +346,24 @@ public class ThemKhuyenMaiDialog extends JDialog {
             group.add(errLabel);
         }
         return group;
+    }
+
+    private String generateMaKM() {
+        return "KM-" + String.format("%05d", System.currentTimeMillis() % 100000L);
+    }
+
+    private JTextField createReadOnlyField(String value) {
+        JTextField f = new JTextField(value);
+        f.setFont(FONT_MONO);
+        f.setForeground(ON_SURF_VAR);
+        f.setEditable(false);
+        f.setBackground(new Color(0xF1, 0xF5, 0xF9));
+        f.setPreferredSize(new Dimension(0, 36));
+        f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        f.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(8, 12, 8, 12)));
+        return f;
     }
 
     private JTextField createInputField(String placeholder) {

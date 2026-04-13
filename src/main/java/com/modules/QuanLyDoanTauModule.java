@@ -543,17 +543,17 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
     private void openEditModule(DoanTau doanTau) {
         Container parent = this.getParent();
         if (parent == null) return;
-        this.setVisible(false);
 
         ChinhSuaDoanTauModule editModule = new ChinhSuaDoanTauModule(doanTau);
         editModule.setOnResult(result -> {
             parent.remove(editModule);
+            parent.add(this, BorderLayout.CENTER);
             loadData();
-            this.setVisible(true);
             parent.revalidate();
             parent.repaint();
         });
 
+        parent.remove(this);
         parent.add(editModule, BorderLayout.CENTER);
         parent.revalidate();
         parent.repaint();
@@ -562,17 +562,17 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
     private void openNewModule() {
         Container parent = this.getParent();
         if (parent == null) return;
-        this.setVisible(false);
 
         ChinhSuaDoanTauModule newModule = new ChinhSuaDoanTauModule(null);
         newModule.setOnResult(result -> {
             parent.remove(newModule);
+            parent.add(this, BorderLayout.CENTER);
             loadData();
-            this.setVisible(true);
             parent.revalidate();
             parent.repaint();
         });
 
+        parent.remove(this);
         parent.add(newModule, BorderLayout.CENTER);
         parent.revalidate();
         parent.repaint();

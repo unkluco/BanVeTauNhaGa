@@ -656,6 +656,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
     private JComboBox<String> createFilterCombo(String[] items) {
         JComboBox<String> cbo = new JComboBox<>(items);
         cbo.setFont(FONT_BODY);
+        cbo.setEditable(true);
         cbo.setMaximumSize(new Dimension(180, 36));
         cbo.setPreferredSize(new Dimension(180, 36));
         return cbo;

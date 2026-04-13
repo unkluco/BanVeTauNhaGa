@@ -637,6 +637,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
     private JComboBox<String> createFilterCombo(String[] items) {
         JComboBox<String> cbo = new JComboBox<>(items);
         cbo.setFont(FONT_BODY);
+        cbo.setEditable(true);
         return cbo;
     }
 

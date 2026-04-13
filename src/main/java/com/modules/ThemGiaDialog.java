@@ -67,8 +67,6 @@ public class ThemGiaDialog extends JDialog {
     }
 
     private void initUI() {
-        setBackground(new Color(0, 0, 0, 0));
-
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(CARD_BG);
         root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
@@ -116,18 +114,19 @@ public class ThemGiaDialog extends JDialog {
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(20, 24, 12, 24));
 
-        // Row 1: Ma gia | Trang thai
+        // Row 1: Ma gia (auto) | Trang thai
         JPanel row1 = new JPanel(new GridLayout(1, 2, 16, 0));
         row1.setOpaque(false);
         row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        txtMaGia = createInputField("VD: MG0007");
+        txtMaGia = createReadOnlyField(generateMaGia());
         lblErrMaGia = createErrorLabel();
-        row1.add(buildFieldGroup("Mã giá", txtMaGia, null, true, lblErrMaGia));
+        row1.add(buildFieldGroup("Mã giá (tự sinh)", txtMaGia, null, false, null));
 
         cboTrangThai = new JComboBox<>(new String[]{"Đang áp dụng", "Ngừng áp dụng"});
         cboTrangThai.setFont(FONT_INPUT);
         cboTrangThai.setBackground(CARD_BG);
+        cboTrangThai.setEditable(true);
         cboTrangThai.setPreferredSize(new Dimension(0, 36));
         cboTrangThai.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         row1.add(buildFieldGroup("Trạng thái", cboTrangThai, null, false, null));
@@ -189,16 +188,12 @@ public class ThemGiaDialog extends JDialog {
     private void doSave() {
         clearAllErrors();
 
-        String maGia = getFieldText(txtMaGia, "VD: MG0007");
+        String maGia = txtMaGia.getText().trim();
         String moTa = getFieldText(txtMoTa, "VD: Hà Nội - Sài Gòn Economy");
         String batDauStr = getFieldText(txtThoiGianBatDau, "dd/MM/yyyy");
         String ketThucStr = getFieldText(txtThoiGianKetThuc, "dd/MM/yyyy");
 
         // Validation
-        if (maGia.isEmpty()) {
-            showFieldError(txtMaGia, lblErrMaGia, "Vui lòng nhập mã giá");
-            return;
-        }
         if (moTa.isEmpty()) {
             showFieldError(txtMoTa, lblErrMoTa, "Vui lòng nhập mô tả");
             return;
@@ -233,7 +228,8 @@ public class ThemGiaDialog extends JDialog {
             return;
         }
 
-        boolean trangThai = cboTrangThai.getSelectedIndex() == 0;
+        Object selTT = cboTrangThai.getSelectedItem();
+        boolean trangThai = selTT == null || selTT.toString().contains("Đang");
 
         Gia gia = new Gia(maGia, batDau, ketThuc, moTa, trangThai);
 
@@ -278,8 +274,8 @@ public class ThemGiaDialog extends JDialog {
     }
 
     private void clearAllErrors() {
-        JLabel[] errs     = {lblErrMaGia, lblErrMoTa, lblErrBatDau, lblErrKetThuc};
-        JComponent[] flds = {txtMaGia, txtMoTa, txtThoiGianBatDau, txtThoiGianKetThuc};
+        JLabel[] errs     = {lblErrMoTa, lblErrBatDau, lblErrKetThuc};
+        JComponent[] flds = {txtMoTa, txtThoiGianBatDau, txtThoiGianKetThuc};
         for (int i = 0; i < errs.length; i++) {
             errs[i].setText("");
             errs[i].setVisible(false);
@@ -342,6 +338,25 @@ public class ThemGiaDialog extends JDialog {
         }
 
         return group;
+    }
+
+    private String generateMaGia() {
+        return "MG" + String.format("%05d", System.currentTimeMillis() % 100000L);
+    }
+
+    private JTextField createReadOnlyField(String value) {
+        JTextField f = new JTextField(value);
+        f.setFont(FONT_MONO);
+        f.setForeground(ON_SURF_VAR);
+        f.setEditable(false);
+        f.setBackground(new Color(0xF1, 0xF5, 0xF9));
+        f.setPreferredSize(new Dimension(0, 36));
+        f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        f.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        return f;
     }
 
     private JTextField createInputField(String placeholder) {
