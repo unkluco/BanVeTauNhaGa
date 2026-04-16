@@ -1,9 +1,7 @@
 package com.modules;
 
-import com.dao.DAO_Ghe;
-import com.dao.DAO_ToaTau;
-import com.entity.ToaTau;
-import com.enums.LoaiGhe;
+import com.dao.DAO_DauMay;
+import com.entity.DauMay;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -12,14 +10,16 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class QuanLyToaModule extends JPanel implements AppModule {
+public class QuanLyDauMayModule extends JPanel implements AppModule {
 
     // ── Design tokens ────────────────────────────────────────────────────
     private static final Color PRIMARY       = new Color(13, 110, 253);
+    private static final Color PRIMARY_HOVER = new Color(11, 94, 215);
     private static final Color PRIMARY_LIGHT = new Color(231, 241, 255);
     private static final Color SURFACE       = new Color(248, 249, 250);
     private static final Color CARD_BG       = Color.WHITE;
@@ -27,39 +27,31 @@ public class QuanLyToaModule extends JPanel implements AppModule {
     private static final Color TEXT_MUTED    = new Color(108, 117, 125);
     private static final Color OUTLINE       = new Color(222, 226, 230);
 
-    // Màu theo loại ghế
-    private static final Color COLOR_CUNG     = new Color(0xFF, 0xE0, 0xB2); // cam nhạt
-    private static final Color COLOR_MEM      = new Color(0xB3, 0xE5, 0xFC); // xanh dương nhạt
-    private static final Color COLOR_GIUONG   = new Color(0xC8, 0xE6, 0xC9); // xanh lá nhạt
-
     private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 26);
     private static final Font FONT_DESC   = new Font("Segoe UI", Font.PLAIN, 14);
     private static final Font FONT_BOLD   = new Font("Segoe UI", Font.BOLD, 14);
-    private static final Font FONT_BODY   = new Font("Segoe UI", Font.PLAIN, 14);
     private static final Font FONT_STA    = new Font("Segoe UI", Font.BOLD, 18);
     private static final Font FONT_SMALL  = new Font("Segoe UI", Font.PLAIN, 12);
 
     // ── DAOs ─────────────────────────────────────────────────────────────
-    private final DAO_ToaTau daoToa = new DAO_ToaTau();
-    private final DAO_Ghe    daoGhe = new DAO_Ghe();
+    private final DAO_DauMay daoDauMay = new DAO_DauMay();
 
     // ── State ─────────────────────────────────────────────────────────────
     private Consumer<Object> callback;
-    private List<ToaTau> allData      = new ArrayList<>();
-    private List<ToaTau> filteredData = new ArrayList<>();
+    private List<DauMay> allData      = new ArrayList<>();
+    private List<DauMay> filteredData = new ArrayList<>();
     private int currentPage  = 1;
-    private int rowsPerPage  = 12; // Adjusted dynamically
+    private int rowsPerPage  = 12; // Grid items
     private int gridCols     = 3;
     private boolean isRefreshing = false;
 
     // ── Widgets ───────────────────────────────────────────────────────────
     private JTextField txtSearch;
-    private JComboBox<String> cbLoai;
     private JPanel     cardsPanel;
     private JScrollPane scrollPane;
     private JPanel     paginationPanel;
 
-    public QuanLyToaModule() {
+    public QuanLyDauMayModule() {
         setLayout(new BorderLayout());
         setBackground(SURFACE);
         setBorder(new EmptyBorder(30, 40, 30, 40));
@@ -70,14 +62,13 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         loadData();
     }
 
-    @Override public String getTitle() { return "Quản lý Toa Tàu"; }
+    @Override public String getTitle() { return "Quản lý Đầu máy"; }
     @Override public JPanel getView()  { return this; }
     @Override public void setOnResult(Consumer<Object> cb) { this.callback = cb; }
 
     @Override
     public void reset() {
         if (txtSearch != null) txtSearch.setText("");
-        if (cbLoai != null) cbLoai.setSelectedIndex(0);
         loadData();
     }
 
@@ -102,18 +93,16 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         
         JLabel iconLbl = new JLabel();
-        ImageIcon ico = loadScaledIcon("bieuTuongToa.png", 32); 
-        // Fallback to train ticket icon if bieuTuongToa not explicitly present
-        if (ico == null) ico = loadScaledIcon("nutHanhKhach.png", 32);
+        ImageIcon ico = loadScaledIcon("bieuTuongTau.png", 32);
         if (ico != null) iconLbl.setIcon(ico);
-        JLabel lblTitle = new JLabel("Quản lý Toa Tàu");
+        JLabel lblTitle = new JLabel("Quản lý Đầu máy");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(TEXT_MAIN);
 
         titleRow.add(iconLbl);
         titleRow.add(lblTitle);
 
-        JLabel lblDesc = new JLabel("Quản lý hệ thống toa tàu hành khách, sức chứa và thuộc tính ghế đi kèm.");
+        JLabel lblDesc = new JLabel("Duyệt và kiểm soát các đầu máy kéo tàu hệ thống.");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(TEXT_MUTED);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -122,33 +111,8 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         left.add(Box.createVerticalStrut(6));
         left.add(lblDesc);
 
-        hdr.add(left, BorderLayout.WEST);
-
+        hdr.add(left, BorderLayout.CENTER);
         return hdr;
-    }
-
-    private JPanel legendDot(Color c, String text) {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        p.setOpaque(false);
-        JPanel dot = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(c);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.setColor(c.darker());
-                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 8, 8);
-            }
-        };
-        dot.setOpaque(false);
-        dot.setPreferredSize(new Dimension(16, 16));
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(FONT_SMALL);
-        lbl.setForeground(TEXT_MAIN);
-        p.add(dot);
-        p.add(lbl);
-        return p;
     }
 
     private JPanel buildContent() {
@@ -176,9 +140,9 @@ public class QuanLyToaModule extends JPanel implements AppModule {
             public void componentResized(ComponentEvent e) {
                 int w = scrollPane.getWidth();
                 int h = scrollPane.getHeight();
-                int cardW = 260; // Slightly narrower for wagons
+                int cardW = 280;
                 int cols = Math.max(1, (w - 15) / (cardW + 15));
-                int rH = 110 + 15;
+                int rH = 130 + 15;
                 int rows = Math.max(2, h / rH);
                 int newItems = cols * rows;
                 
@@ -190,6 +154,7 @@ public class QuanLyToaModule extends JPanel implements AppModule {
                     rowsPerPage = newItems;
                     if (!isRefreshing) refreshCards();
                 } else if (!isRefreshing) {
+                    // Just update layout
                     refreshCards();
                 }
             }
@@ -231,46 +196,25 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         if (icoSearch!=null) iconSearch.setIcon(icoSearch);
         bgPanel.add(iconSearch);
 
-        txtSearch = new JTextField(16);
+        txtSearch = new JTextField(25);
         txtSearch.setOpaque(false);
         txtSearch.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm mã toa...");
+        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo mã hoặc tên đầu máy...");
         txtSearch.addActionListener(e -> applyFilter());
         
-        cbLoai = new JComboBox<>(new String[]{"- Tất cả loại ghế -", "GHE_CUNG", "GHE_MEM", "GIUONG_NAM"});
-        cbLoai.setPreferredSize(new Dimension(170, 36));
-        cbLoai.setFont(FONT_BODY);
-        cbLoai.setBackground(Color.WHITE);
-        cbLoai.addActionListener(e -> applyFilter());
-
         bgPanel.add(txtSearch);
-        bgPanel.add(Box.createHorizontalStrut(15));
-        bgPanel.add(cbLoai);
 
-        JButton btnClear = new JButton("Bỏ lọc");
+        JButton btnClear = new JButton("Tìm/Lọc");
         btnClear.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnClear.setForeground(TEXT_MUTED);
         btnClear.setContentAreaFilled(false);
         btnClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnClear.addActionListener(e -> {
-            txtSearch.setText("");
-            cbLoai.setSelectedIndex(0);
-            applyFilter();
-        });
+        btnClear.addActionListener(e -> applyFilter());
         bgPanel.add(Box.createHorizontalStrut(10));
         bgPanel.add(btnClear);
 
         bar.add(bgPanel, BorderLayout.CENTER);
-
-        // Legend moved to the right of filter bar
-        JPanel pLegend = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 12));
-        pLegend.setOpaque(false);
-        pLegend.add(legendDot(COLOR_CUNG,   "Ghế cứng"));
-        pLegend.add(legendDot(COLOR_MEM,    "Ghế mềm"));
-        pLegend.add(legendDot(COLOR_GIUONG, "Giường"));
-        bar.add(pLegend, BorderLayout.EAST);
-
         return bar;
     }
 
@@ -279,25 +223,19 @@ public class QuanLyToaModule extends JPanel implements AppModule {
     // ====================================================================
 
     private void loadData() {
-        allData = daoToa.getAll();
+        allData = daoDauMay.getAll();
         applyFilter();
-    }
-
-    private int countGhe(String maToaTau) {
-        return daoGhe.findByToaTau(maToaTau).size();
     }
 
     private void applyFilter() {
         String q = txtSearch.getText().trim().toLowerCase();
-        String loai = (String) cbLoai.getSelectedItem();
-        boolean filterLoai = cbLoai.getSelectedIndex() > 0;
 
         filteredData = new ArrayList<>();
-        for (ToaTau t : allData) {
-            boolean matchQ = q.isEmpty() || t.getMaToaTau().toLowerCase().contains(q);
-            boolean matchL = !filterLoai || (t.getLoaiGhe() != null && t.getLoaiGhe().toString().equals(loai));
-            
-            if (matchQ && matchL) filteredData.add(t);
+        for (DauMay dm : allData) {
+            boolean ok = q.isEmpty() || 
+                         dm.getMaDauMay().toLowerCase().contains(q) || 
+                         dm.getTenDauMay().toLowerCase().contains(q);
+            if (ok) filteredData.add(dm);
         }
 
         currentPage = 1;
@@ -313,22 +251,24 @@ public class QuanLyToaModule extends JPanel implements AppModule {
 
             int start = (currentPage - 1) * rowsPerPage;
             int end   = Math.min(start + rowsPerPage, total);
-            List<ToaTau> pageData = filteredData.subList(start, end);
+            List<DauMay> pageData = filteredData.subList(start, end);
 
+            // Calculate card width
             int w = scrollPane.getWidth();
-            int cardW = 260;
+            int cardW = 280;
             if (gridCols > 0) {
+                // Adjust width to fill container better (optional)
                 cardW = (w - (gridCols + 1) * 15) / gridCols;
-                cardW = Math.max(cardW, 230);
+                cardW = Math.max(cardW, 250);
             }
 
             cardsPanel.removeAll();
-            cardsPanel.setPreferredSize(new Dimension(w - 20, 0));
+            cardsPanel.setPreferredSize(new Dimension(w - 20, 0)); // force flow layout wrap
             if (pageData.isEmpty()) {
                 cardsPanel.add(buildEmptyState());
             } else {
-                for (ToaTau t : pageData) {
-                    cardsPanel.add(buildToaCard(t, cardW));
+                for (DauMay m : pageData) {
+                    cardsPanel.add(buildDauMayCard(m, cardW));
                 }
             }
             cardsPanel.revalidate();
@@ -340,44 +280,17 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         }
     }
 
-    private void openChiTiet(ToaTau toa) {
-        Window owner = SwingUtilities.getWindowAncestor(this);
-        JFrame frame = (owner instanceof JFrame) ? (JFrame) owner : null;
-        ChiTietToaDialog dlg = new ChiTietToaDialog(frame, toa);
-        dlg.setVisible(true);
-    }
-
     // ====================================================================
     //  CARD BUILDER
     // ====================================================================
 
-    private JPanel buildToaCard(ToaTau toa, int width) {
-        LoaiGhe lg = toa.getLoaiGhe();
-        Color accentColor = PRIMARY;
-        String typeLabel = "KHÔNG XÁC ĐỊNH";
-        
-        if (lg != null) {
-            accentColor = switch (lg) {
-                case GHE_CUNG   -> COLOR_CUNG;
-                case GHE_MEM    -> COLOR_MEM;
-                case GIUONG_NAM -> COLOR_GIUONG;
-            };
-            typeLabel = switch (lg) {
-                case GHE_CUNG   -> "GHẾ CỨNG";
-                case GHE_MEM    -> "GHẾ MỀM";
-                case GIUONG_NAM -> "GIƯỜNG NẰM";
-            };
-        }
-        
-        final Color finalAccent = scaleBrightness(accentColor, 0.85f); // slightly darker for text/accent
-
+    private JPanel buildDauMayCard(DauMay dm, int width) {
         JPanel card = new JPanel(new BorderLayout()) {
             boolean isHovered = false;
             {
                 addMouseListener(new MouseAdapter() {
                     @Override public void mouseEntered(MouseEvent e) { isHovered = true; repaint(); }
                     @Override public void mouseExited(MouseEvent e)  { isHovered = false; repaint(); }
-                    @Override public void mouseClicked(MouseEvent e) { openChiTiet(toa); }
                 });
             }
             @Override
@@ -392,83 +305,101 @@ public class QuanLyToaModule extends JPanel implements AppModule {
                 g2.setColor(new Color(0, 0, 0, isHovered ? 12 : 6));
                 g2.fillRoundRect(3, 4, w - 6, h - 5, 16, 16);
                 
-                // Background
+                // Card Background
                 g2.setColor(CARD_BG);
                 g2.fillRoundRect(2, 0, w - 6, h - 6, 16, 16);
                 
                 // Border
-                g2.setColor(isHovered ? finalAccent : OUTLINE);
+                g2.setColor(isHovered ? PRIMARY.brighter() : OUTLINE);
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(2, 0, w - 6, h - 6, 16, 16);
-                
-                // Left accent
-                java.awt.geom.RoundRectangle2D.Float clipRect = new java.awt.geom.RoundRectangle2D.Float(2, 0, w - 6, h - 6, 16, 16);
-                g2.clip(clipRect);
-                g2.setColor(finalAccent);
-                g2.fillRect(2, 0, 6, h);
                 
                 g2.dispose();
             }
         };
         card.setOpaque(false);
-        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        card.setPreferredSize(new Dimension(width, 110));
-        card.setMaximumSize(new Dimension(width, 110));
-        card.setBorder(new EmptyBorder(12, 20, 12, 12));
+        card.setPreferredSize(new Dimension(width, 130));
+        card.setMaximumSize(new Dimension(width, 130));
+        card.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        JPanel content = new JPanel(new BorderLayout());
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
 
-        // Header (Code & Action)
+        // Header
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
         
-        JLabel lblCode = new JLabel(toa.getMaToaTau());
-        lblCode.setFont(new Font("Consolas", Font.BOLD, 16));
-        lblCode.setForeground(TEXT_MAIN);
+        JLabel lblCode = new JLabel(" #" + dm.getMaDauMay() + " ") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(PRIMARY_LIGHT);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        lblCode.setFont(new Font("Consolas", Font.BOLD, 12));
+        lblCode.setForeground(PRIMARY);
+        lblCode.setBorder(new EmptyBorder(4, 6, 4, 6));
 
-        // Info Icon instead of button since clicking card opens detail
-        JLabel lblAction = new JLabel();
-        ImageIcon infoIco = loadScaledIcon("nutXem.png", 18);
-        if (infoIco == null) infoIco = loadScaledIcon("nutTimKiem.png", 16);
-        if (infoIco != null) lblAction.setIcon(infoIco);
+        // Icon left
+        JLabel iconLabel = new JLabel();
+        ImageIcon ico = loadScaledIcon("bieuTuongTau.png", 24);
+        if (ico != null) iconLabel.setIcon(ico);
+        
+        JPanel topLeft = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        topLeft.setOpaque(false);
+        topLeft.add(iconLabel);
+        topLeft.add(lblCode);
 
-        top.add(lblCode, BorderLayout.WEST);
-        top.add(lblAction, BorderLayout.EAST);
+        // Edit button
+        JButton btnEdit = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isRollover() || getModel().isPressed()) {
+                    g2.setColor(PRIMARY_LIGHT);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                }
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        ImageIcon iEdit = loadScaledIcon("nutSua.png", 16);
+        if (iEdit != null) btnEdit.setIcon(iEdit);
+        btnEdit.setPreferredSize(new Dimension(28, 28));
+        btnEdit.setContentAreaFilled(false);
+        btnEdit.setBorderPainted(false);
+        btnEdit.setFocusPainted(false);
+        btnEdit.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnEdit.setToolTipText("Sửa");
+        btnEdit.addActionListener(e -> updateTenDauMay(dm));
 
-        content.add(top, BorderLayout.NORTH);
+        top.add(topLeft, BorderLayout.WEST);
+        top.add(btnEdit, BorderLayout.EAST);
 
-        // Body (Type & Count)
-        JPanel body = new JPanel();
-        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
-        body.setOpaque(false);
+        content.add(top);
+        content.add(Box.createVerticalStrut(16));
 
-        int soGhe = countGhe(toa.getMaToaTau());
+        // Body
+        JLabel lblName = new JLabel(dm.getTenDauMay());
+        lblName.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblName.setForeground(TEXT_MAIN);
+        
+        JLabel lblType = new JLabel("TRẠM ĐẦU KÉO");
+        lblType.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblType.setForeground(TEXT_MUTED);
 
-        JLabel lblType = new JLabel(typeLabel);
-        lblType.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblType.setForeground(finalAccent);
+        content.add(lblType);
+        content.add(Box.createVerticalStrut(4));
+        content.add(lblName);
 
-        JLabel lblCount = new JLabel(soGhe + " vị trí ghế");
-        lblCount.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblCount.setForeground(TEXT_MUTED);
-
-        body.add(Box.createVerticalStrut(8));
-        body.add(lblType);
-        body.add(Box.createVerticalStrut(4));
-        body.add(lblCount);
-
-        content.add(body, BorderLayout.CENTER);
         card.add(content, BorderLayout.CENTER);
 
         return card;
-    }
-
-    private static Color scaleBrightness(Color c, float f) {
-        return new Color(
-                Math.min(255, Math.max(0, (int)(c.getRed()   * f))),
-                Math.min(255, Math.max(0, (int)(c.getGreen() * f))),
-                Math.min(255, Math.max(0, (int)(c.getBlue()  * f))));
     }
 
     private JPanel buildEmptyState() {
@@ -482,6 +413,24 @@ public class QuanLyToaModule extends JPanel implements AppModule {
     }
 
     // ====================================================================
+    //  ACTIONS
+    // ====================================================================
+
+    private void updateTenDauMay(DauMay dm) {
+        String newName = JOptionPane.showInputDialog(this, 
+                "Nhập tên đầu máy mới (Mã: " + dm.getMaDauMay() + "):",
+                dm.getTenDauMay());
+        if (newName != null && !newName.trim().isEmpty()) {
+            dm.setTenDauMay(newName.trim());
+            if (daoDauMay.update(dm)) {
+                loadData();
+            } else {
+                JOptionPane.showMessageDialog(this, "Không thể cập nhật tên đầu máy!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    // ====================================================================
     //  PAGINATION
     // ====================================================================
 
@@ -489,7 +438,7 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         paginationPanel.removeAll();
 
         if (total > 0) {
-            JLabel info = new JLabel("Hiển thị trang " + currentPage + " / " + totalPages + " (" + total + " toa)");
+            JLabel info = new JLabel("Hiển thị trang " + currentPage + " / " + totalPages + " (" + total + " đầu máy)");
             info.setFont(FONT_SMALL);
             info.setForeground(TEXT_MUTED);
             paginationPanel.add(info);

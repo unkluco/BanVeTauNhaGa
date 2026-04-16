@@ -109,12 +109,14 @@ public class MenuModule extends JPanel implements AppModule {
 
         addMenuGroup(nav, "Dữ liệu tàu");
         addMenuItem(nav, "Quản lý đoàn tàu",                   "QL_DOAN_TAU");
-        addMenuItem(nav, "Quản lý Toa và Đầu máy",        "QL_TOA");
+        addMenuItem(nav, "Quản lý Toa tàu",        "QL_TOA");
+        addMenuItem(nav, "Quản lý Đầu máy",        "QL_DAU_MAY");
         addMenuItem(nav, "Quản lý tuyến",                                "QL_TUYEN");
         addMenuItem(nav, "Quản lý lịch chạy",                       "QL_LICH_CHAY");
 
         addMenuGroup(nav, "Hệ thống");
         addMenuItem(nav, "Quản lý nhân viên",                       "QL_NHAN_VIEN");
+        addMenuItem(nav, "Quản lý khách hàng",                      "QL_KHACH_HANG");
 
         applyRoleRestrictions();
 
@@ -136,9 +138,6 @@ public class MenuModule extends JPanel implements AppModule {
         sidebarFooter.add(btnThongTinCaNhan);
         sidebarFooter.add(Box.createVerticalStrut(2));
 
-        NavItem btnCaiDat = createNavItem("Cài đặt");
-        sidebarFooter.add(btnCaiDat);
-        sidebarFooter.add(Box.createVerticalStrut(2));
 
         NavItem btnDangXuat = createNavItem("Đăng xuất");
         btnDangXuat.addMouseListener(new MouseAdapter() {
@@ -476,6 +475,7 @@ public class MenuModule extends JPanel implements AppModule {
             disableMenuItem("QL_LICH_CHAY");
             disableMenuItem("QL_DOAN_TAU");
             disableMenuItem("QL_TOA");
+            disableMenuItem("QL_DAU_MAY");
             disableMenuItem("QL_KHUYEN_MAI");
             disableMenuItem("QL_GIA");
         }
@@ -540,6 +540,15 @@ public class MenuModule extends JPanel implements AppModule {
             }
             case "QL_NHAN_VIEN" -> {
                 QuanLyNhanVienModule module = new QuanLyNhanVienModule();
+                module.reset();
+                module.setOnResult(null);
+                contentPanel.removeAll();
+                contentPanel.add(module.getView(), BorderLayout.CENTER);
+                contentPanel.revalidate();
+                contentPanel.repaint();
+            }
+            case "QL_KHACH_HANG" -> {
+                QuanLyKhachHangModule module = new QuanLyKhachHangModule();
                 module.reset();
                 module.setOnResult(null);
                 contentPanel.removeAll();
@@ -644,7 +653,22 @@ public class MenuModule extends JPanel implements AppModule {
                     System.err.println("[ERROR] Không thể mở QuanLyToaModule:");
                     ex.printStackTrace();
                     showPlaceholder("Lỗi", "Không thể tải module Quản lý toa: " + ex.getMessage());
-                }
+                }	
+            }
+            case "QL_DAU_MAY" -> {
+                try {
+                    QuanLyDauMayModule module = new QuanLyDauMayModule();
+                    module.reset();
+                    module.setOnResult(null);
+                    contentPanel.removeAll();
+                    contentPanel.add(module.getView(), BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                } catch (Exception ex) {
+                    System.err.println("[ERROR] Không thể mở QuanLyDauMayModule:");
+                    ex.printStackTrace();
+                    showPlaceholder("Lỗi", "Không thể tải module Quản lý Đầu máy: " + ex.getMessage());
+                }	
             }
             case "QL_LICH_CHAY" -> {
                 try {

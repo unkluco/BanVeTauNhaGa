@@ -9,52 +9,32 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * AppModule: Quản lý Tuyến đường.
- *
- * Layout:
- *   Header  ─ title + "Thêm Tuyến mới" button
- *   Filter  ─ SearchableComboBox<Ga> (ga đi) + sync icon + SearchableComboBox<Ga> (ga đến) + "Bỏ lọc"
- *   Cards   ─ scrollable list of TuyenCardPanel (route track visualization)
- *   Footer  ─ pagination
- */
 public class QuanLyTuyenModule extends JPanel implements AppModule {
 
     // ── Design tokens ────────────────────────────────────────────────────
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_HOVER = new Color(0x00, 0x4A, 0x73);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SURFACE       = new Color(0xF7, 0xF9, 0xFB);
+    private static final Color PRIMARY       = new Color(13, 110, 253);   // Modern Blue
+    private static final Color PRIMARY_HOVER = new Color(11, 94, 215);
+    private static final Color PRIMARY_LIGHT = new Color(231, 241, 255);
+    private static final Color SURFACE       = new Color(248, 249, 250);  // Very light gray
     private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x19, 0x1C, 0x1E);
-    private static final Color ON_SURF_VAR   = new Color(0x40, 0x48, 0x50);
-    private static final Color OUTLINE       = new Color(0xBF, 0xC7, 0xD1);
-    private static final Color FILTER_BG     = new Color(0xF2, 0xF4, 0xF6);
-    private static final Color ERROR_BG      = new Color(0xFF, 0xDA, 0xD6);
-    private static final Color ERROR_FG      = new Color(0xB9, 0x1C, 0x1C);
-    private static final Color TRACK_START   = new Color(0x00, 0x5D, 0x90);
-    private static final Color TRACK_END     = new Color(0x00, 0x77, 0xB6);
-    private static final Color BADGE_BLUE_BG = new Color(0xCD, 0xE5, 0xFF);
-    private static final Color BADGE_BLUE_FG = new Color(0x00, 0x4B, 0x74);
+    private static final Color TEXT_MAIN     = new Color(33, 37, 41);
+    private static final Color TEXT_MUTED    = new Color(108, 117, 125);
+    private static final Color OUTLINE       = new Color(222, 226, 230);
+    private static final Color DANGER        = new Color(220, 53, 69);
+    private static final Color DANGER_LIGHT  = new Color(254, 226, 226);
 
-    private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 24);
-    private static final Font FONT_DESC   = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FONT_BODY   = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FONT_BOLD   = new Font("Segoe UI", Font.BOLD, 13);
-    private static final Font FONT_MONO   = new Font("Consolas", Font.BOLD, 12);
-    private static final Font FONT_BADGE  = new Font("Segoe UI", Font.BOLD, 11);
-    private static final Font FONT_BTN    = new Font("Segoe UI", Font.BOLD, 13);
-    private static final Font FONT_STA    = new Font("Segoe UI", Font.BOLD, 15);
-    private static final Font FONT_SMALL  = new Font("Segoe UI", Font.PLAIN, 11);
+    private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 26);
+    private static final Font FONT_DESC   = new Font("Segoe UI", Font.PLAIN, 14);
+    private static final Font FONT_BOLD   = new Font("Segoe UI", Font.BOLD, 14);
+    private static final Font FONT_STA    = new Font("Segoe UI", Font.BOLD, 18);
+    private static final Font FONT_SMALL  = new Font("Segoe UI", Font.PLAIN, 12);
 
-    private static final int CARD_HEIGHT = 155;  // px per card
-    private static final int CARD_GAP    = 10;
+    private static final int CARD_HEIGHT = 160;
 
     // ── DAOs ─────────────────────────────────────────────────────────────
     private final DAO_Tuyen daoTuyen = new DAO_Tuyen();
@@ -65,7 +45,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     private List<Tuyen> allData      = new ArrayList<>();
     private List<Tuyen> filteredData = new ArrayList<>();
     private int currentPage  = 1;
-    private int rowsPerPage  = 4;
+    private int rowsPerPage  = 5;
     private boolean isRefreshing = false;
 
     // ── Widgets ───────────────────────────────────────────────────────────
@@ -73,7 +53,6 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     private SearchableComboBox<Ga> filterGaDen;
     private JPanel                 cardsPanel;
     private JScrollPane            scrollPane;
-    private JLabel                 lblPageInfo;
     private JPanel                 paginationPanel;
 
     // ====================================================================
@@ -94,9 +73,6 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     public void reset() {
         if (filterGaDi  != null) filterGaDi.clearSelection();
         if (filterGaDen != null) filterGaDen.clearSelection();
-        // KHÔNG gọi loadData() ở đây — cardsPanel có thể chưa khởi tạo
-        // (reset() được gọi từ MenuModule.TRƯỚC khi module được build lần đầu)
-        // Nếu cardsPanel đã sẵn sàng thì mới refresh
         if (cardsPanel != null) applyFilter();
     }
 
@@ -107,7 +83,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     private void buildUI() {
         setLayout(new BorderLayout());
         setBackground(SURFACE);
-        setBorder(new EmptyBorder(32, 40, 32, 40));
+        setBorder(new EmptyBorder(30, 40, 30, 40));
 
         add(buildHeader(),    BorderLayout.NORTH);
         add(buildContent(),   BorderLayout.CENTER);
@@ -126,214 +102,163 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         left.setOpaque(false);
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
 
-        JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         titleRow.setOpaque(false);
-        ImageIcon icoTitle = loadScaledIcon("bieuTuongTuyen.png", 28);
-        if (icoTitle != null) titleRow.add(new JLabel(icoTitle));
+        titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Icon header
+        JLabel iconLbl = new JLabel();
+        ImageIcon ico = loadScaledIcon("bieuTuongTuyen.png", 32);
+        if (ico != null) iconLbl.setIcon(ico);
         JLabel lblTitle = new JLabel("Quản lý Tuyến đường");
         lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(PRIMARY);
-        titleRow.add(lblTitle);
-        titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblTitle.setForeground(TEXT_MAIN);
 
-        JLabel lblDesc = new JLabel("Cấu hình và tối ưu hóa các lộ trình vận tải đường sắt trong hệ thống.");
+        titleRow.add(iconLbl);
+        titleRow.add(lblTitle);
+
+        JLabel lblDesc = new JLabel("Quản lý và thiết lập lộ trình các ga tàu một cách trực quan.");
         lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(ON_SURF_VAR);
+        lblDesc.setForeground(TEXT_MUTED);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         left.add(titleRow);
-        left.add(Box.createVerticalStrut(4));
+        left.add(Box.createVerticalStrut(6));
         left.add(lblDesc);
 
-        JButton btnAdd = new JButton("+ Thêm Tuyến mới") {
-            @Override protected void paintComponent(Graphics g) {
+        // Add Button
+        JButton btnAdd = new JButton("  Tạo tuyến mới") {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? PRIMARY_HOVER : PRIMARY);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                if (getModel().isPressed()) g2.setColor(PRIMARY_HOVER.darker());
+                else if (getModel().isRollover()) g2.setColor(PRIMARY_HOVER);
+                else g2.setColor(PRIMARY);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        btnAdd.setFont(FONT_BTN);
+        ImageIcon icoAdd = loadScaledIcon("nutThem.png", 18);
+        if (icoAdd != null) btnAdd.setIcon(icoAdd);
+        btnAdd.setFont(FONT_BOLD);
         btnAdd.setForeground(Color.WHITE);
-        btnAdd.setContentAreaFilled(false);
-        btnAdd.setBorderPainted(false);
         btnAdd.setFocusPainted(false);
-        btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnAdd.setPreferredSize(new Dimension(190, 42));
+        btnAdd.setBorderPainted(false);
+        btnAdd.setContentAreaFilled(false);
+        btnAdd.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnAdd.setPreferredSize(new Dimension(200, 45));
         btnAdd.addActionListener(e -> openAddDialog());
-        ImageIcon icoAdd = loadScaledIcon("nutThem.png", 16);
-        if (icoAdd != null) { btnAdd.setIcon(icoAdd); btnAdd.setText("  Thêm Tuyến mới"); }
 
         hdr.add(left,   BorderLayout.CENTER);
         hdr.add(btnAdd, BorderLayout.EAST);
         return hdr;
     }
 
-    // ── Content (filter + cards + pagination) ────────────────────────────
+    // ── Content ──────────────────────────────────────────────────────────
     private JPanel buildContent() {
-        JPanel content = new JPanel(new BorderLayout(0, 12));
-        content.setOpaque(false);
+        JPanel content = new JPanel(new BorderLayout(0, 20));
+        content.setOpaque(true);
+        content.setBackground(SURFACE);
 
         content.add(buildFilterBar(), BorderLayout.NORTH);
-        content.add(buildCardsArea(), BorderLayout.CENTER);
-        content.add(buildPagination(), BorderLayout.SOUTH);
-
-        return content;
-    }
-
-    // ── Filter Bar ────────────────────────────────────────────────────────
-    private JPanel buildFilterBar() {
-        JPanel bar = new JPanel(new GridBagLayout());
-        bar.setBackground(FILTER_BG);
-        bar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1),
-                new EmptyBorder(14, 18, 14, 18)));
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridy   = 0;
-        gbc.fill    = GridBagConstraints.HORIZONTAL;
-        gbc.anchor  = GridBagConstraints.CENTER;
-        gbc.weighty = 0;
-
-        // Ga đi
-        filterGaDi = new SearchableComboBox<>(
-                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
-                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
-        filterGaDi.setPlaceholder("Tất cả các ga");
-        filterGaDi.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        filterGaDi.setOnChanged(this::applyFilter);
-        gbc.gridx = 0; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 8);
-        bar.add(buildFilterGroup("Ga đi", filterGaDi), gbc);
-
-        // sync icon ⇄ — wrapped to align at field level
-        JPanel syncWrap = new JPanel(new BorderLayout());
-        syncWrap.setOpaque(false);
-        JLabel syncSpacer = new JLabel(" ");
-        syncSpacer.setFont(FONT_SMALL);
-        syncWrap.add(syncSpacer, BorderLayout.NORTH);
-        JLabel syncLbl = new JLabel("⇄");
-        syncLbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        syncLbl.setForeground(OUTLINE);
-        syncLbl.setHorizontalAlignment(SwingConstants.CENTER);
-        syncWrap.add(syncLbl, BorderLayout.CENTER);
-        gbc.gridx = 1; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(0, 0, 0, 8);
-        bar.add(syncWrap, gbc);
-
-        // Ga đến
-        filterGaDen = new SearchableComboBox<>(
-                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
-                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
-        filterGaDen.setPlaceholder("Tất cả các ga");
-        filterGaDen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        filterGaDen.setOnChanged(this::applyFilter);
-        gbc.gridx = 2; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(0, 0, 0, 8);
-        bar.add(buildFilterGroup("Ga đến", filterGaDen), gbc);
-
-        // Bỏ lọc button
-        JButton btnClear = new JButton("Bỏ lọc") {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? OUTLINE.darker() : OUTLINE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnClear.setFont(FONT_BOLD);
-        btnClear.setForeground(PRIMARY);
-        btnClear.setContentAreaFilled(false);
-        btnClear.setBorderPainted(false);
-        btnClear.setFocusPainted(false);
-        btnClear.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnClear.setPreferredSize(new Dimension(100, 40));
-        btnClear.addActionListener(e -> {
-            filterGaDi.clearSelection();
-            filterGaDen.clearSelection();
-            applyFilter();
-        });
-        ImageIcon icoClear = loadScaledIcon("nutBoLoc.png", 14);
-        if (icoClear != null) btnClear.setIcon(icoClear);
-
-        JPanel clearWrapper = new JPanel(new BorderLayout());
-        clearWrapper.setOpaque(false);
-        JLabel clearSpacer = new JLabel(" ");
-        clearSpacer.setFont(FONT_SMALL);
-        clearWrapper.add(clearSpacer, BorderLayout.NORTH);
-        clearWrapper.add(btnClear, BorderLayout.CENTER);
-        gbc.gridx = 3; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(0, 0, 0, 0);
-        bar.add(clearWrapper, gbc);
-
-        return bar;
-    }
-
-    private JPanel buildFilterGroup(String labelText, JComponent field) {
-        JPanel group = new JPanel();
-        group.setOpaque(false);
-        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
-
-        JLabel lbl = new JLabel(labelText.toUpperCase());
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lbl.setForeground(ON_SURF_VAR);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        field.setAlignmentX(Component.LEFT_ALIGNMENT);
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-
-        group.add(lbl);
-        group.add(Box.createVerticalStrut(4));
-        group.add(field);
-        return group;
-    }
-
-    // ── Cards area ────────────────────────────────────────────────────────
-    private JScrollPane buildCardsArea() {
+        
         cardsPanel = new JPanel();
-        cardsPanel.setOpaque(false);
+        cardsPanel.setOpaque(true);
+        cardsPanel.setBackground(SURFACE);
         cardsPanel.setLayout(new BoxLayout(cardsPanel, BoxLayout.Y_AXIS));
 
         scrollPane = new JScrollPane(cardsPanel);
-        scrollPane.setOpaque(false);
-        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setOpaque(true);
+        scrollPane.setBackground(SURFACE);
+        scrollPane.getViewport().setOpaque(true);
+        scrollPane.getViewport().setBackground(SURFACE);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.getVerticalScrollBar().setUnitIncrement(20);
 
         scrollPane.getViewport().addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                int newRows = calcRowsFromViewport();
-                if (newRows > 0 && newRows != rowsPerPage) {
+                int h = scrollPane.getViewport().getHeight();
+                int newRows = Math.max(3, h / (CARD_HEIGHT + 15));
+                if (newRows != rowsPerPage) {
                     rowsPerPage = newRows;
                     if (!isRefreshing) refreshCards();
                 }
             }
         });
 
-        return scrollPane;
+        content.add(scrollPane, BorderLayout.CENTER);
+        
+        paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
+        paginationPanel.setOpaque(true);
+        paginationPanel.setBackground(SURFACE);
+        content.add(paginationPanel, BorderLayout.SOUTH);
+
+        return content;
     }
 
-    private int calcRowsFromViewport() {
-        return 4;
+    // ── Filter Bar ────────────────────────────────────────────────────────
+    private JPanel buildFilterBar() {
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 16, 16);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        bar.setOpaque(false);
+        bar.setBorder(new EmptyBorder(5, 10, 5, 10));
+
+        JLabel iconSearch = new JLabel();
+        ImageIcon icoSearch = loadScaledIcon("nutTimKiem.png", 20);
+        if (icoSearch!=null) iconSearch.setIcon(icoSearch);
+        bar.add(iconSearch);
+
+        filterGaDi = createGaCombo("Ga đi...");
+        filterGaDen = createGaCombo("Ga đến...");
+
+        JLabel arrow = new JLabel(" → ");
+        arrow.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        arrow.setForeground(TEXT_MUTED);
+
+        bar.add(filterGaDi);
+        bar.add(arrow);
+        bar.add(filterGaDen);
+
+        JButton btnClear = new JButton("Bỏ lọc");
+        btnClear.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnClear.setForeground(TEXT_MUTED);
+        btnClear.setContentAreaFilled(false);
+        btnClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnClear.addActionListener(e -> {
+            filterGaDi.clearSelection();
+            filterGaDen.clearSelection();
+            applyFilter();
+        });
+        
+        bar.add(Box.createHorizontalStrut(10));
+        bar.add(btnClear);
+
+        return bar;
     }
 
-    // ── Pagination ────────────────────────────────────────────────────────
-    private JPanel buildPagination() {
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
-        paginationPanel.setOpaque(false);
-        paginationPanel.setBorder(new EmptyBorder(12, 0, 0, 0));
-
-        lblPageInfo = new JLabel();
-        lblPageInfo.setFont(FONT_SMALL);
-        lblPageInfo.setForeground(ON_SURF_VAR);
-
-        return paginationPanel;
+    private SearchableComboBox<Ga> createGaCombo(String placeholder) {
+        SearchableComboBox<Ga> cb = new SearchableComboBox<>(
+                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q.toLowerCase()) || 
+                           ga.getMaGa().toLowerCase().contains(q.toLowerCase()));
+        cb.setPlaceholder(placeholder);
+        cb.setPreferredSize(new Dimension(250, 40));
+        cb.setOnChanged(this::applyFilter);
+        return cb;
     }
 
     // ====================================================================
@@ -352,8 +277,8 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     }
 
     private void applyFilter() {
-        Ga selGaDi  = (filterGaDi  != null) ? filterGaDi.getSelectedItem()  : null;
-        Ga selGaDen = (filterGaDen != null) ? filterGaDen.getSelectedItem() : null;
+        Ga selGaDi  = filterGaDi.getSelectedItem();
+        Ga selGaDen = filterGaDen.getSelectedItem();
 
         filteredData = new ArrayList<>();
         for (Tuyen t : allData) {
@@ -369,9 +294,6 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     private void refreshCards() {
         isRefreshing = true;
         try {
-            int vpRows = calcRowsFromViewport();
-            if (vpRows > 0) rowsPerPage = vpRows;
-
             int total = filteredData.size();
             int totalPages = (total == 0) ? 1 : (int) Math.ceil((double) total / rowsPerPage);
             if (currentPage > totalPages) currentPage = totalPages;
@@ -380,20 +302,18 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
             int end   = Math.min(start + rowsPerPage, total);
             List<Tuyen> pageData = filteredData.subList(start, end);
 
-            // Rebuild cards
             cardsPanel.removeAll();
             if (pageData.isEmpty()) {
                 cardsPanel.add(buildEmptyState());
             } else {
                 for (Tuyen t : pageData) {
-                    cardsPanel.add(buildTuyenCard(t));
-                    cardsPanel.add(Box.createVerticalStrut(CARD_GAP));
+                    cardsPanel.add(buildTicketCard(t));
+                    cardsPanel.add(Box.createVerticalStrut(15));
                 }
             }
             cardsPanel.revalidate();
             cardsPanel.repaint();
 
-            // Rebuild pagination
             rebuildPagination(totalPages, total);
         } finally {
             isRefreshing = false;
@@ -401,222 +321,263 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     }
 
     // ====================================================================
-    //  CARD BUILDER
+    //  TICKET CARD BUILDER
     // ====================================================================
 
-    private JPanel buildTuyenCard(Tuyen tuyen) {
-        JPanel card = new JPanel(new BorderLayout(16, 0)) {
-            @Override
-            public Dimension getPreferredSize() {
-                // Fix width to parent's width; fix height to CARD_HEIGHT
-                return new Dimension(100, CARD_HEIGHT);
+    private JPanel buildTicketCard(Tuyen tuyen) {
+        JPanel card = new JPanel(new BorderLayout()) {
+            boolean isHovered = false;
+            {
+                addMouseListener(new MouseAdapter() {
+                    @Override public void mouseEntered(MouseEvent e) { isHovered = true; repaint(); }
+                    @Override public void mouseExited(MouseEvent e)  { isHovered = false; repaint(); }
+                });
             }
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                int w = getWidth();
+                int h = getHeight();
+                
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, isHovered ? 15 : 8));
+                g2.fillRoundRect(3, 4, w - 6, h - 5, 20, 20);
+                
+                // Card Background
                 g2.setColor(CARD_BG);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 16, 16));
-                g2.setColor(OUTLINE);
-                g2.setStroke(new BasicStroke(1f));
-                g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1, getHeight() - 1, 16, 16));
+                g2.fillRoundRect(2, 0, w - 6, h - 6, 20, 20);
+                
+                // Border
+                g2.setColor(isHovered ? PRIMARY.brighter() : OUTLINE);
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(2, 0, w - 6, h - 6, 20, 20);
+                
+                // Left accent strip (like a real ticket brand)
+                g2.clip(new RoundRectangle2D.Float(2, 0, w - 6, h - 6, 20, 20));
+                g2.setColor(PRIMARY);
+                g2.fillRect(2, 0, 8, h);
+                
                 g2.dispose();
             }
         };
         card.setOpaque(false);
-        card.setBorder(new EmptyBorder(14, 20, 14, 20));
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, CARD_HEIGHT));
-        card.setMinimumSize(new Dimension(100, CARD_HEIGHT));
+        card.setPreferredSize(new Dimension(0, CARD_HEIGHT));
+        card.setBorder(new EmptyBorder(15, 30, 15, 20));
 
-        // ─ Left: maTuyen badge + route track ────────────────────────────
-        JPanel leftPanel = new JPanel();
-        leftPanel.setOpaque(false);
-        leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
+        // ── Main Content Container ─────────────────────────────────────
+        JPanel content = new JPanel(new GridBagLayout());
+        content.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
 
-        // Badge row: maTuyen on left, no updated-time shown
-        JPanel badgeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        badgeRow.setOpaque(false);
-        badgeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // ── Row 0: Badge 
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 3; 
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.weighty = 0;
+        gbc.insets = new Insets(0, 0, 5, 0);
 
-        JLabel badge = new JLabel(tuyen.getMaTuyen()) {
+        JLabel lblCode = new JLabel(" #" + tuyen.getMaTuyen() + " ") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(BADGE_BLUE_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.setColor(PRIMARY_LIGHT);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        badge.setFont(FONT_MONO);
-        badge.setForeground(BADGE_BLUE_FG);
-        badge.setOpaque(false);
-        badge.setBorder(new EmptyBorder(3, 10, 3, 10));
+        lblCode.setFont(new Font("Consolas", Font.BOLD, 13));
+        lblCode.setForeground(PRIMARY);
+        lblCode.setBorder(new EmptyBorder(4, 6, 4, 6));
+        content.add(lblCode, gbc);
 
-        badgeRow.add(badge);
-        leftPanel.add(badgeRow);
-        leftPanel.add(Box.createVerticalStrut(8));
+        // ── Row 1: Stations & Track
+        gbc.gridy = 1; gbc.gridwidth = 1;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(0, 0, 0, 0);
 
-        // Route track: [circle] gaDi ─────track─────── gaDen [flag]
-        JPanel trackPanel = buildTrackPanel(tuyen);
-        trackPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        leftPanel.add(trackPanel);
+        // ── Left: Ga Di ────────────────────────────────────────────────
+        JPanel leftGa = buildGaInfo(tuyen.getGaDi(), "Ga Đi", "bieuTuongGaDi.png", true);
+        gbc.gridx = 0; gbc.weightx = 0.35; gbc.anchor = GridBagConstraints.WEST;
+        content.add(leftGa, gbc);
 
-        card.add(leftPanel, BorderLayout.CENTER);
+        // ── Middle: Track graphic ──────────────────────────────────────
+        JPanel middle = buildTrackUI(tuyen);
+        gbc.gridx = 1; gbc.weightx = 0.3; gbc.anchor = GridBagConstraints.CENTER;
+        content.add(middle, gbc);
 
-        // ─ Right: edit + delete buttons ─────────────────────────────────
-        JPanel actionPanel = new JPanel();
-        actionPanel.setOpaque(false);
-        actionPanel.setLayout(new BoxLayout(actionPanel, BoxLayout.Y_AXIS));
-        actionPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 1, 0, 0, new Color(0xEC, 0xEE, 0xF0)),
-                new EmptyBorder(0, 16, 0, 0)));
+        // ── Right: Ga Den ──────────────────────────────────────────────
+        JPanel rightGa = buildGaInfo(tuyen.getGaDen(), "Ga Đến", "bieuTuongGaDen.png", false);
+        gbc.gridx = 2; gbc.weightx = 0.35; gbc.anchor = GridBagConstraints.EAST;
+        content.add(rightGa, gbc);
 
-        JButton btnEdit   = buildActionBtn("✎", PRIMARY_LIGHT, PRIMARY, false);
-        JButton btnDelete = buildActionBtn("✕", ERROR_BG,      ERROR_FG, false);
+        card.add(content, BorderLayout.CENTER);
 
-        btnEdit.setToolTipText("Chỉnh sửa");
-        btnDelete.setToolTipText("Xóa tuyến");
+        // ── Actions Panel (Right edge) ──────────────────────────────────
+        JPanel actions = new JPanel();
+        actions.setOpaque(false);
+        actions.setLayout(new BoxLayout(actions, BoxLayout.Y_AXIS));
+        actions.setBorder(new EmptyBorder(0, 15, 0, 0));
 
+        JButton btnEdit = buildIconButton("nutSua.png", PRIMARY_LIGHT, PRIMARY);
+        btnEdit.setToolTipText("Chỉnh sửa tuyến");
         btnEdit.addActionListener(e -> openEditDialog(tuyen));
-        btnDelete.addActionListener(e -> confirmDelete(tuyen));
 
-        actionPanel.add(Box.createVerticalGlue());
-        actionPanel.add(btnEdit);
-        actionPanel.add(Box.createVerticalStrut(8));
-        actionPanel.add(btnDelete);
-        actionPanel.add(Box.createVerticalGlue());
+        JButton btnDel = buildIconButton("nutXoa.png", DANGER_LIGHT, DANGER);
+        btnDel.setToolTipText("Xóa tuyến");
+        btnDel.addActionListener(e -> confirmDelete(tuyen));
 
-        card.add(actionPanel, BorderLayout.EAST);
+        actions.add(Box.createVerticalGlue());
+        actions.add(btnEdit);
+        actions.add(Box.createVerticalStrut(15));
+        actions.add(btnDel);
+        actions.add(Box.createVerticalGlue());
+
+        card.add(actions, BorderLayout.EAST);
 
         return card;
     }
 
-    private JPanel buildTrackPanel(Tuyen tuyen) {
-        final String gaDiName  = tuyen.getGaDi()  != null ? tuyen.getGaDi().getTenGa()  : "(?)";
-        final String gaDenName = tuyen.getGaDen() != null ? tuyen.getGaDen().getTenGa() : "(?)";
-        final String kmText    = tuyen.getKm() > 0 ? tuyen.getKm() + " km" : "";
+    private JPanel buildGaInfo(Ga ga, String typeLabel, String iconName, boolean leftAlign) {
+        JPanel pnl = new JPanel();
+        pnl.setOpaque(false);
+        pnl.setLayout(new BoxLayout(pnl, BoxLayout.Y_AXIS));
 
-        // Everything drawn in paintComponent — no child widgets, no null layout trouble.
+        String gaName = ga != null ? ga.getTenGa() : "(Chưa có)";
+        String maGa   = ga != null ? ga.getMaGa() : "N/A";
+        String diaChi = (ga != null && ga.getDiaChi() != null) ? ga.getDiaChi() : "Không có địa chỉ";
+
+        float alignX = leftAlign ? Component.LEFT_ALIGNMENT : Component.RIGHT_ALIGNMENT;
+
+        JLabel lblType = new JLabel(typeLabel.toUpperCase() + " • " + maGa);
+        lblType.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblType.setForeground(TEXT_MUTED);
+        lblType.setAlignmentX(alignX);
+
+        JLabel lblName = new JLabel(gaName);
+        lblName.setFont(FONT_STA);
+        lblName.setForeground(TEXT_MAIN);
+        lblName.setAlignmentX(alignX);
+
+        // Icon + Address
+        JPanel locPanel = new JPanel(new FlowLayout(leftAlign ? FlowLayout.LEFT : FlowLayout.RIGHT, 0, 0));
+        locPanel.setOpaque(false);
+        locPanel.setAlignmentX(alignX);
+        JLabel lblIcon = new JLabel();
+        ImageIcon idx = loadScaledIcon(iconName, 14);
+        if(idx!=null) lblIcon.setIcon(idx);
+        
+        JLabel lblAddr = new JLabel(" " + diaChi + " ");
+        lblAddr.setFont(FONT_SMALL);
+        lblAddr.setForeground(TEXT_MUTED);
+        
+        if (leftAlign) {
+            locPanel.add(lblIcon);
+            locPanel.add(lblAddr);
+        } else {
+            locPanel.add(lblAddr);
+            locPanel.add(lblIcon);
+        }
+
+        pnl.add(Box.createVerticalGlue());
+        pnl.add(lblType);
+        pnl.add(Box.createVerticalStrut(4));
+        pnl.add(lblName);
+        pnl.add(Box.createVerticalStrut(6));
+        pnl.add(locPanel);
+        pnl.add(Box.createVerticalGlue());
+        
+        return pnl;
+    }
+
+    private JPanel buildTrackUI(Tuyen tuyen) {
         JPanel track = new JPanel() {
-            private static final int LINE_Y   = 30;  // Y of the track line (from top)
-            private static final int CIRCLE_R = 8;
-            private static final int MARGIN   = 16;  // left/right margin from card border
-
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,     RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                int w      = getWidth();
-                int leftX  = MARGIN + CIRCLE_R;          // node centre X (left)
-                int rightX = w - MARGIN - CIRCLE_R;      // node centre X (right)
-                if (rightX < leftX + 20) rightX = leftX + 20;
+                int w = getWidth();
+                int h = getHeight();
+                int midY = h / 2 + 5;
+                
+                // Draw dots line
+                Stroke dashed = new BasicStroke(2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{6, 6}, 0);
+                g2.setStroke(dashed);
+                g2.setColor(OUTLINE.darker());
+                g2.drawLine(20, midY, w - 20, midY);
 
-                // ── Gradient track line ───────────────────────────────────
-                GradientPaint gp = new GradientPaint(leftX, LINE_Y, TRACK_START, rightX, LINE_Y, TRACK_END);
-                g2.setPaint(gp);
-                g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                g2.drawLine(leftX + CIRCLE_R, LINE_Y, rightX - CIRCLE_R, LINE_Y);
-
-                // ── Left node ────────────────────────────────────────────
-                g2.setPaint(null);
-                g2.setColor(TRACK_START);
-                g2.fill(new Ellipse2D.Float(leftX - CIRCLE_R, LINE_Y - CIRCLE_R, CIRCLE_R * 2, CIRCLE_R * 2));
-                g2.setColor(Color.WHITE);
-                g2.setStroke(new BasicStroke(2f));
-                g2.draw(new Ellipse2D.Float(leftX - CIRCLE_R + 1, LINE_Y - CIRCLE_R + 1, CIRCLE_R * 2 - 2, CIRCLE_R * 2 - 2));
-
-                // ── Right node ───────────────────────────────────────────
-                g2.setColor(TRACK_END);
-                g2.fill(new Ellipse2D.Float(rightX - CIRCLE_R, LINE_Y - CIRCLE_R, CIRCLE_R * 2, CIRCLE_R * 2));
-                g2.setColor(Color.WHITE);
-                g2.draw(new Ellipse2D.Float(rightX - CIRCLE_R + 1, LINE_Y - CIRCLE_R + 1, CIRCLE_R * 2 - 2, CIRCLE_R * 2 - 2));
-
-                // ── km label (above the track line, centered) ────────────
-                if (!kmText.isEmpty()) {
-                    Font kmFont = new Font("Segoe UI", Font.BOLD, 11);
-                    g2.setFont(kmFont);
-                    FontMetrics kmFm = g2.getFontMetrics();
-                    int midX = (leftX + rightX) / 2;
-                    int kmW  = kmFm.stringWidth(kmText);
-                    int kmX  = midX - kmW / 2;
-                    int kmY  = LINE_Y - CIRCLE_R - 4;
-                    g2.setColor(ON_SURF_VAR);
-                    g2.drawString(kmText, kmX, kmY);
+                // Draw Train Icon in middle
+                ImageIcon trainIcon = loadScaledIcon("bieuTuongTau.png", 24);
+                if (trainIcon != null) {
+                    int ix = (w - 24) / 2;
+                    int iy = midY - 12;
+                    
+                    // Clear background behind icon
+                    g2.setColor(CARD_BG);
+                    g2.fillOval(ix-4, iy-4, 32, 32);
+                    
+                    trainIcon.paintIcon(this, g2, ix, iy);
                 }
-
-                // ── Station name labels (below nodes) ────────────────────
-                g2.setFont(FONT_STA);
-                g2.setColor(ON_SURFACE);
+                
+                // Draw KM text
+                String km = tuyen.getKm() > 0 ? tuyen.getKm() + " km" : "---";
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
                 FontMetrics fm = g2.getFontMetrics();
-                int textY = LINE_Y + CIRCLE_R + fm.getAscent() + 6;
+                int tw = fm.stringWidth(km);
+                g2.setColor(PRIMARY);
+                g2.drawString(km, (w - tw)/2, midY - 20);
 
-                // Left: centered under left node, but clamped so it doesn't go off-screen
-                int leftNameW  = fm.stringWidth(gaDiName);
-                int leftTextX  = Math.max(0, leftX - leftNameW / 2);
-                g2.drawString(gaDiName, leftTextX, textY);
-
-                // Right: centered under right node, but clamped so it doesn't go off-screen
-                int rightNameW = fm.stringWidth(gaDenName);
-                int rightTextX = Math.min(w - rightNameW, rightX - rightNameW / 2);
-                g2.drawString(gaDenName, rightTextX, textY);
-
+                // End dots
+                g2.setColor(PRIMARY);
+                g2.fillOval(15, midY-4, 8, 8);
+                g2.setColor(DANGER);
+                g2.fillOval(w - 23, midY-4, 8, 8);
+                
                 g2.dispose();
             }
         };
         track.setOpaque(false);
-        // Fixed height; width is determined by the parent (BorderLayout CENTER)
-        track.setPreferredSize(new Dimension(100, 80));
-        track.setMinimumSize(new Dimension(100, 80));
-        track.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        track.setPreferredSize(new Dimension(150, 80));
         return track;
     }
 
-    private JButton buildActionBtn(String text, Color bgColor, Color fgColor, boolean small) {
-        JButton btn = new JButton(text) {
-            boolean hovered = false;
-            {
-                addMouseListener(new MouseAdapter() {
-                    @Override public void mouseEntered(MouseEvent e) { hovered = true; repaint(); }
-                    @Override public void mouseExited(MouseEvent e)  { hovered = false; repaint(); }
-                });
-            }
-            @Override protected void paintComponent(Graphics g) {
+    private JButton buildIconButton(String iconFile, Color bgHover, Color iconColor) {
+        JButton btn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(hovered ? bgColor.darker() : bgColor);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                if (getModel().isRollover() || getModel().isPressed()) {
+                    g2.setColor(bgHover);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                }
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        btn.setForeground(fgColor);
+        ImageIcon ico = loadScaledIcon(iconFile, 20);
+        if (ico != null) btn.setIcon(ico);
+        btn.setPreferredSize(new Dimension(38, 38));
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(44, 44));
-        btn.setMaximumSize(new Dimension(44, 44));
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }
 
-    // ── Empty state ───────────────────────────────────────────────────────
     private JPanel buildEmptyState() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setOpaque(false);
-        panel.setPreferredSize(new Dimension(0, 300));
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
-
-        JLabel lbl = new JLabel("Không có tuyến đường nào phù hợp");
-        lbl.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-        lbl.setForeground(ON_SURF_VAR);
-        panel.add(lbl);
-        return panel;
+        JPanel p = new JPanel(new GridBagLayout());
+        p.setOpaque(false);
+        JLabel lbl = new JLabel("Không tìm thấy tuyến đường nào!");
+        lbl.setFont(new Font("Segoe UI", Font.ITALIC, 16));
+        lbl.setForeground(TEXT_MUTED);
+        p.add(lbl);
+        return p;
     }
 
     // ====================================================================
@@ -627,23 +588,19 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         paginationPanel.removeAll();
 
         if (total > 0) {
-            JLabel info = new JLabel("Hiển thị trang " + currentPage + " / " + totalPages
-                    + "  (" + total + " tuyến)");
+            JLabel info = new JLabel("Hiển thị trang " + currentPage + " / " + totalPages + " (" + total + " tuyến)");
             info.setFont(FONT_SMALL);
-            info.setForeground(ON_SURF_VAR);
+            info.setForeground(TEXT_MUTED);
             paginationPanel.add(info);
+            paginationPanel.add(Box.createHorizontalStrut(15));
         }
 
         if (totalPages > 1) {
-            paginationPanel.add(Box.createHorizontalStrut(12));
-
-            // Prev
-            JButton btnPrev = makePaginBtn("←");
+            JButton btnPrev = makePaginBtn("<");
             btnPrev.setEnabled(currentPage > 1);
             btnPrev.addActionListener(e -> { currentPage--; refreshCards(); });
             paginationPanel.add(btnPrev);
 
-            // Page number buttons (show up to 5)
             int startP = Math.max(1, currentPage - 2);
             int endP   = Math.min(totalPages, startP + 4);
             for (int p = startP; p <= endP; p++) {
@@ -657,8 +614,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
                 paginationPanel.add(btn);
             }
 
-            // Next
-            JButton btnNext = makePaginBtn("→");
+            JButton btnNext = makePaginBtn(">");
             btnNext.setEnabled(currentPage < totalPages);
             btnNext.addActionListener(e -> { currentPage++; refreshCards(); });
             paginationPanel.add(btnNext);
@@ -669,7 +625,6 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     }
 
     private JButton makePaginBtn(String label) {
-        boolean isActive = Boolean.TRUE.equals(null); // placeholder
         JButton btn = new JButton(label) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -679,7 +634,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
                     g2.setColor(PRIMARY);
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 } else if (getModel().isRollover()) {
-                    g2.setColor(PRIMARY_LIGHT);
+                    g2.setColor(OUTLINE);
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 }
                 g2.dispose();
@@ -687,11 +642,12 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
             }
         };
         btn.setFont(FONT_BOLD);
-        btn.setForeground(Boolean.TRUE.equals(btn.getClientProperty("active")) ? Color.WHITE : ON_SURFACE);
+        btn.setForeground(TEXT_MAIN);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setMargin(new Insets(0, 0, 0, 0));
         btn.setPreferredSize(new Dimension(36, 36));
         return btn;
     }
@@ -715,13 +671,9 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     }
 
     private void confirmDelete(Tuyen tuyen) {
-        String gaDiName  = tuyen.getGaDi()  != null ? tuyen.getGaDi().getTenGa()  : "?";
-        String gaDenName = tuyen.getGaDen() != null ? tuyen.getGaDen().getTenGa() : "?";
-
         int choice = JOptionPane.showConfirmDialog(
                 this,
-                "Bạn có chắc chắn muốn xóa tuyến\n"
-                        + tuyen.getMaTuyen() + "  (" + gaDiName + " → " + gaDenName + ")?",
+                "Bạn có chắc chắn muốn xóa tuyến " + tuyen.getMaTuyen() + "?",
                 "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE);
@@ -731,11 +683,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
             if (ok) {
                 loadData();
             } else {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Không thể xóa tuyến này. Tuyến có thể đang được sử dụng trong lịch chạy.",
-                        "Lỗi xóa",
-                        JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Không thể xóa tuyến này.", "Lỗi lệnh", JOptionPane.ERROR_MESSAGE);
             }
         }
     }

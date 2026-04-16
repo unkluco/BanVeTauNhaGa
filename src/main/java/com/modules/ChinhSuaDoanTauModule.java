@@ -1,16 +1,27 @@
 package com.modules;
 
+import com.connectDB.ConnectDB;
+import com.dao.DAO_ChiTietDoanTau;
 import com.dao.DAO_DauMay;
 import com.dao.DAO_DoanTau;
+import com.dao.DAO_ToaTau;
+import com.entity.ChiTietDoanTau;
 import com.entity.DauMay;
 import com.entity.DoanTau;
+import com.entity.ToaTau;
+import com.enums.LoaiGhe;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
+import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -21,23 +32,28 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
     private final boolean isEditMode;
 
     // Design tokens
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_HOVER = new Color(0x00, 0x4A, 0x73);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
+    private static final Color PRIMARY       = new Color(13, 110, 253);
+    private static final Color PRIMARY_HOVER = new Color(11, 94, 215);
+    private static final Color SURFACE       = new Color(248, 249, 250);
     private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color READONLY_BG   = new Color(0xF1, 0xF5, 0xF9);
-    private static final Color ERROR         = new Color(0xBA, 0x1A, 0x1A);
+    private static final Color TEXT_MAIN     = new Color(33, 37, 41);
+    private static final Color TEXT_MUTED    = new Color(108, 117, 125);
+    private static final Color OUTLINE       = new Color(222, 226, 230);
+    private static final Color READONLY_BG   = new Color(233, 236, 239);
+    private static final Color ERROR         = new Color(220, 53, 69);
+    
+    // Badge Colors
+    private static final Color C_CUNG   = new Color(0xFF, 0x8A, 0x65); 
+    private static final Color C_MEM    = new Color(0x64, 0xB5, 0xF6); 
+    private static final Color C_GIUONG = new Color(0x81, 0xC7, 0x84);
 
-    private static final Font FONT_TITLE = new Font("Segoe UI", Font.BOLD, 24);
-    private static final Font FONT_DESC  = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FONT_LABEL = new Font("Segoe UI", Font.BOLD, 12);
-    private static final Font FONT_INPUT = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FONT_MONO  = new Font("Consolas", Font.BOLD, 13);
-    private static final Font FONT_BTN   = new Font("Segoe UI", Font.BOLD, 13);
-    private static final Font FONT_ERR   = new Font("Segoe UI", Font.PLAIN, 11);
+    private static final Font FONT_TITLE = new Font("Segoe UI", Font.BOLD, 26);
+    private static final Font FONT_DESC  = new Font("Segoe UI", Font.PLAIN, 14);
+    private static final Font FONT_LABEL = new Font("Segoe UI", Font.BOLD, 13);
+    private static final Font FONT_INPUT = new Font("Segoe UI", Font.PLAIN, 14);
+    private static final Font FONT_MONO  = new Font("Consolas", Font.BOLD, 14);
+    private static final Font FONT_BTN   = new Font("Segoe UI", Font.BOLD, 14);
+    private static final Font FONT_ERR   = new Font("Segoe UI", Font.PLAIN, 12);
 
     // Form fields
     private JTextField        txtMaDoanTau;
@@ -46,10 +62,15 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
     private JLabel            lblErrTen;
     private JLabel            lblErrDauMay;
 
-    // AppModule hidden buttons
+    // Actions
     private JButton btnSubmit;
     private JButton btnCancel;
     private JPanel  btnPanel;
+
+    // Visualizer State
+    private JPanel visualContainer;
+    private List<ToaTau> currentWagons = new ArrayList<>();
+    private List<ToaTau> allToaTau     = new ArrayList<>();
 
     public ChinhSuaDoanTauModule(DoanTau doanTau) {
         this.doanTau    = doanTau;
@@ -64,202 +85,570 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         add(btnPanel, BorderLayout.SOUTH);
 
         buildUI();
+        loadData();
     }
 
     private void buildUI() {
         add(buildHeader(),  BorderLayout.NORTH);
-        add(buildContent(), BorderLayout.CENTER);
+        
+        JPanel body = new JPanel(new BorderLayout(20, 0));
+        body.setOpaque(false);
+        body.setBorder(new EmptyBorder(10, 36, 20, 36));
+        
+        body.add(buildLeftForm(), BorderLayout.WEST);
+        body.add(buildVisualizerPanel(), BorderLayout.CENTER);
+        
+        add(body, BorderLayout.CENTER);
+
+        // Action buttons
+        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        btnRow.setOpaque(false);
+        btnRow.setBorder(new EmptyBorder(0, 36, 24, 36));
+
+        JButton btnHuy = createOutlineButton("Hủy bỏ");
+        btnHuy.addActionListener(e -> { if (callback != null) callback.accept(null); });
+
+        JButton btnLuu = createPrimaryButton(isEditMode ? "Lưu thay đổi" : "Xuất bản đội tàu");
+        btnLuu.addActionListener(e -> doSave());
+
+        btnRow.add(btnHuy);
+        btnRow.add(btnLuu);
+        add(btnRow, BorderLayout.SOUTH);
     }
 
     // ── Header ────────────────────────────────────────────────────────────
-
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout(16, 0));
-        header.setBackground(CARD_BG);
-        header.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
-                new EmptyBorder(20, 36, 16, 36)
-        ));
-
-        JButton btnBack = new JButton("← Quay lại");
-        btnBack.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        btnBack.setForeground(ON_SURF_VAR);
-        btnBack.setContentAreaFilled(false);
-        btnBack.setBorderPainted(false);
-        btnBack.setFocusPainted(false);
-        btnBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnBack.addActionListener(e -> { if (callback != null) callback.accept(null); });
+        header.setBackground(SURFACE);
+        header.setBorder(new EmptyBorder(24, 36, 16, 36));
 
         JPanel titlePanel = new JPanel();
         titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
         titlePanel.setOpaque(false);
 
-        String titleText = isEditMode ? "Chỉnh sửa đoàn tàu" : "Thêm đoàn tàu mới";
+        String titleText = isEditMode ? "Chỉnh Sửa Đội Tàu" : "Thiết Lập Đội Tàu Mới";
         JLabel lblTitle  = new JLabel(titleText);
         lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(PRIMARY);
+        lblTitle.setForeground(TEXT_MAIN);
 
         String descText = isEditMode
-                ? "Cập nhật thông tin đoàn tàu."
-                : "Điền đầy đủ thông tin để tạo đoàn tàu mới.";
+                ? "Cập nhật, thay đổi đầu kéo hoặc cấu trúc các toa nối."
+                : "Thiết lập cấu hình tàu hỏa mới bằng cách minh họa phân đoạn trực quan.";
         JLabel lblDesc = new JLabel(descText);
         lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(ON_SURF_VAR);
+        lblDesc.setForeground(TEXT_MUTED);
 
         titlePanel.add(lblTitle);
         titlePanel.add(Box.createVerticalStrut(4));
         titlePanel.add(lblDesc);
 
-        header.add(btnBack,    BorderLayout.WEST);
         header.add(titlePanel, BorderLayout.CENTER);
         return header;
     }
 
-    // ── Content (form card + buttons) ─────────────────────────────────────
-
-    private JPanel buildContent() {
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setBackground(SURFACE);
-        wrapper.setBorder(new EmptyBorder(28, 36, 28, 36));
-
-        // Form card
+    // ── Left Form (Basic info) ──────────────────────────────────────────
+    private JPanel buildLeftForm() {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(24, 28, 24, 28)
-        ));
+        card.setOpaque(false);
+        card.setPreferredSize(new Dimension(380, 0));
+        card.setBorder(new EmptyBorder(10, 0, 10, 0));
+
+        // Background painter
+        JPanel bg = new JPanel(new BorderLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(CARD_BG);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+                g2.setColor(OUTLINE);
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 24, 24);
+                g2.dispose();
+            }
+        };
+        bg.setOpaque(false);
+        bg.setBorder(new EmptyBorder(30, 24, 30, 24));
+        
+        JPanel inner = new JPanel();
+        inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
+        inner.setOpaque(false);
+
+        JLabel lblSecTitle = new JLabel("Thông Tin Cơ Bản");
+        lblSecTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblSecTitle.setForeground(TEXT_MAIN);
+        lblSecTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        inner.add(lblSecTitle);
+        inner.add(Box.createVerticalStrut(24));
 
         // Ma doan tau (read-only)
         String maValue = isEditMode ? doanTau.getMaDoanTau() : generateMaDoanTau();
         txtMaDoanTau = new JTextField(maValue);
         txtMaDoanTau.setFont(FONT_MONO);
-        txtMaDoanTau.setForeground(ON_SURF_VAR);
+        txtMaDoanTau.setForeground(TEXT_MAIN);
         txtMaDoanTau.setEditable(false);
         txtMaDoanTau.setBackground(READONLY_BG);
-        txtMaDoanTau.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        txtMaDoanTau.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
+        styleField(txtMaDoanTau);
 
-        JPanel row1 = rowPanel();
-        row1.add(buildFieldGroup("Mã đoàn tàu", txtMaDoanTau, null, false, null));
-        card.add(row1);
-        card.add(Box.createVerticalStrut(14));
+        inner.add(buildFieldGroup("Mã đoàn tàu", txtMaDoanTau, "Hệ thống tự động khởi tạo", false, null));
+        inner.add(Box.createVerticalStrut(18));
 
         // Ten doan tau
-        txtTenDoanTau = createInputField("VD: Tàu SE1");
+        txtTenDoanTau = createInputField("Nhập tên, VD: Tàu SE1");
         if (isEditMode && doanTau.getTenDoanTau() != null) {
             txtTenDoanTau.setText(doanTau.getTenDoanTau());
-            txtTenDoanTau.setForeground(ON_SURFACE);
+            txtTenDoanTau.setForeground(TEXT_MAIN);
         }
         lblErrTen = createErrorLabel();
-
-        JPanel row2 = rowPanel();
-        row2.add(buildFieldGroup("Tên đoàn tàu", txtTenDoanTau, null, true, lblErrTen));
-        card.add(row2);
-        card.add(Box.createVerticalStrut(14));
+        inner.add(buildFieldGroup("Tên đoàn tàu", txtTenDoanTau, null, true, lblErrTen));
+        inner.add(Box.createVerticalStrut(18));
 
         // Dau may
         cboDauMay = new JComboBox<>();
         cboDauMay.setFont(FONT_INPUT);
         cboDauMay.setEditable(false);
+        cboDauMay.setBackground(Color.WHITE);
+        cboDauMay.setPreferredSize(new Dimension(0, 42));
+        Color bColor = new Color(180, 185, 190);
+        cboDauMay.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(bColor, 1, true),
+                BorderFactory.createEmptyBorder(2, 2, 2, 2)));
         cboDauMay.setRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value,
-                    int index, boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof DauMay dm) {
-                    setText(dm.getTenDauMay() + "  (" + dm.getMaDauMay() + ")");
-                }
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean sel, boolean foc) {
+                super.getListCellRendererComponent(list, value, index, sel, foc);
+                if (value instanceof DauMay dm) setText(dm.getMaDauMay() + " - " + dm.getTenDauMay());
+                setBorder(new EmptyBorder(4, 8, 4, 8));
                 return this;
             }
         });
-        cboDauMay.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        cboDauMay.setPreferredSize(new Dimension(0, 36));
+        cboDauMay.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) updateVisualizer();
+        });
         lblErrDauMay = createErrorLabel();
+        inner.add(buildFieldGroup("Lắp Đầu Kéo", cboDauMay, "Đầu máy chi phối sức kéo của cả chuyến tàu", true, lblErrDauMay));
+        
+        inner.add(Box.createVerticalGlue()); // Push to top
+        bg.add(inner, BorderLayout.CENTER);
+        card.add(bg);
+        return card;
+    }
 
-        JPanel row3 = rowPanel();
-        row3.add(buildFieldGroup("Đầu máy", cboDauMay, null, true, lblErrDauMay));
-        card.add(row3);
+    // ── Visualizer (Right Pane) ─────────────────────────────────────────
+    private JPanel buildVisualizerPanel() {
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.setBorder(new EmptyBorder(10, 0, 10, 0));
 
-        wrapper.add(card, BorderLayout.CENTER);
+        JPanel bg = new JPanel(new BorderLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(CARD_BG);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+                g2.setColor(OUTLINE);
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 24, 24);
+                g2.dispose();
+            }
+        };
+        bg.setOpaque(false);
+        bg.setBorder(new EmptyBorder(30, 24, 30, 24));
+        
+        // Title area
+        JPanel tPanel = new JPanel(new BorderLayout());
+        tPanel.setOpaque(false);
+        JLabel lblSec = new JLabel("Minh Hoạ Tuyến Toa Tàu");
+        lblSec.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblSec.setForeground(TEXT_MAIN);
+        tPanel.add(lblSec, BorderLayout.WEST);
+        
+        JButton btnClear = createOutlineButton("Xóa toàn bộ");
+        btnClear.setPreferredSize(new Dimension(120, 34));
+        btnClear.addActionListener(e -> {
+            if(JOptionPane.showConfirmDialog(this,"Xác nhận tháo tất cả toa tàu?","Cảnh báo", JOptionPane.YES_NO_OPTION)==JOptionPane.YES_OPTION){
+                currentWagons.clear();
+                updateVisualizer();
+            }
+        });
+        tPanel.add(btnClear, BorderLayout.EAST);
+        
+        bg.add(tPanel, BorderLayout.NORTH);
 
-        // Action buttons
-        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
-        btnRow.setOpaque(false);
-        btnRow.setBorder(new EmptyBorder(16, 0, 0, 0));
+        // Visual Scroll
+        visualContainer = new JPanel();
+        visualContainer.setLayout(new BoxLayout(visualContainer, BoxLayout.X_AXIS));
+        visualContainer.setOpaque(false);
+        visualContainer.setBorder(new EmptyBorder(40, 10, 40, 10));
 
-        JButton btnHuy = createOutlineButton("Hủy");
-        btnHuy.addActionListener(e -> { if (callback != null) callback.accept(null); });
+        JScrollPane sp = new JScrollPane(visualContainer);
+        sp.setOpaque(false);
+        sp.getViewport().setOpaque(false);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-        JButton btnLuu = createPrimaryButton(isEditMode ? "Lưu thay đổi" : "Thêm đoàn tàu");
-        btnLuu.addActionListener(e -> doSave());
-
-        btnRow.add(btnHuy);
-        btnRow.add(btnLuu);
-        wrapper.add(btnRow, BorderLayout.SOUTH);
-
-        // Load dau may list in background
-        loadDauMayList();
-
+        bg.add(sp, BorderLayout.CENTER);
+        wrapper.add(bg, BorderLayout.CENTER);
         return wrapper;
     }
 
-    // ── Data ──────────────────────────────────────────────────────────────
+    private void updateVisualizer() {
+        visualContainer.removeAll();
+        
+        // Đầu máy (Locomotive)
+        DauMay dm = (DauMay) cboDauMay.getSelectedItem();
+        visualContainer.add(buildLocoNode(dm));
+        
+        visualContainer.add(buildConnector());
+        visualContainer.add(buildAddNode(0));
+        visualContainer.add(buildConnector());
 
-    private void loadDauMayList() {
-        new SwingWorker<List<DauMay>, Void>() {
-            @Override
-            protected List<DauMay> doInBackground() {
-                return new DAO_DauMay().getAll();
+        // Các toa
+        for (int i = 0; i < currentWagons.size(); i++) {
+            visualContainer.add(buildWagonNode(currentWagons.get(i), i));
+            visualContainer.add(buildConnector());
+            visualContainer.add(buildAddNode(i + 1));
+            visualContainer.add(buildConnector());
+        }
+        
+        visualContainer.revalidate();
+        visualContainer.repaint();
+    }
+
+    private JPanel buildLocoNode(DauMay dm) {
+        JPanel p = new JPanel(new BorderLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(PRIMARY);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.dispose();
             }
-            @Override
-            protected void done() {
-                try {
-                    List<DauMay> list = get();
-                    cboDauMay.removeAllItems();
-                    for (DauMay dm : list) cboDauMay.addItem(dm);
-                    if (isEditMode && doanTau.getDauMay() != null) {
-                        String maDM = doanTau.getDauMay().getMaDauMay();
+        };
+        p.setOpaque(false);
+        p.setPreferredSize(new Dimension(140, 150));
+        p.setMaximumSize(new Dimension(140, 150));
+        
+        JLabel lblIco = new JLabel(loadScaledIcon("bieuTuongTau.png", 42));
+        lblIco.setHorizontalAlignment(SwingConstants.CENTER);
+        p.add(lblIco, BorderLayout.CENTER);
+        
+        String txt = dm == null ? "KHÔNG RÕ" : dm.getMaDauMay();
+        JLabel lblName = new JLabel("ĐẦU MÁY: " + txt, SwingConstants.CENTER);
+        lblName.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblName.setForeground(Color.WHITE);
+        lblName.setBorder(new EmptyBorder(10, 5, 15, 5));
+        p.add(lblName, BorderLayout.SOUTH);
+        
+        return p;
+    }
+
+    private JPanel buildWagonNode(ToaTau toa, int index) {
+        Color cVal = OUTLINE;
+        String typeName = "N/A";
+        if(toa.getLoaiGhe() != null) {
+            switch(toa.getLoaiGhe()) {
+                case GHE_CUNG: cVal = C_CUNG; typeName = "Ghế Cứng"; break;
+                case GHE_MEM: cVal = C_MEM; typeName = "Ghế Mềm"; break;
+                case GIUONG_NAM: cVal = C_GIUONG; typeName = "Giường Nằm"; break;
+            }
+        }
+        final Color finalCol = cVal;
+        
+        JPanel p = new JPanel(new BorderLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.setColor(finalCol);
+                g2.setStroke(new BasicStroke(2f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 16, 16);
+                
+                // Header ribbon
+                g2.fillRoundRect(0, 0, getWidth(), 35, 16, 16);
+                g2.fillRect(0, 16, getWidth(), 19); 
+                g2.dispose();
+            }
+        };
+        p.setOpaque(false);
+        p.setPreferredSize(new Dimension(140, 150));
+        p.setMaximumSize(new Dimension(140, 150));
+        
+        // Header
+        JLabel lblThuTu = new JLabel("TOA SỐ " + (index+1), SwingConstants.CENTER);
+        lblThuTu.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblThuTu.setForeground(Color.WHITE);
+        lblThuTu.setPreferredSize(new Dimension(140, 35));
+        p.add(lblThuTu, BorderLayout.NORTH);
+        
+        // Core
+        JPanel core = new JPanel();
+        core.setLayout(new BoxLayout(core, BoxLayout.Y_AXIS));
+        core.setOpaque(false);
+        core.add(Box.createVerticalStrut(10));
+        
+        JLabel lblMa = new JLabel(toa.getMaToaTau(), SwingConstants.CENTER);
+        lblMa.setFont(FONT_MONO);
+        lblMa.setAlignmentX(Component.CENTER_ALIGNMENT);
+        core.add(lblMa);
+        
+        JLabel lblLoai = new JLabel(typeName, SwingConstants.CENTER);
+        lblLoai.setFont(FONT_ERR);
+        lblLoai.setForeground(TEXT_MUTED);
+        lblLoai.setAlignmentX(Component.CENTER_ALIGNMENT);
+        core.add(Box.createVerticalStrut(6));
+        core.add(lblLoai);
+        p.add(core, BorderLayout.CENTER);
+        
+        // Bottom controls (Left, Trash, Right)
+        JPanel ctrl = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 10));
+        ctrl.setOpaque(false);
+        
+        JButton btnL = createMiniBtn("<", e -> {
+            if (index > 0) {
+                ToaTau tmp = currentWagons.get(index);
+                currentWagons.set(index, currentWagons.get(index - 1));
+                currentWagons.set(index - 1, tmp);
+                updateVisualizer();
+            }
+        });
+        btnL.setEnabled(index > 0);
+        
+        JButton btnR = createMiniBtn(">", e -> {
+            if (index < currentWagons.size() - 1) {
+                ToaTau tmp = currentWagons.get(index);
+                currentWagons.set(index, currentWagons.get(index + 1));
+                currentWagons.set(index + 1, tmp);
+                updateVisualizer();
+            }
+        });
+        btnR.setEnabled(index < currentWagons.size() - 1);
+        
+        JButton btnDel = createMiniBtn("Xóa", e -> {
+            currentWagons.remove(index);
+            updateVisualizer();
+        });
+        btnDel.setForeground(ERROR);
+        
+        ctrl.add(btnL);
+        ctrl.add(btnDel);
+        ctrl.add(btnR);
+        
+        p.add(ctrl, BorderLayout.SOUTH);
+        
+        return p;
+    }
+
+    private JPanel buildAddNode(int insertIdx) {
+        JPanel wrapper = new JPanel(new GridBagLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(new Color(200, 200, 200));
+                g2.setStroke(new BasicStroke(3f));
+                g2.drawLine(0, getHeight()/2, getWidth(), getHeight()/2);
+                g2.dispose();
+            }
+        };
+        wrapper.setOpaque(false);
+        wrapper.setPreferredSize(new Dimension(50, 150));
+        wrapper.setMaximumSize(new Dimension(50, 150));
+        
+        JButton btn = new JButton("+") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isPressed()) g2.setColor(PRIMARY_HOVER);
+                else if (getModel().isRollover()) g2.setColor(new Color(100, 160, 255));
+                else g2.setColor(new Color(160, 160, 160));
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setPreferredSize(new Dimension(32, 32));
+        btn.setFont(new Font("Arial", Font.BOLD, 18));
+        btn.setForeground(Color.WHITE);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setToolTipText("Chèn toa tàu vào vị trí này");
+        btn.addActionListener(e -> openAddWagonDialog(insertIdx));
+        
+        wrapper.add(btn);
+        return wrapper;
+    }
+    
+    private JPanel buildConnector() {
+        JPanel p = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(new Color(200, 200, 200));
+                g2.setStroke(new BasicStroke(3f));
+                g2.drawLine(0, getHeight()/2, getWidth(), getHeight()/2);
+                g2.dispose();
+            }
+        };
+        p.setOpaque(false);
+        p.setPreferredSize(new Dimension(20, 150));
+        p.setMaximumSize(new Dimension(20, 150));
+        return p;
+    }
+
+    private JButton createMiniBtn(String txt, ActionListener a) {
+        JButton b = new JButton(txt);
+        b.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        b.setPreferredSize(new Dimension(30, 30));
+        b.setMargin(new Insets(0,0,0,0));
+        b.setForeground(TEXT_MAIN);
+        b.setFocusPainted(false);
+        b.setContentAreaFilled(false);
+        b.addActionListener(a);
+        return b;
+    }
+
+    // ── Dialog Chọn Toa Tàu ────────────────────────────────────────────────
+    private void openAddWagonDialog(int insertIdx) {
+        if (allToaTau.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Không có toa tàu nào khả dụng trong hệ thống.");
+            return;
+        }
+
+        Window parentWindow = SwingUtilities.getWindowAncestor(this);
+        JDialog dialog = new JDialog(parentWindow, "Thêm Toa Tàu", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setSize(450, 500);
+        dialog.setLocationRelativeTo(this);
+        
+        JPanel cpan = new JPanel(new BorderLayout(0, 10));
+        cpan.setBorder(new EmptyBorder(15, 15, 15, 15));
+        cpan.setBackground(SURFACE);
+        
+        JTextField txtSearch = createInputField("Tìm mã toa...");
+        cpan.add(txtSearch, BorderLayout.NORTH);
+        
+        DefaultListModel<ToaTau> model = new DefaultListModel<>();
+        for (ToaTau tt : allToaTau) {
+            // Optional: check if already in list to avoid duplicates
+            boolean inTrain = currentWagons.stream().anyMatch(w -> w.getMaToaTau().equals(tt.getMaToaTau()));
+            if(!inTrain) model.addElement(tt);
+        }
+        
+        JList<ToaTau> list = new JList<>(model);
+        list.setFont(FONT_INPUT);
+        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        list.setCellRenderer(new DefaultListCellRenderer() {
+            @Override public Component getListCellRendererComponent(JList<?> l, Object v, int i, boolean s, boolean f) {
+                super.getListCellRendererComponent(l, v, i, s, f);
+                if (v instanceof ToaTau tt) {
+                    setText(tt.getMaToaTau() + " - " + (tt.getLoaiGhe() != null ? tt.getLoaiGhe().toDbValue() : ""));
+                }
+                setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                return this;
+            }
+        });
+        
+        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
+            void filter() {
+                String kw = txtSearch.getText().trim().toLowerCase();
+                if(kw.equals("tìm mã toa...")) kw = "";
+                model.clear();
+                for (ToaTau tt : allToaTau) {
+                    boolean inTrain = currentWagons.stream().anyMatch(w -> w.getMaToaTau().equals(tt.getMaToaTau()));
+                    if (!inTrain && tt.getMaToaTau().toLowerCase().contains(kw)) {
+                        model.addElement(tt);
+                    }
+                }
+            }
+            @Override public void insertUpdate(DocumentEvent e) { filter(); }
+            @Override public void removeUpdate(DocumentEvent e) { filter(); }
+            @Override public void changedUpdate(DocumentEvent e) { filter(); }
+        });
+        
+        JScrollPane rscroll = new JScrollPane(list);
+        cpan.add(rscroll, BorderLayout.CENTER);
+        
+        JButton btnAdd = createPrimaryButton("Chọn Thêm");
+        btnAdd.addActionListener(e -> {
+            ToaTau picked = list.getSelectedValue();
+            if(picked != null) {
+                currentWagons.add(insertIdx, picked);
+                updateVisualizer();
+                dialog.dispose();
+            }
+        });
+        JPanel bot = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bot.setOpaque(false);
+        bot.add(btnAdd);
+        cpan.add(bot, BorderLayout.SOUTH);
+        
+        dialog.setContentPane(cpan);
+        dialog.setVisible(true);
+    }
+
+    // ── Data & Saving ─────────────────────────────────────────────────────
+    private void loadData() {
+        new SwingWorker<Void, Void>() {
+            List<DauMay> dList;
+            List<ToaTau> tList;
+            List<ChiTietDoanTau> detailList;
+
+            @Override protected Void doInBackground() {
+                dList = new DAO_DauMay().getAll();
+                tList = new DAO_ToaTau().getAll();
+                if (isEditMode) {
+                    detailList = new DAO_ChiTietDoanTau().findByDoanTau(doanTau.getMaDoanTau());
+                }
+                return null;
+            }
+
+            @Override protected void done() {
+                allToaTau = tList != null ? tList : new ArrayList<>();
+                cboDauMay.removeAllItems();
+                if (dList != null) {
+                    for (DauMay dm : dList) cboDauMay.addItem(dm);
+                }
+
+                if (isEditMode) {
+                    if (doanTau.getDauMay() != null) {
                         for (int i = 0; i < cboDauMay.getItemCount(); i++) {
-                            if (cboDauMay.getItemAt(i).getMaDauMay().equals(maDM)) {
+                            if (cboDauMay.getItemAt(i).getMaDauMay().equals(doanTau.getDauMay().getMaDauMay())) {
                                 cboDauMay.setSelectedIndex(i);
                                 break;
                             }
                         }
                     }
-                } catch (Exception ex) {
-                    System.err.println("Lỗi khi tải đầu máy: " + ex.getMessage());
+                    if (detailList != null) {
+                        for (ChiTietDoanTau ct : detailList) {
+                            if (ct.getToaTau() != null) currentWagons.add(ct.getToaTau());
+                        }
+                    }
                 }
+                updateVisualizer();
             }
         }.execute();
     }
 
     private void doSave() {
-        // Clear errors
         lblErrTen.setText(""); lblErrTen.setVisible(false);
         lblErrDauMay.setText(""); lblErrDauMay.setVisible(false);
         txtTenDoanTau.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)));
+                new EmptyBorder(10, 14, 10, 14)));
 
-        String ten = getFieldText(txtTenDoanTau, "VD: Tàu SE1");
+        String ten = getFieldText(txtTenDoanTau, "Nhập tên, VD: Tàu SE1");
         if (ten.isEmpty()) {
-            lblErrTen.setText("Vui lòng nhập tên đoàn tàu");
+            lblErrTen.setText("Tên Không Được Rỗng");
             lblErrTen.setVisible(true);
-            txtTenDoanTau.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(ERROR, 2, true),
-                    new EmptyBorder(7, 11, 7, 11)));
-            txtTenDoanTau.requestFocusInWindow();
+            txtTenDoanTau.requestFocus();
             return;
         }
 
         Object sel = cboDauMay.getSelectedItem();
         if (!(sel instanceof DauMay dauMay)) {
-            lblErrDauMay.setText("Vui lòng chọn đầu máy");
+            lblErrDauMay.setText("Chưa lắp đầu kéo");
             lblErrDauMay.setVisible(true);
             return;
         }
@@ -269,123 +658,141 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
 
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new SwingWorker<Boolean, Void>() {
-            @Override
-            protected Boolean doInBackground() {
-                DAO_DoanTau dao = new DAO_DoanTau();
-                return isEditMode ? dao.update(dt) : dao.insert(dt);
+            @Override protected Boolean doInBackground() {
+                Connection con = ConnectDB.getCon();
+                try {
+                    // Start manually wrapping transaction
+                    con.setAutoCommit(false);
+                    
+                    DAO_DoanTau dao = new DAO_DoanTau();
+                    boolean ok = isEditMode ? dao.update(dt) : dao.insert(dt);
+                    if (!ok) {
+                        con.rollback();
+                        return false;
+                    }
+
+                    // Delete old configurations
+                    try (PreparedStatement ps = con.prepareStatement("DELETE FROM ChiTietDoanTau WHERE maDoanTau = ?")) {
+                        ps.setString(1, dt.getMaDoanTau());
+                        ps.executeUpdate();
+                    }
+
+                    // Insert new flow structure
+                    DAO_ChiTietDoanTau daoCt = new DAO_ChiTietDoanTau();
+                    for (int i = 0; i < currentWagons.size(); i++) {
+                        String newId = "CTDT-" + System.nanoTime() % 1000000L;
+                        ChiTietDoanTau ctdt = new ChiTietDoanTau(newId, dt, currentWagons.get(i), i + 1);
+                        if (!daoCt.insert(ctdt)) {
+                            con.rollback();
+                            return false;
+                        }
+                    }
+                    con.commit();
+                    return true;
+                } catch (Exception ex) {
+                    try { if (ConnectDB.getCon() != null) ConnectDB.getCon().rollback(); } catch (SQLException e) { }
+                    ex.printStackTrace();
+                    return false;
+                } finally {
+                    try { if (ConnectDB.getCon() != null) ConnectDB.getCon().setAutoCommit(true); } catch (SQLException e) { }
+                }
             }
-            @Override
-            protected void done() {
+
+            @Override protected void done() {
                 setCursor(Cursor.getDefaultCursor());
                 try {
                     if (get()) {
+                        JOptionPane.showMessageDialog(ChinhSuaDoanTauModule.this, "Lưu cấu hình tàu xuất sắc!");
                         if (callback != null) callback.accept(dt);
                     } else {
-                        JOptionPane.showMessageDialog(ChinhSuaDoanTauModule.this,
-                                isEditMode
-                                        ? "Không thể cập nhật đoàn tàu."
-                                        : "Không thể thêm đoàn tàu. Mã có thể đã tồn tại.",
-                                "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(ChinhSuaDoanTauModule.this, "Thất bại, có thể lỗi logic khóa ngoại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                     }
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(ChinhSuaDoanTauModule.this,
-                            "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-                }
+                } catch (Exception ex) { }
             }
         }.execute();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
-
+    // ── Utils ─────────────────────────────────────────────────────────────
     private String generateMaDoanTau() {
         return "DT-" + String.format("%05d", System.currentTimeMillis() % 100000L);
     }
 
-    private JPanel rowPanel() {
-        JPanel p = new JPanel(new GridLayout(1, 1));
-        p.setOpaque(false);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
-        return p;
-    }
-
-    private JPanel buildFieldGroup(String label, JComponent input, String hint,
-                                   boolean required, JLabel errLabel) {
+    private JPanel buildFieldGroup(String label, JComponent input, String hint, boolean req, JLabel errLabel) {
         JPanel group = new JPanel();
         group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
         group.setOpaque(false);
+        group.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel lblRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         lblRow.setOpaque(false);
+        lblRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
         JLabel lbl = new JLabel(label);
         lbl.setFont(FONT_LABEL);
-        lbl.setForeground(ON_SURF_VAR);
+        lbl.setForeground(TEXT_MAIN);
         lblRow.add(lbl);
-        if (required) {
+        if (req) {
             JLabel star = new JLabel(" *");
             star.setFont(FONT_LABEL);
             star.setForeground(ERROR);
             lblRow.add(star);
         }
-        lblRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
         group.add(lblRow);
-        group.add(Box.createVerticalStrut(6));
+        group.add(Box.createVerticalStrut(8));
 
         input.setAlignmentX(Component.LEFT_ALIGNMENT);
-        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         group.add(input);
 
         if (hint != null) {
-            group.add(Box.createVerticalStrut(4));
+            group.add(Box.createVerticalStrut(6));
             JLabel lblHint = new JLabel(hint);
-            lblHint.setFont(new Font("Segoe UI", Font.ITALIC, 10));
-            lblHint.setForeground(ON_SURF_VAR);
+            lblHint.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+            lblHint.setForeground(TEXT_MUTED);
             lblHint.setAlignmentX(Component.LEFT_ALIGNMENT);
+            lblHint.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
             group.add(lblHint);
         }
         if (errLabel != null) {
-            group.add(Box.createVerticalStrut(3));
+            group.add(Box.createVerticalStrut(4));
             group.add(errLabel);
         }
+        group.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
         return group;
     }
 
-    private JTextField createInputField(String placeholder) {
+    private JTextField createInputField(String ph) {
         JTextField f = new JTextField();
         f.setFont(FONT_INPUT);
-        f.setForeground(ON_SURF_VAR);
-        f.setPreferredSize(new Dimension(0, 36));
-        f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        f.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)));
-        f.setText(placeholder);
+        f.setForeground(TEXT_MUTED);
+        styleField(f);
+        f.setText(ph);
         f.addFocusListener(new FocusAdapter() {
             @Override public void focusGained(FocusEvent e) {
-                if (f.getText().equals(placeholder)) {
-                    f.setText("");
-                    f.setForeground(ON_SURFACE);
-                }
+                if (f.getText().equals(ph)) { f.setText(""); f.setForeground(TEXT_MAIN); }
                 f.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(PRIMARY, 2, true),
-                        new EmptyBorder(7, 11, 7, 11)));
+                        new EmptyBorder(9, 13, 9, 13)));
             }
             @Override public void focusLost(FocusEvent e) {
-                if (f.getText().trim().isEmpty()) {
-                    f.setForeground(ON_SURF_VAR);
-                    f.setText(placeholder);
-                }
-                f.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(OUTLINE, 1, true),
-                        new EmptyBorder(8, 12, 8, 12)));
+                if (f.getText().trim().isEmpty()) { f.setForeground(TEXT_MUTED); f.setText(ph); }
+                styleField(f);
             }
         });
         return f;
     }
+    
+    private void styleField(JTextField f) {
+        f.setPreferredSize(new Dimension(0, 42));
+        Color bColor = new Color(180, 185, 190);
+        f.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(bColor, 1, true),
+                new EmptyBorder(10, 14, 10, 14)));
+    }
 
-    private String getFieldText(JTextField f, String placeholder) {
+    private String getFieldText(JTextField f, String ph) {
         String t = f.getText();
-        return t.equals(placeholder) ? "" : t.trim();
+        return t.equals(ph) ? "" : t.trim();
     }
 
     private JLabel createErrorLabel() {
@@ -397,13 +804,13 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         return lbl;
     }
 
-    private JButton createPrimaryButton(String text) {
-        JButton btn = new JButton(text) {
+    private JButton createPrimaryButton(String txt) {
+        JButton btn = new JButton(txt) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getModel().isRollover() ? PRIMARY_HOVER : PRIMARY);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
                 g2.dispose();
                 super.paintComponent(g);
             }
@@ -413,37 +820,46 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(160, 40));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(170, 42));
         return btn;
     }
 
-    private JButton createOutlineButton(String text) {
-        JButton btn = new JButton(text) {
+    private JButton createOutlineButton(String txt) {
+        JButton btn = new JButton(txt) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isRollover()) {
-                    g2.setColor(new Color(0xF1, 0xF5, 0xF9));
-                    g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
-                }
+                g2.setColor(getModel().isRollover() ? OUTLINE.darker() : OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 16, 16);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
         btn.setFont(FONT_BTN);
-        btn.setForeground(ON_SURF_VAR);
+        btn.setForeground(TEXT_MAIN);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(100, 40));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(110, 42));
         return btn;
+    }
+    
+    private ImageIcon loadScaledIcon(String fileName, int size) {
+        try {
+            java.net.URL url = getClass().getResource("/icons/" + fileName);
+            if (url == null) return null;
+            Image img = new ImageIcon(url).getImage()
+                    .getScaledInstance(size, size, Image.SCALE_SMOOTH);
+            return new ImageIcon(img);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // ── AppModule interface ───────────────────────────────────────────────
-
-    @Override public String getTitle() { return isEditMode ? "Chỉnh sửa đoàn tàu" : "Thêm đoàn tàu mới"; }
+    @Override public String getTitle() { return isEditMode ? "Chỉnh Sửa Đội Tàu" : "Thiết Lập Đội Tàu Mới"; }
     @Override public JPanel  getView() { return this; }
     @Override public void setOnResult(Consumer<Object> cb) { this.callback = cb; }
     @Override public void reset() { }

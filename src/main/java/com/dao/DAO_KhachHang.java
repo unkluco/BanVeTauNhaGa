@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,12 +87,23 @@ public class DAO_KhachHang {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, kh.getMaKhachHang());
             ps.setNString(2, kh.getHoTen());
             ps.setString(3, kh.getCccd());
             ps.setString(4, kh.getSoDienThoai());
+            ps.setString(5, kh.getEmail());
+            ps.setNString(6, kh.getDiaChiThuongTru());
+            ps.setNString(7, kh.getDiaChiTamTru());
+            if (kh.getNgaySinh() != null) {
+                ps.setDate(8, Date.valueOf(kh.getNgaySinh()));
+            } else {
+                ps.setDate(8, null);
+            }
+            ps.setString(9, kh.getGioiTinh());
+            ps.setNString(10, kh.getQuocTich());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Loi khi them khach hang: " + e.getMessage());
@@ -103,12 +115,24 @@ public class DAO_KhachHang {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "UPDATE KhachHang SET hoTen = ?, cccd = ?, soDienThoai = ? WHERE maKhachHang = ?";
+        String sql = "UPDATE KhachHang SET hoTen = ?, cccd = ?, soDienThoai = ?, email = ?, "
+                   + "diaChiThuongTru = ?, diaChiTamTru = ?, ngaySinh = ?, gioiTinh = ?, quocTich = ? "
+                   + "WHERE maKhachHang = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setNString(1, kh.getHoTen());
             ps.setString(2, kh.getCccd());
             ps.setString(3, kh.getSoDienThoai());
-            ps.setString(4, kh.getMaKhachHang());
+            ps.setString(4, kh.getEmail());
+            ps.setNString(5, kh.getDiaChiThuongTru());
+            ps.setNString(6, kh.getDiaChiTamTru());
+            if (kh.getNgaySinh() != null) {
+                ps.setDate(7, Date.valueOf(kh.getNgaySinh()));
+            } else {
+                ps.setDate(7, null);
+            }
+            ps.setString(8, kh.getGioiTinh());
+            ps.setNString(9, kh.getQuocTich());
+            ps.setString(10, kh.getMaKhachHang());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Loi khi cap nhat khach hang: " + e.getMessage());
@@ -121,13 +145,14 @@ public class DAO_KhachHang {
         Connection con = ConnectDB.getCon();
         if (con == null) return ds;
 
-        String sql = "SELECT * FROM KhachHang WHERE maKhachHang LIKE ? OR hoTen COLLATE Latin1_General_CI_AI LIKE ? OR cccd LIKE ? OR soDienThoai LIKE ?";
+        String sql = "SELECT * FROM KhachHang WHERE maKhachHang LIKE ? OR hoTen COLLATE Latin1_General_CI_AI LIKE ? OR cccd LIKE ? OR soDienThoai LIKE ? OR email LIKE ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             String kw = "%" + keyword.trim() + "%";
             ps.setString(1, kw);
             ps.setNString(2, kw);
             ps.setString(3, kw);
             ps.setString(4, kw);
+            ps.setString(5, kw);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     ds.add(mapRow(rs));
@@ -139,11 +164,37 @@ public class DAO_KhachHang {
         return ds;
     }
 
+    // ========================= SINH MA KH MOI =========================
+    public String generateNextMaKH() {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return "KH-0001";
+
+        String sql = "SELECT MAX(CAST(SUBSTRING(maKhachHang, 4, LEN(maKhachHang)-3) AS INT)) FROM KhachHang WHERE maKhachHang LIKE 'KH-%'";
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                int maxNum = rs.getInt(1);
+                return String.format("KH-%04d", maxNum + 1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Loi khi sinh ma KH: " + e.getMessage());
+        }
+        return "KH-0001";
+    }
+
     private KhachHang mapRow(ResultSet rs) throws SQLException {
-        String maKH = rs.getString("maKhachHang");
-        String hoTen = rs.getNString("hoTen");
-        String cccd = rs.getString("cccd");
-        String soDienThoai = rs.getString("soDienThoai");
-        return new KhachHang(maKH, hoTen, cccd, soDienThoai);
+        KhachHang kh = new KhachHang();
+        kh.setMaKhachHang(rs.getString("maKhachHang"));
+        kh.setHoTen(rs.getNString("hoTen"));
+        kh.setCccd(rs.getString("cccd"));
+        kh.setSoDienThoai(rs.getString("soDienThoai"));
+        kh.setEmail(rs.getString("email"));
+        kh.setDiaChiThuongTru(rs.getNString("diaChiThuongTru"));
+        kh.setDiaChiTamTru(rs.getNString("diaChiTamTru"));
+        Date ngaySinh = rs.getDate("ngaySinh");
+        kh.setNgaySinh(ngaySinh != null ? ngaySinh.toLocalDate() : null);
+        kh.setGioiTinh(rs.getString("gioiTinh"));
+        kh.setQuocTich(rs.getNString("quocTich"));
+        return kh;
     }
 }

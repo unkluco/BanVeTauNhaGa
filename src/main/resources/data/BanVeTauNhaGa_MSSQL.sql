@@ -43,12 +43,18 @@ CREATE TABLE NhanVien (
     quocTich NVARCHAR(50) NULL DEFAULT N'Việt Nam'
 );
 
--- 2. KhachHang (BANG MOI - thiet ke yeu cau)
+-- 2. KhachHang (DA SUA: cau truc giong NhanVien, tru cac thuoc tinh lien quan nghiep vu ban hang)
 CREATE TABLE KhachHang (
     maKhachHang VARCHAR(20) PRIMARY KEY,
     hoTen NVARCHAR(100) NOT NULL,
     cccd VARCHAR(20) NOT NULL,
-    soDienThoai VARCHAR(15) NOT NULL
+    soDienThoai VARCHAR(15) NOT NULL,
+    email VARCHAR(100) NULL,
+    diaChiThuongTru NVARCHAR(255) NULL,
+    diaChiTamTru NVARCHAR(255) NULL,
+    ngaySinh DATE NULL,
+    gioiTinh VARCHAR(5) NULL CHECK (gioiTinh IN ('NAM', 'NU')),
+    quocTich NVARCHAR(50) NULL DEFAULT N'Việt Nam'
 );
 
 -- 3. Ga
@@ -297,11 +303,12 @@ INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChi
 ('NV-0023', N'Trịnh Đức Zũng', 'Pass@120', 'BAN_VE', '0923455432', '038085023456', N'62 Nguyễn Viết Xuân, TP Vinh, Nghệ An', 'DA_NGHI', 'zung.trinhduc@azurerail.vn', 'GA-002', N'33 Nguyễn Du, TP Vinh, Nghệ An', '1991-10-10', 'NAM', N'Việt Nam');
 
 -- ==================== 2. KhachHang (BANG MOI) ====================
-INSERT INTO KhachHang VALUES ('KH-0001', N'Phạm Minh Tuấn', '012345678901', '0371234567');
-INSERT INTO KhachHang VALUES ('KH-0002', N'Hoàng Đức Mạnh', '034567890123', '0382345678');
-INSERT INTO KhachHang VALUES ('KH-0003', N'Nguyễn Thị Hoa', '056789012345', '0393456789');
-INSERT INTO KhachHang VALUES ('KH-0004', N'Trần Văn Đức', '078901234567', '0354567890');
-INSERT INTO KhachHang VALUES ('KH-0005', N'Lý Văn Hùng', '090123456789', '0365678901');
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0001', N'Phạm Minh Tuấn', '012345678901', '0371234567', 'tuan.phamminh@email.com', N'12 Lê Lợi, Hải Châu, Đà Nẵng', NULL, '1992-03-15', 'NAM', N'Việt Nam'),
+('KH-0002', N'Hoàng Đức Mạnh', '034567890123', '0382345678', 'manh.hoangduc@email.com', N'55 Nguyễn Du, TP Vinh, Nghệ An', NULL, '1988-08-22', 'NAM', N'Việt Nam'),
+('KH-0003', N'Nguyễn Thị Hoa', '056789012345', '0393456789', 'hoa.nguyenthi@email.com', N'88 Lê Thánh Tôn, TP Huế, Thừa Thiên Huế', NULL, '1995-12-03', 'NU', N'Việt Nam'),
+('KH-0004', N'Trần Văn Đức', '078901234567', '0354567890', 'duc.tranvan@email.com', N'21 Phạm Văn Đồng, Cầu Giấy, Hà Nội', NULL, '1990-05-18', 'NAM', N'Việt Nam'),
+('KH-0005', N'Lý Văn Hùng', '090123456789', '0365678901', 'hung.lyvan@email.com', N'40 Trần Phú, Hải Châu, Đà Nẵng', N'5 Lê Lợi, Quận 1, TP.HCM', '1993-11-27', 'NAM', N'Việt Nam');
 
 -- ==================== 3. Ga ====================
 -- Tuyen duong sat Bac-Nam (Thong Nhat), 17 ga chinh theo dia ly tu Bac xuong Nam
@@ -790,6 +797,325 @@ INSERT INTO ApDungKM VALUES ('ADKM-001', 'CTHD-004', 'CTKM-003');
 -- ==================== 18. GiuCho ====================
 INSERT INTO GiuCho VALUES ('GC-001', 'NV-0001', 'LCH-008', 'G-003-06', '2026-04-14 15:05:00');
 INSERT INTO GiuCho VALUES ('GC-002', 'NV-0001', 'LCH-008', 'G-003-07', '2026-04-14 15:05:00');
+
+-- ============================================================
+-- DU LIEU BO SUNG - TANG PHONG PHU CHO CAC BANG CON IT DATA
+-- ============================================================
+
+-- ==================== KhachHang (them 15 khach hang) ====================
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0006', N'Nguyễn Thị Lan', '001086006789', '0901112223', 'lan.nguyenthi@email.com', N'33 Điện Biên Phủ, TP Huế, Thừa Thiên Huế', NULL, '1997-06-20', 'NU', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0007', N'Trần Minh Khoa', '079086007890', '0912223334', 'khoa.tranminh@email.com', N'72 Nguyễn Văn Linh, Quận 7, TP.HCM', NULL, '1991-01-14', 'NAM', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0008', N'Lê Thị Thu Hà', '046086008901', '0923334445', 'ha.lethithu@email.com', N'19 Lê Thánh Tôn, TP Huế, Thừa Thiên Huế', NULL, '1999-09-28', 'NU', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0009', N'Phạm Văn Bình', '038086009012', '0934445556', 'binh.phamvan@email.com', N'60 Nguyễn Du, TP Vinh, Nghệ An', NULL, '1985-04-05', 'NAM', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0010', N'Hoàng Thị Nga', '048086010123', '0945556667', 'nga.hoangthi@email.com', N'45 Ông Ích Khiêm, Thanh Khê, Đà Nẵng', NULL, '1994-07-11', 'NU', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0011', N'Vũ Đức Mạnh', '001086011234', '0956667778', 'manh.vuduc@email.com', N'8 Phạm Ngọc Thạch, Đống Đa, Hà Nội', N'55 Võ Thị Sáu, Quận 1, TP.HCM', '1993-02-19', 'NAM', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0012', N'Đặng Thị Thúy', '079086012345', '0967778889', 'thuy.dangthi@email.com', N'16 Đinh Tiên Hoàng, Quận 1, TP.HCM', NULL, '1996-10-30', 'NU', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0013', N'Bùi Văn Thành', '048086013456', '0978889990', 'thanh.buivan@email.com', N'30 Lê Lợi, Hải Châu, Đà Nẵng', NULL, '1990-08-08', 'NAM', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0014', N'Ngô Thị Hương', '079086014567', '0989990001', 'huong.ngothi@email.com', N'88 Cách Mạng Tháng 8, Quận 3, TP.HCM', NULL, '1998-03-25', 'NU', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0015', N'Đinh Minh Hiếu', '001086015678', '0990001112', 'hieu.dinhminh@email.com', N'14 Kim Liên, Đống Đa, Hà Nội', NULL, '1992-12-01', 'NAM', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0016', N'Lương Thị Ánh', '038086016789', '0901221332', 'anh.luongthi@email.com', N'77 Đinh Công Tráng, TP Vinh, Nghệ An', NULL, '1995-05-17', 'NU', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0017', N'Tạ Văn Phúc', '046086017890', '0912332443', 'phuc.tavan@email.com', N'22 Hùng Vương, TP Huế, Thừa Thiên Huế', NULL, '1987-07-09', 'NAM', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0018', N'Kiều Thị Bích', '048086018901', '0923443554', 'bich.kieuthi@email.com', N'63 Trần Quý Cáp, Hải Châu, Đà Nẵng', NULL, '1999-11-12', 'NU', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0019', N'Châu Minh Tuấn', '079086019012', '0934554665', 'tuan.chau@email.com', N'40 Đinh Tiên Hoàng, Bình Thạnh, TP.HCM', NULL, '1991-06-22', 'NAM', N'Việt Nam');
+
+INSERT INTO KhachHang (maKhachHang, hoTen, cccd, soDienThoai, email, diaChiThuongTru, diaChiTamTru, ngaySinh, gioiTinh, quocTich) VALUES
+('KH-0020', N'Dương Văn Long', '038086020123', '0945665776', 'long.duongvan@email.com', N'25 Nguyễn Sỹ Sách, TP Vinh, Nghệ An', N'10 Lê Duẩn, Hoàn Kiếm, Hà Nội', '1994-01-03', 'NAM', N'Việt Nam');
+
+-- ==================== DoanTau (them 5 doan tau) ====================
+-- SE3/SE4: song hanh voi SE1/SE2 tren tuyen xuyen Viet
+-- SE5/SE8: Hanoi <-> Da Nang (ngan hon)
+-- TN1: Thong Nhat 1 - chay cham hon SE, dung nhieu ga hon
+INSERT INTO DoanTau VALUES ('DT-004', N'SE3 (Hà Nội → Sài Gòn)', 'DM-004');
+INSERT INTO DoanTau VALUES ('DT-005', N'SE4 (Sài Gòn → Hà Nội)', 'DM-005');
+INSERT INTO DoanTau VALUES ('DT-006', N'SE5 (Hà Nội → Đà Nẵng)', 'DM-006');
+INSERT INTO DoanTau VALUES ('DT-007', N'SE8 (Đà Nẵng → Hà Nội)', 'DM-007');
+INSERT INTO DoanTau VALUES ('DT-008', N'TN1 (Hà Nội → Sài Gòn)', 'DM-008');
+
+-- ==================== ChiTietDoanTau (thanh phan toa cho doan tau moi) ====================
+-- DT-004 (SE3): toa cung(1) + toa mem(2) + giuong nam(3)
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-009', 'DT-004', 'TOA-003', 1);
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-010', 'DT-004', 'TOA-002', 2);
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-011', 'DT-004', 'TOA-001', 3);
+-- DT-005 (SE4): toa cung(1) + toa mem(2) + giuong nam(3)
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-012', 'DT-005', 'TOA-003', 1);
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-013', 'DT-005', 'TOA-002', 2);
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-014', 'DT-005', 'TOA-001', 3);
+-- DT-006 (SE5): tau ngan, chi co toa cung + toa mem (khong co giuong nam)
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-015', 'DT-006', 'TOA-003', 1);
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-016', 'DT-006', 'TOA-002', 2);
+-- DT-007 (SE8): tuong tu SE5, tau ngan
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-017', 'DT-007', 'TOA-003', 1);
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-018', 'DT-007', 'TOA-002', 2);
+-- DT-008 (TN1): day du 3 loai toa
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-019', 'DT-008', 'TOA-003', 1);
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-020', 'DT-008', 'TOA-002', 2);
+INSERT INTO ChiTietDoanTau VALUES ('CTDT-021', 'DT-008', 'TOA-001', 3);
+
+-- ==================== ChiTietGia (bo sung gia cho cac tuyen chua co) ====================
+-- TUY-006: Da Nang -> Hue (~100km) - cung cu ly TUY-003
+INSERT INTO ChiTietGia VALUES ('CTG-115', 'GIA-001', 'TUY-006', 'GHE_CUNG',    80000.00);
+INSERT INTO ChiTietGia VALUES ('CTG-116', 'GIA-001', 'TUY-006', 'GHE_MEM',    120000.00);
+INSERT INTO ChiTietGia VALUES ('CTG-117', 'GIA-001', 'TUY-006', 'GIUONG_NAM', 200000.00);
+-- TUY-007: Hue -> Vinh (~368km) - cung cu ly TUY-002
+INSERT INTO ChiTietGia VALUES ('CTG-118', 'GIA-001', 'TUY-007', 'GHE_CUNG',  200000.00);
+INSERT INTO ChiTietGia VALUES ('CTG-119', 'GIA-001', 'TUY-007', 'GHE_MEM',   280000.00);
+INSERT INTO ChiTietGia VALUES ('CTG-120', 'GIA-001', 'TUY-007', 'GIUONG_NAM',450000.00);
+-- TUY-008: Vinh -> Ha Noi (~319km) - cung cu ly TUY-001
+INSERT INTO ChiTietGia VALUES ('CTG-121', 'GIA-001', 'TUY-008', 'GHE_CUNG',  180000.00);
+INSERT INTO ChiTietGia VALUES ('CTG-122', 'GIA-001', 'TUY-008', 'GHE_MEM',   250000.00);
+INSERT INTO ChiTietGia VALUES ('CTG-123', 'GIA-001', 'TUY-008', 'GIUONG_NAM',400000.00);
+-- TUY-010: Sai Gon -> Ha Noi (~1726km) - cung cu ly TUY-009
+INSERT INTO ChiTietGia VALUES ('CTG-124', 'GIA-001', 'TUY-010', 'GHE_CUNG',   800000.00);
+INSERT INTO ChiTietGia VALUES ('CTG-125', 'GIA-001', 'TUY-010', 'GHE_MEM',   1100000.00);
+INSERT INTO ChiTietGia VALUES ('CTG-126', 'GIA-001', 'TUY-010', 'GIUONG_NAM',1600000.00);
+
+-- ==================== Lich (them 22 lich chay, LCH-009 den LCH-030) ====================
+-- Lich thuong ngay (16-25/4/2026)
+INSERT INTO Lich VALUES ('LCH-009', 'TUY-001', 'DT-004', '2026-04-16 06:00:00',  330);  -- SE3 HN->Vinh
+INSERT INTO Lich VALUES ('LCH-010', 'TUY-008', 'DT-005', '2026-04-16 14:00:00',  330);  -- SE4 Vinh->HN
+INSERT INTO Lich VALUES ('LCH-011', 'TUY-002', 'DT-004', '2026-04-16 12:00:00',  360);  -- SE3 Vinh->Hue
+INSERT INTO Lich VALUES ('LCH-012', 'TUY-003', 'DT-006', '2026-04-16 09:00:00',  150);  -- SE5 Hue->DN
+INSERT INTO Lich VALUES ('LCH-013', 'TUY-006', 'DT-007', '2026-04-16 08:00:00',  150);  -- SE8 DN->Hue
+INSERT INTO Lich VALUES ('LCH-014', 'TUY-009', 'DT-004', '2026-04-17 19:00:00', 1980);  -- SE3 HN->SG xuyen Viet
+INSERT INTO Lich VALUES ('LCH-015', 'TUY-010', 'DT-005', '2026-04-18 07:00:00', 1980);  -- SE4 SG->HN xuyen Viet
+INSERT INTO Lich VALUES ('LCH-016', 'TUY-009', 'DT-008', '2026-04-19 20:00:00', 2160);  -- TN1 HN->SG (cham hon SE)
+INSERT INTO Lich VALUES ('LCH-017', 'TUY-001', 'DT-002', '2026-04-20 06:00:00',  330);  -- SE2 HN->Vinh
+INSERT INTO Lich VALUES ('LCH-018', 'TUY-004', 'DT-001', '2026-04-20 19:00:00', 1020);  -- SE1 DN->SG
+INSERT INTO Lich VALUES ('LCH-019', 'TUY-005', 'DT-002', '2026-04-21 07:00:00', 1020);  -- SE2 SG->DN
+INSERT INTO Lich VALUES ('LCH-020', 'TUY-002', 'DT-001', '2026-04-22 08:00:00',  360);  -- SE1 Vinh->Hue
+INSERT INTO Lich VALUES ('LCH-021', 'TUY-007', 'DT-002', '2026-04-22 10:00:00',  360);  -- SE2 Hue->Vinh
+INSERT INTO Lich VALUES ('LCH-022', 'TUY-003', 'DT-003', '2026-04-23 08:00:00',  150);  -- SE7 Hue->DN
+INSERT INTO Lich VALUES ('LCH-023', 'TUY-001', 'DT-004', '2026-04-25 06:00:00',  330);  -- SE3 HN->Vinh
+INSERT INTO Lich VALUES ('LCH-024', 'TUY-002', 'DT-004', '2026-04-25 12:00:00',  360);  -- SE3 Vinh->Hue
+INSERT INTO Lich VALUES ('LCH-025', 'TUY-003', 'DT-006', '2026-04-25 19:00:00',  150);  -- SE5 Hue->DN
+-- Lich dip Le 30/4 - 1/5 (nhu cau cao, gia ap dung KM-002)
+INSERT INTO Lich VALUES ('LCH-026', 'TUY-001', 'DT-004', '2026-04-28 06:00:00',  330);  -- SE3 HN->Vinh (le)
+INSERT INTO Lich VALUES ('LCH-027', 'TUY-009', 'DT-004', '2026-04-28 19:00:00', 1980);  -- SE3 HN->SG (le)
+INSERT INTO Lich VALUES ('LCH-028', 'TUY-010', 'DT-005', '2026-04-30 07:00:00', 1980);  -- SE4 SG->HN (le)
+INSERT INTO Lich VALUES ('LCH-029', 'TUY-004', 'DT-005', '2026-04-29 20:00:00', 1020);  -- SE4 DN->SG
+INSERT INTO Lich VALUES ('LCH-030', 'TUY-005', 'DT-004', '2026-05-01 09:00:00', 1020);  -- SE3 SG->DN (sau le)
+
+-- ==================== Ve (them 52 ve moi, VE-010 den VE-061) ====================
+-- LCH-009 (SE3 HN->Vinh 16/4, DT-004 co TOA-001+TOA-002+TOA-003)
+INSERT INTO Ve VALUES ('VE-010', 'LCH-009', 'G-003-10', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-011', 'LCH-009', 'G-003-11', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-012', 'LCH-009', 'G-001-10', 'DA_BAN', NULL, NULL);
+-- LCH-011 (SE3 Vinh->Hue 16/4, DT-004)
+INSERT INTO Ve VALUES ('VE-013', 'LCH-011', 'G-002-10', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-014', 'LCH-011', 'G-002-11', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-015', 'LCH-011', 'G-002-12', 'DA_BAN', NULL, NULL);
+-- LCH-012 (SE5 Hue->DN 16/4, DT-006 chi co TOA-002+TOA-003)
+INSERT INTO Ve VALUES ('VE-016', 'LCH-012', 'G-003-20', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-017', 'LCH-012', 'G-003-21', 'DA_BAN', NULL, NULL);
+-- LCH-013 (SE8 DN->Hue 16/4, DT-007 chi co TOA-002+TOA-003)
+INSERT INTO Ve VALUES ('VE-018', 'LCH-013', 'G-002-15', 'DA_BAN', NULL, NULL);
+-- LCH-014 (SE3 HN->SG xuyen Viet 17/4, DT-004)
+INSERT INTO Ve VALUES ('VE-019', 'LCH-014', 'G-001-05', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-020', 'LCH-014', 'G-001-06', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-021', 'LCH-014', 'G-001-07', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-022', 'LCH-014', 'G-001-08', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-023', 'LCH-014', 'G-002-20', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-024', 'LCH-014', 'G-002-21', 'DA_BAN', NULL, NULL);
+-- LCH-015 (SE4 SG->HN 18/4, DT-005)
+INSERT INTO Ve VALUES ('VE-025', 'LCH-015', 'G-003-10', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-026', 'LCH-015', 'G-003-11', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-027', 'LCH-015', 'G-003-12', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-028', 'LCH-015', 'G-001-15', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-029', 'LCH-015', 'G-001-16', 'DA_BAN', NULL, NULL);
+-- LCH-016 (TN1 HN->SG 19/4, DT-008)
+INSERT INTO Ve VALUES ('VE-030', 'LCH-016', 'G-003-05', 'DA_BAN', NULL, NULL);
+-- LCH-017 (SE2 HN->Vinh 20/4, DT-002)
+INSERT INTO Ve VALUES ('VE-031', 'LCH-017', 'G-002-05', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-032', 'LCH-017', 'G-002-06', 'DA_BAN', NULL, NULL);
+-- LCH-018 (SE1 DN->SG 20/4, DT-001)
+INSERT INTO Ve VALUES ('VE-033', 'LCH-018', 'G-003-15', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-034', 'LCH-018', 'G-003-16', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-035', 'LCH-018', 'G-003-17', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-036', 'LCH-018', 'G-003-18', 'DA_BAN', NULL, NULL);
+-- LCH-019 (SE2 SG->DN 21/4, DT-002) - 1 ve bi huy
+INSERT INTO Ve VALUES ('VE-037', 'LCH-019', 'G-001-20', 'DA_HUY', N'Khách thay đổi kế hoạch du lịch', '2026-04-20 14:00:00');
+-- LCH-020 (SE1 Vinh->Hue 22/4, DT-001)
+INSERT INTO Ve VALUES ('VE-038', 'LCH-020', 'G-003-22', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-039', 'LCH-020', 'G-003-23', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-040', 'LCH-020', 'G-003-24', 'DA_BAN', NULL, NULL);
+-- LCH-021 (SE2 Hue->Vinh 22/4, DT-002)
+INSERT INTO Ve VALUES ('VE-041', 'LCH-021', 'G-002-30', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-042', 'LCH-021', 'G-002-31', 'DA_BAN', NULL, NULL);
+-- LCH-022 (SE7 Hue->DN 23/4, DT-003)
+INSERT INTO Ve VALUES ('VE-043', 'LCH-022', 'G-003-30', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-044', 'LCH-022', 'G-003-31', 'DA_BAN', NULL, NULL);
+-- LCH-023 (SE3 HN->Vinh 25/4, DT-004)
+INSERT INTO Ve VALUES ('VE-045', 'LCH-023', 'G-002-35', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-046', 'LCH-023', 'G-002-36', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-047', 'LCH-023', 'G-002-37', 'DA_BAN', NULL, NULL);
+-- LCH-024 (SE3 Vinh->Hue 25/4, DT-004)
+INSERT INTO Ve VALUES ('VE-048', 'LCH-024', 'G-001-20', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-049', 'LCH-024', 'G-001-21', 'DA_BAN', NULL, NULL);
+-- LCH-026 (SE3 HN->Vinh 28/4 le 30/4, DT-004): 5 ghe cung - ap dung KM-002 giam 10%
+INSERT INTO Ve VALUES ('VE-050', 'LCH-026', 'G-003-01', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-051', 'LCH-026', 'G-003-02', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-052', 'LCH-026', 'G-003-03', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-053', 'LCH-026', 'G-003-04', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-054', 'LCH-026', 'G-003-05', 'DA_BAN', NULL, NULL);
+-- LCH-027 (SE3 HN->SG 28/4 le 30/4, DT-004): 3 giuong nam - ap dung KM-002 giam 12%
+INSERT INTO Ve VALUES ('VE-055', 'LCH-027', 'G-001-01', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-056', 'LCH-027', 'G-001-02', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-057', 'LCH-027', 'G-001-03', 'DA_BAN', NULL, NULL);
+-- LCH-028 (SE4 SG->HN 30/4, DT-005)
+INSERT INTO Ve VALUES ('VE-058', 'LCH-028', 'G-002-10', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-059', 'LCH-028', 'G-002-11', 'DA_BAN', NULL, NULL);
+-- LCH-029 (SE4 DN->SG 29/4, DT-005)
+INSERT INTO Ve VALUES ('VE-060', 'LCH-029', 'G-003-15', 'DA_BAN', NULL, NULL);
+INSERT INTO Ve VALUES ('VE-061', 'LCH-029', 'G-003-16', 'DA_BAN', NULL, NULL);
+
+-- ==================== HoaDon (them 22 hoa don, ngay lap truoc ngay di 1-2 ngay) ====================
+INSERT INTO HoaDon VALUES ('HD-16042026-001', 'NV-0001', 'KH-0006', '2026-04-14 09:00:00');
+INSERT INTO HoaDon VALUES ('HD-16042026-002', 'NV-0002', 'KH-0007', '2026-04-14 10:30:00');
+INSERT INTO HoaDon VALUES ('HD-16042026-003', 'NV-0004', 'KH-0008', '2026-04-14 13:00:00');
+INSERT INTO HoaDon VALUES ('HD-16042026-004', 'NV-0007', 'KH-0009', '2026-04-15 08:30:00');
+INSERT INTO HoaDon VALUES ('HD-17042026-001', 'NV-0008', 'KH-0010', '2026-04-15 11:00:00');
+INSERT INTO HoaDon VALUES ('HD-17042026-002', 'NV-0001', 'KH-0011', '2026-04-15 14:00:00');
+INSERT INTO HoaDon VALUES ('HD-17042026-003', 'NV-0002', 'KH-0012', '2026-04-15 16:30:00');
+INSERT INTO HoaDon VALUES ('HD-18042026-001', 'NV-0010', 'KH-0013', '2026-04-16 09:00:00');
+INSERT INTO HoaDon VALUES ('HD-18042026-002', 'NV-0017', 'KH-0014', '2026-04-16 11:00:00');
+INSERT INTO HoaDon VALUES ('HD-19042026-001', 'NV-0001', 'KH-0015', '2026-04-17 08:00:00');
+INSERT INTO HoaDon VALUES ('HD-20042026-001', 'NV-0002', 'KH-0016', '2026-04-18 09:30:00');
+INSERT INTO HoaDon VALUES ('HD-20042026-002', 'NV-0004', 'KH-0017', '2026-04-18 13:00:00');
+INSERT INTO HoaDon VALUES ('HD-21042026-001', 'NV-0007', 'KH-0018', '2026-04-19 10:00:00');
+INSERT INTO HoaDon VALUES ('HD-21042026-002', 'NV-0008', 'KH-0019', '2026-04-19 14:30:00');
+INSERT INTO HoaDon VALUES ('HD-22042026-001', 'NV-0013', 'KH-0020', '2026-04-20 09:00:00');
+INSERT INTO HoaDon VALUES ('HD-22042026-002', 'NV-0001', 'KH-0006', '2026-04-20 11:00:00');
+INSERT INTO HoaDon VALUES ('HD-25042026-001', 'NV-0002', 'KH-0007', '2026-04-23 08:30:00');
+INSERT INTO HoaDon VALUES ('HD-25042026-002', 'NV-0016', 'KH-0008', '2026-04-23 10:00:00');
+INSERT INTO HoaDon VALUES ('HD-28042026-001', 'NV-0001', 'KH-0011', '2026-04-26 09:00:00');
+INSERT INTO HoaDon VALUES ('HD-28042026-002', 'NV-0002', 'KH-0012', '2026-04-26 10:30:00');
+INSERT INTO HoaDon VALUES ('HD-29042026-001', 'NV-0017', 'KH-0013', '2026-04-27 11:00:00');
+INSERT INTO HoaDon VALUES ('HD-01052026-001', 'NV-0018', 'KH-0014', '2026-04-29 09:00:00');
+
+-- ==================== ChiTietHoaDon (them 52 chi tiet, CTHD-010 den CTHD-061) ====================
+-- HD-16042026-001: 2 ve ghe cung TUY-001 HN->Vinh (180k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-010', 'HD-16042026-001', 'VE-010', 180000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-011', 'HD-16042026-001', 'VE-011', 180000.00);
+-- HD-16042026-002: 1 ve giuong nam TUY-001 HN->Vinh (400k)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-012', 'HD-16042026-002', 'VE-012', 400000.00);
+-- HD-16042026-003: 3 ve ghe mem TUY-002 Vinh->Hue (280k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-013', 'HD-16042026-003', 'VE-013', 280000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-014', 'HD-16042026-003', 'VE-014', 280000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-015', 'HD-16042026-003', 'VE-015', 280000.00);
+-- HD-16042026-004: 2 ve ghe cung TUY-003 Hue->DN (80k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-016', 'HD-16042026-004', 'VE-016',  80000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-017', 'HD-16042026-004', 'VE-017',  80000.00);
+-- HD-17042026-001: 1 ve ghe mem TUY-006 DN->Hue (120k)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-018', 'HD-17042026-001', 'VE-018', 120000.00);
+-- HD-17042026-002: 4 ve giuong nam TUY-009 HN->SG (1,600k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-019', 'HD-17042026-002', 'VE-019', 1600000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-020', 'HD-17042026-002', 'VE-020', 1600000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-021', 'HD-17042026-002', 'VE-021', 1600000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-022', 'HD-17042026-002', 'VE-022', 1600000.00);
+-- HD-17042026-003: 2 ve ghe mem TUY-009 HN->SG (1,100k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-023', 'HD-17042026-003', 'VE-023', 1100000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-024', 'HD-17042026-003', 'VE-024', 1100000.00);
+-- HD-18042026-001: 3 ve ghe cung TUY-010 SG->HN (800k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-025', 'HD-18042026-001', 'VE-025',  800000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-026', 'HD-18042026-001', 'VE-026',  800000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-027', 'HD-18042026-001', 'VE-027',  800000.00);
+-- HD-18042026-002: 2 ve giuong nam TUY-010 SG->HN (1,600k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-028', 'HD-18042026-002', 'VE-028', 1600000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-029', 'HD-18042026-002', 'VE-029', 1600000.00);
+-- HD-19042026-001: 1 ve ghe cung TUY-009 HN->SG, sinh vien ap dung KM-001 giam 20% (800k*0.8=640k)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-030', 'HD-19042026-001', 'VE-030',  640000.00);
+-- HD-20042026-001: 2 ve ghe mem TUY-001 HN->Vinh (250k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-031', 'HD-20042026-001', 'VE-031',  250000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-032', 'HD-20042026-001', 'VE-032',  250000.00);
+-- HD-20042026-002: 4 ve ghe cung TUY-004 DN->SG (450k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-033', 'HD-20042026-002', 'VE-033',  450000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-034', 'HD-20042026-002', 'VE-034',  450000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-035', 'HD-20042026-002', 'VE-035',  450000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-036', 'HD-20042026-002', 'VE-036',  450000.00);
+-- HD-21042026-001: 1 ve giuong nam TUY-005 SG->DN (900k) - ve bi huy
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-037', 'HD-21042026-001', 'VE-037',  900000.00);
+-- HD-21042026-002: 3 ve ghe cung TUY-002 Vinh->Hue (200k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-038', 'HD-21042026-002', 'VE-038',  200000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-039', 'HD-21042026-002', 'VE-039',  200000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-040', 'HD-21042026-002', 'VE-040',  200000.00);
+-- HD-22042026-001: 2 ve ghe mem TUY-007 Hue->Vinh (280k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-041', 'HD-22042026-001', 'VE-041',  280000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-042', 'HD-22042026-001', 'VE-042',  280000.00);
+-- HD-22042026-002: 2 ve ghe cung TUY-003 Hue->DN (80k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-043', 'HD-22042026-002', 'VE-043',   80000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-044', 'HD-22042026-002', 'VE-044',   80000.00);
+-- HD-25042026-001: 3 ve ghe mem TUY-001 HN->Vinh (250k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-045', 'HD-25042026-001', 'VE-045',  250000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-046', 'HD-25042026-001', 'VE-046',  250000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-047', 'HD-25042026-001', 'VE-047',  250000.00);
+-- HD-25042026-002: 2 ve giuong nam TUY-002 Vinh->Hue (450k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-048', 'HD-25042026-002', 'VE-048',  450000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-049', 'HD-25042026-002', 'VE-049',  450000.00);
+-- HD-28042026-001: 5 ve ghe cung TUY-001 dip le 30/4, KM-002 giam 10% (180k*0.9=162k)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-050', 'HD-28042026-001', 'VE-050',  162000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-051', 'HD-28042026-001', 'VE-051',  162000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-052', 'HD-28042026-001', 'VE-052',  162000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-053', 'HD-28042026-001', 'VE-053',  162000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-054', 'HD-28042026-001', 'VE-054',  162000.00);
+-- HD-28042026-002: 3 ve giuong nam TUY-009 dip le 30/4, KM-002 giam 12% (1600k*0.88=1408k)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-055', 'HD-28042026-002', 'VE-055', 1408000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-056', 'HD-28042026-002', 'VE-056', 1408000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-057', 'HD-28042026-002', 'VE-057', 1408000.00);
+-- HD-29042026-001: 2 ve ghe mem TUY-010 SG->HN (1,100k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-058', 'HD-29042026-001', 'VE-058', 1100000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-059', 'HD-29042026-001', 'VE-059', 1100000.00);
+-- HD-01052026-001: 2 ve ghe cung TUY-004 DN->SG (450k/ve)
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-060', 'HD-01052026-001', 'VE-060',  450000.00);
+INSERT INTO ChiTietHoaDon VALUES ('CTHD-061', 'HD-01052026-001', 'VE-061',  450000.00);
+
+-- ==================== ApDungKM (them 9 ap dung khuyen mai) ====================
+-- CTHD-030: sinh vien mua ghe cung TUY-009, ap dung KM-001 uu tien giam 20%
+INSERT INTO ApDungKM VALUES ('ADKM-002', 'CTHD-030', 'CTKM-009');
+-- CTHD-050..054: ghe cung TUY-001 dip Le 30/4, ap dung KM-002 giam 10%
+INSERT INTO ApDungKM VALUES ('ADKM-003', 'CTHD-050', 'CTKM-031');
+INSERT INTO ApDungKM VALUES ('ADKM-004', 'CTHD-051', 'CTKM-031');
+INSERT INTO ApDungKM VALUES ('ADKM-005', 'CTHD-052', 'CTKM-031');
+INSERT INTO ApDungKM VALUES ('ADKM-006', 'CTHD-053', 'CTKM-031');
+INSERT INTO ApDungKM VALUES ('ADKM-007', 'CTHD-054', 'CTKM-031');
+-- CTHD-055..057: giuong nam TUY-009 dip Le 30/4, ap dung KM-002 giam 12%
+INSERT INTO ApDungKM VALUES ('ADKM-008', 'CTHD-055', 'CTKM-045');
+INSERT INTO ApDungKM VALUES ('ADKM-009', 'CTHD-056', 'CTKM-045');
+INSERT INTO ApDungKM VALUES ('ADKM-010', 'CTHD-057', 'CTKM-045');
+
+-- ==================== GiuCho (them 6 giu cho) ====================
+INSERT INTO GiuCho VALUES ('GC-003', 'NV-0002', 'LCH-014', 'G-002-22', '2026-04-16 15:00:00');
+INSERT INTO GiuCho VALUES ('GC-004', 'NV-0002', 'LCH-014', 'G-002-23', '2026-04-16 15:00:00');
+INSERT INTO GiuCho VALUES ('GC-005', 'NV-0004', 'LCH-015', 'G-003-15', '2026-04-17 12:00:00');
+INSERT INTO GiuCho VALUES ('GC-006', 'NV-0007', 'LCH-027', 'G-001-10', '2026-04-27 16:00:00');
+INSERT INTO GiuCho VALUES ('GC-007', 'NV-0007', 'LCH-027', 'G-001-11', '2026-04-27 16:00:00');
+INSERT INTO GiuCho VALUES ('GC-008', 'NV-0017', 'LCH-028', 'G-002-20', '2026-04-28 09:00:00');
 
 -- FK: NhanVien.gaLamViec -> Ga (them sau khi tat ca data da duoc insert)
 ALTER TABLE NhanVien ADD CONSTRAINT FK_NhanVien_Ga

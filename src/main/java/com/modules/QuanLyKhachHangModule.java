@@ -1,9 +1,7 @@
 package com.modules;
 
-import com.dao.DAO_NhanVien;
-import com.entity.NhanVien;
-import com.enums.TrangThaiNhanVien;
-import com.enums.VaiTro;
+import com.dao.DAO_KhachHang;
+import com.entity.KhachHang;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -21,17 +19,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class QuanLyNhanVienModule extends JPanel implements AppModule {
+public class QuanLyKhachHangModule extends JPanel implements AppModule {
 
     private Consumer<Object> callback;
 
-    // --- UI components ---
+    // --- UI ---
+    private JButton          btnAddNew;
     private JTextField        txtSearch;
-    private JComboBox<String> cboVaiTro;
-    private JComboBox<String> cboTrangThai;
-    private JButton           btnAddNew;
+    private JComboBox<String> cboFilter;
     private JTable            table;
-    private NhanVienTableModel tableModel;
+    private KhachHangTableModel tableModel;
 
     // --- Pagination ---
     private int currentPage  = 1;
@@ -42,8 +39,8 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     private JPanel  paginationPanel;
 
     // --- Data ---
-    private List<NhanVien> allData      = new ArrayList<>();
-    private List<NhanVien> filteredData = new ArrayList<>();
+    private List<KhachHang> allData      = new ArrayList<>();
+    private List<KhachHang> filteredData = new ArrayList<>();
 
     // --- Design tokens ---
     private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
@@ -55,13 +52,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
     private static final Color ROW_ALT       = new Color(0xF8, 0xFA, 0xFC);
     private static final Color ROW_HOVER     = new Color(0xEE, 0xF5, 0xFB);
-
-    private static final Color STATUS_GREEN_BG  = new Color(0xDC, 0xFA, 0xE6);
-    private static final Color STATUS_GREEN_FG  = new Color(0x16, 0x6B, 0x3A);
-    private static final Color STATUS_ORANGE_BG = new Color(0xFF, 0xED, 0xD5);
-    private static final Color STATUS_ORANGE_FG = new Color(0xC2, 0x41, 0x0C);
-    private static final Color STATUS_RED_BG    = new Color(0xFE, 0xE2, 0xE2);
-    private static final Color STATUS_RED_FG    = new Color(0xB9, 0x1C, 0x1C);
+    private static final Color TEXT_MUTED    = new Color(0xA0, 0xAE, 0xBA);
 
     private static final Font FONT_TITLE   = new Font("Segoe UI", Font.BOLD, 24);
     private static final Font FONT_DESC    = new Font("Segoe UI", Font.PLAIN, 13);
@@ -81,7 +72,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     // --- Hover tracking ---
     private int hoveredRow = -1;
 
-    public QuanLyNhanVienModule() {
+    public QuanLyKhachHangModule() {
         setLayout(new BorderLayout());
         setBackground(SURFACE);
         setBorder(new EmptyBorder(28, 36, 28, 36));
@@ -109,17 +100,16 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         header.setOpaque(false);
         header.setBorder(new EmptyBorder(0, 0, 24, 0));
 
-        // Left: title + description
         JPanel left = new JPanel();
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Quản lý nhân viên");
+        JLabel lblTitle = new JLabel("Quản lý khách hàng");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(ON_SURFACE);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDesc = new JLabel("Quản lý thông tin và trạng thái làm việc của nhân viên");
+        JLabel lblDesc = new JLabel("Quản lý thông tin hành khách đã đặt vé");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -129,9 +119,9 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         left.add(lblDesc);
 
         // Right: add button
-        btnAddNew = createPrimaryButton("+ Thêm nhân viên");
+        btnAddNew = createPrimaryButton("+ Thêm khách hàng");
         btnAddNew.setPreferredSize(new Dimension(170, 40));
-        btnAddNew.addActionListener(e -> openThemNhanVienDialog());
+        btnAddNew.addActionListener(e -> openThemKhachHangDialog());
 
         JPanel rightWrapper = new JPanel(new GridBagLayout());
         rightWrapper.setOpaque(false);
@@ -139,12 +129,10 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
 
         header.add(left, BorderLayout.CENTER);
         header.add(rightWrapper, BorderLayout.EAST);
-
         return header;
     }
 
     private JPanel buildTableCard() {
-        // Card container with rounded border
         JPanel card = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -176,7 +164,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
                 new EmptyBorder(16, 20, 16, 20)
         ));
 
-        // Search field (fills remaining space)
+        // Search field
         txtSearch = new JTextField() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -187,7 +175,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
                     g2.setColor(new Color(0x9E, 0xA7, 0xB0));
                     g2.setFont(FONT_BODY);
                     Insets insets = getInsets();
-                    g2.drawString("Tìm kiếm theo tên, mã NV, SĐT...", insets.left, getHeight() / 2 + 5);
+                    g2.drawString("Tìm theo tên, mã KH, CCCD, SĐT, email...", insets.left, getHeight() / 2 + 5);
                     g2.dispose();
                 }
             }
@@ -202,32 +190,13 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
             public void focusGained(java.awt.event.FocusEvent e) { txtSearch.repaint(); }
             public void focusLost(java.awt.event.FocusEvent e)   { txtSearch.repaint(); }
         });
-        // Live search: filter as user types
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
         });
 
-        // Vai tro dropdown
-        cboVaiTro = createFilterCombo(new String[]{
-                "Tất cả bộ phận",
-                "Nhân viên quầy vé",
-                "Điều phối",
-                "Admin"
-        });
-        cboVaiTro.addActionListener(e -> applyFilter());
-
-        // Trang thai dropdown
-        cboTrangThai = createFilterCombo(new String[]{
-                "Tất cả trạng thái",
-                "Đang làm",
-                "Nghỉ phép",
-                "Đã nghỉ"
-        });
-        cboTrangThai.addActionListener(e -> applyFilter());
-
-        // Bo loc button
+        // Bo loc
         JButton btnReset = new JButton("Bỏ lọc") {
             @Override
             protected void paintComponent(Graphics g) {
@@ -249,27 +218,11 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         btnReset.setMaximumSize(new Dimension(90, 36));
         btnReset.addActionListener(e -> {
             txtSearch.setText("");
-            cboVaiTro.setSelectedIndex(0);
-            cboTrangThai.setSelectedIndex(0);
         });
 
-        // Right panel: filters packed tightly to the right, vertically centered
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         right.setOpaque(false);
-
-        JPanel filtersInner = new JPanel();
-        filtersInner.setLayout(new BoxLayout(filtersInner, BoxLayout.X_AXIS));
-        filtersInner.setOpaque(false);
-        filtersInner.add(createFilterLabel("Bộ phận:"));
-        filtersInner.add(Box.createHorizontalStrut(6));
-        filtersInner.add(cboVaiTro);
-        filtersInner.add(Box.createHorizontalStrut(12));
-        filtersInner.add(createFilterLabel("Trạng thái:"));
-        filtersInner.add(Box.createHorizontalStrut(6));
-        filtersInner.add(cboTrangThai);
-        filtersInner.add(Box.createHorizontalStrut(12));
-        filtersInner.add(btnReset);
-        right.add(filtersInner);
+        right.add(btnReset);
 
         bar.add(txtSearch, BorderLayout.CENTER);
         bar.add(right, BorderLayout.EAST);
@@ -278,7 +231,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     }
 
     private JScrollPane buildTableSection() {
-        tableModel = new NhanVienTableModel();
+        tableModel = new KhachHangTableModel();
         table = new JTable(tableModel);
         table.setRowHeight(56);
         table.setShowGrid(false);
@@ -294,23 +247,17 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
 
-        // Row hover effect
+        // Row hover
         table.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
                 int row = table.rowAtPoint(e.getPoint());
-                if (row != hoveredRow) {
-                    hoveredRow = row;
-                    table.repaint();
-                }
+                if (row != hoveredRow) { hoveredRow = row; table.repaint(); }
             }
         });
         table.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseExited(MouseEvent e) {
-                hoveredRow = -1;
-                table.repaint();
-            }
+            public void mouseExited(MouseEvent e) { hoveredRow = -1; table.repaint(); }
         });
 
         // Header style
@@ -332,28 +279,23 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
             }
         });
 
-        // Column widths & renderers
+        // Column widths
         TableColumnModel colModel = table.getColumnModel();
-        int[] widths = {80, 200, 140, 120, 130, 90};
+        int[] widths = {100, 160, 120, 100, 80, 60, 60};
         for (int i = 0; i < widths.length; i++) {
             colModel.getColumn(i).setPreferredWidth(widths[i]);
         }
 
-        // Col 0: Ma NV (khong cho sua)
         colModel.getColumn(0).setCellRenderer(new RowCellRenderer(FONT_MONO, PRIMARY, SwingConstants.LEFT));
-        // Col 1: Ho ten
         colModel.getColumn(1).setCellRenderer(new RowCellRenderer(FONT_BOLD, ON_SURFACE, SwingConstants.LEFT));
-        // Col 2: Bo phan
         colModel.getColumn(2).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
-        // Col 3: SDT
         colModel.getColumn(3).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
-        // Col 4: Trang thai (badge)
-        colModel.getColumn(4).setCellRenderer(new BadgeCellRenderer());
-        // Col 5: Edit button
-        colModel.getColumn(5).setCellRenderer(new EditButtonRenderer());
-        colModel.getColumn(5).setCellEditor(new EditButtonEditor());
+        colModel.getColumn(4).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
+        colModel.getColumn(5).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.CENTER));
+        colModel.getColumn(6).setCellRenderer(new EditButtonRenderer());
+        colModel.getColumn(6).setCellEditor(new EditButtonEditor());
 
-        // Double-click row → open edit dialog; single-click button col → same
+        // Row click → open edit dialog
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -361,9 +303,9 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
                 if (viewRow < 0) return;
                 int col = table.columnAtPoint(e.getPoint());
                 int modelRow = table.convertRowIndexToModel(viewRow);
-                NhanVien nv = tableModel.getNhanVienAt(modelRow);
-                if (nv != null && (col == 5 || e.getClickCount() == 2)) {
-                    onEditNhanVien(nv);
+                KhachHang kh = tableModel.getKhachHangAt(modelRow);
+                if (kh != null && (col == 6 || e.getClickCount() == 2)) {
+                    onEditKhachHang(kh);
                 }
             }
         });
@@ -400,7 +342,6 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         if (headerH <= 0) headerH = table.getTableHeader().getPreferredSize().height;
         if (headerH <= 0) headerH = 44;
         int available = viewH - headerH;
-        // +1 de lap day khoang trong con lai (hang cuoi co the bi cat mot chut nhung khong sao)
         return available > 0 ? Math.max(1, available / rh + 1) : 0;
     }
 
@@ -426,66 +367,14 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     }
 
     // =================================================================
-    //  HELPER: create styled components
-    // =================================================================
-
-    private JButton createPrimaryButton(String text) {
-        JButton btn = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isPressed()) {
-                    g2.setColor(PRIMARY.darker());
-                } else if (getModel().isRollover()) {
-                    g2.setColor(PRIMARY.brighter());
-                } else {
-                    g2.setColor(PRIMARY);
-                }
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 10, 10));
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_BTN);
-        btn.setForeground(Color.WHITE);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return btn;
-    }
-
-    private JComboBox<String> createFilterCombo(String[] items) {
-        JComboBox<String> cbo = new JComboBox<>(items);
-        cbo.setFont(FONT_BODY);
-        cbo.setMaximumSize(new Dimension(180, 36));
-        cbo.setPreferredSize(new Dimension(180, 36));
-        return cbo;
-    }
-
-    private JLabel createFilterLabel(String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(FONT_HEADER);
-        lbl.setForeground(ON_SURF_VAR);
-        return lbl;
-    }
-
-    // =================================================================
     //  DATA
     // =================================================================
 
-    private void openThemNhanVienDialog() {
-        Window owner = SwingUtilities.getWindowAncestor(this);
-        ThemNhanVienDialog dlg = new ThemNhanVienDialog(owner, this::loadData);
-        dlg.setVisible(true);
-    }
-
     private void loadData() {
-        SwingWorker<List<NhanVien>, Void> worker = new SwingWorker<>() {
+        SwingWorker<List<KhachHang>, Void> worker = new SwingWorker<>() {
             @Override
-            protected List<NhanVien> doInBackground() {
-                return new DAO_NhanVien().getAll();
+            protected List<KhachHang> doInBackground() {
+                return new DAO_KhachHang().getAll();
             }
 
             @Override
@@ -507,33 +396,15 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
 
     private void applyFilter() {
         String keyword = txtSearch.getText().trim().toLowerCase();
-        int vaiTroIdx = cboVaiTro.getSelectedIndex();
-        int trangThaiIdx = cboTrangThai.getSelectedIndex();
 
         filteredData = new ArrayList<>();
-        for (NhanVien nv : allData) {
-            boolean matchKw = keyword.isEmpty()
-                    || nv.getMaNV().toLowerCase().contains(keyword)
-                    || nv.getHoTen().toLowerCase().contains(keyword)
-                    || (nv.getSoDienThoai() != null && nv.getSoDienThoai().contains(keyword));
-
-            boolean matchVt = vaiTroIdx == 0 || (nv.getVaiTro() != null && switch (vaiTroIdx) {
-                case 1 -> nv.getVaiTro() == VaiTro.BAN_VE;
-                case 2 -> nv.getVaiTro() == VaiTro.DIEU_PHOI;
-                case 3 -> nv.getVaiTro() == VaiTro.ADMIN;
-                default -> true;
-            });
-
-            boolean matchTt = trangThaiIdx == 0 || (nv.getTrangThai() != null && switch (trangThaiIdx) {
-                case 1 -> nv.getTrangThai() == TrangThaiNhanVien.DANG_LAM;
-                case 2 -> nv.getTrangThai() == TrangThaiNhanVien.NGHI_PHEP;
-                case 3 -> nv.getTrangThai() == TrangThaiNhanVien.DA_NGHI;
-                default -> true;
-            });
-
-            if (matchKw && matchVt && matchTt) {
-                filteredData.add(nv);
-            }
+        for (KhachHang kh : allData) {
+            boolean match = keyword.isEmpty()
+                    || (kh.getMaKhachHang() != null && kh.getMaKhachHang().toLowerCase().contains(keyword))
+                    || (kh.getHoTen() != null && kh.getHoTen().toLowerCase().contains(keyword))
+                    || (kh.getCccd() != null && kh.getCccd().toLowerCase().contains(keyword))
+                    || (kh.getSoDienThoai() != null && kh.getSoDienThoai().toLowerCase().contains(keyword));
+            if (match) filteredData.add(kh);
         }
 
         totalRecords = filteredData.size();
@@ -548,31 +419,28 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     private void refreshTable() {
         isRefreshing = true;
         try {
-            // Calc from viewport, fallback to screen estimate
             int vpRows = calcRowsFromViewport();
             if (vpRows > 0) {
                 rowsPerPage = vpRows;
             } else {
-                // First load: viewport not ready, estimate from screen
-                // Module overhead: border(56) + header(70+24) + filterBar(68) + tableHeader(44) + pagination(56) ≈ 320
                 int screenH = Toolkit.getDefaultToolkit().getScreenSize().height;
                 int rh = (table != null && table.getRowHeight() > 0) ? table.getRowHeight() : 56;
-                rowsPerPage = Math.max(5, (screenH - 320) / rh);
+                rowsPerPage = Math.max(5, (screenH - 300) / rh);
             }
 
-        int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / rowsPerPage));
-        if (currentPage > totalPages) currentPage = totalPages;
+            int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / rowsPerPage));
+            if (currentPage > totalPages) currentPage = totalPages;
 
-        int start = (currentPage - 1) * rowsPerPage;
-        int end = Math.min(start + rowsPerPage, totalRecords);
+            int start = (currentPage - 1) * rowsPerPage;
+            int end = Math.min(start + rowsPerPage, totalRecords);
 
-        tableModel.setData(filteredData.subList(start, end));
+            tableModel.setData(filteredData.subList(start, end));
 
-        lblPageInfo.setText(totalRecords == 0
-                ? "Không tìm thấy nhân viên nào"
-                : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " nhân viên");
+            lblPageInfo.setText(totalRecords == 0
+                    ? "Không tìm thấy khách hàng nào"
+                    : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " khách hàng");
 
-        rebuildPagination(totalPages);
+            rebuildPagination(totalPages);
         } finally {
             isRefreshing = false;
         }
@@ -650,11 +518,11 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     //  TABLE MODEL
     // =================================================================
 
-    private class NhanVienTableModel extends AbstractTableModel {
-        private final String[] COLUMNS = {"Mã NV", "Họ và tên", "Bộ phận", "SĐT", "Trạng thái", ""};
-        private List<NhanVien> data = new ArrayList<>();
+    private class KhachHangTableModel extends AbstractTableModel {
+        private final String[] COLUMNS = {"Mã KH", "Họ và tên", "CCCD", "SĐT", "Email", "GT", ""};
+        private List<KhachHang> data = new ArrayList<>();
 
-        void setData(List<NhanVien> data) {
+        void setData(List<KhachHang> data) {
             this.data = new ArrayList<>(data);
             fireTableDataChanged();
         }
@@ -662,32 +530,33 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         @Override public int getRowCount()    { return data.size(); }
         @Override public int getColumnCount() { return COLUMNS.length; }
         @Override public String getColumnName(int c) { return COLUMNS[c]; }
-
-        @Override
-        public boolean isCellEditable(int r, int c) {
-            return false; // all edits go through SuaNhanVienDialog
-        }
-
         @Override
         public Object getValueAt(int r, int c) {
-            NhanVien nv = data.get(r);
+            if (r < 0 || r >= data.size()) return "";
+            KhachHang kh = data.get(r);
             return switch (c) {
-                case 0 -> nv.getMaNV();
-                case 1 -> nv.getHoTen();
-                case 2 -> nv.getVaiTro() != null ? nv.getVaiTro() : VaiTro.BAN_VE;
-                case 3 -> nv.getSoDienThoai() != null ? nv.getSoDienThoai() : "";
-                case 4 -> nv.getTrangThai() != null ? nv.getTrangThai() : TrangThaiNhanVien.DANG_LAM;
-                case 5 -> "Chỉnh sửa";
+                case 0 -> kh.getMaKhachHang();
+                case 1 -> kh.getHoTen();
+                case 2 -> kh.getCccd() != null ? kh.getCccd() : "";
+                case 3 -> kh.getSoDienThoai() != null ? kh.getSoDienThoai() : "";
+                case 4 -> kh.getEmail() != null ? kh.getEmail() : "";
+                case 5 -> kh.getGioiTinh() != null ? kh.getGioiTinh() : "";
+                case 6 -> "Sửa";
                 default -> "";
             };
         }
 
         @Override
-        public void setValueAt(Object value, int r, int c) {
-            // no-op — all edits go through SuaNhanVienDialog
+        public boolean isCellEditable(int r, int c) {
+            return false; // all edits handled via SuaKhachHangDialog
         }
 
-        NhanVien getNhanVienAt(int r) {
+        @Override
+        public void setValueAt(Object value, int r, int c) {
+            // no-op
+        }
+
+        KhachHang getKhachHangAt(int r) {
             return (r >= 0 && r < data.size()) ? data.get(r) : null;
         }
     }
@@ -696,7 +565,6 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     //  CELL RENDERERS
     // =================================================================
 
-    /** Generic row renderer with hover + zebra stripe */
     private class RowCellRenderer extends DefaultTableCellRenderer {
         private final Font font;
         private final Color fg;
@@ -719,55 +587,6 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         }
     }
 
-    /** Badge renderer for TrangThaiNhanVien */
-    private class BadgeCellRenderer extends JPanel implements TableCellRenderer {
-        private final JLabel badge = new JLabel();
-        private Color badgeBg = OUTLINE;
-        private Color badgeFg = ON_SURF_VAR;
-
-        BadgeCellRenderer() {
-            setLayout(new GridBagLayout()); // centers the badge vertically & horizontally
-            setOpaque(true);
-            badge.setFont(FONT_BADGE);
-            badge.setHorizontalAlignment(SwingConstants.CENTER);
-            badge.setOpaque(false);
-            add(badge);
-        }
-
-        @Override
-        public Component getTableCellRendererComponent(JTable tbl, Object value,
-                boolean isSel, boolean hasFocus, int row, int col) {
-            TrangThaiNhanVien tt = (value instanceof TrangThaiNhanVien) ? (TrangThaiNhanVien) value : TrangThaiNhanVien.DANG_LAM;
-
-            switch (tt) {
-                case DANG_LAM  -> { badgeBg = STATUS_GREEN_BG;  badgeFg = STATUS_GREEN_FG; }
-                case NGHI_PHEP -> { badgeBg = STATUS_ORANGE_BG; badgeFg = STATUS_ORANGE_FG; }
-                case DA_NGHI   -> { badgeBg = STATUS_RED_BG;    badgeFg = STATUS_RED_FG; }
-            }
-
-            badge.setText(tt.toString());
-            badge.setForeground(badgeFg);
-            setBackground(getRowBg(tbl, isSel, row));
-            return this;
-        }
-
-        @Override
-        protected void paintChildren(Graphics g) {
-            // Paint rounded badge background behind label text
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            Rectangle r = badge.getBounds();
-            int px = 10, py = 3;
-            g2.setColor(badgeBg);
-            g2.fillRoundRect(r.x - px, r.y - py, r.width + 2 * px, r.height + 2 * py, 14, 14);
-            g2.dispose();
-
-            super.paintChildren(g);
-        }
-    }
-
-    /** Edit button renderer */
     private class EditButtonRenderer extends JPanel implements TableCellRenderer {
         private final JLabel lbl = new JLabel();
 
@@ -785,7 +604,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         @Override
         public Component getTableCellRendererComponent(JTable tbl, Object value,
                 boolean isSel, boolean hasFocus, int row, int col) {
-            lbl.setText(value != null ? value.toString() : "Chỉnh sửa");
+            lbl.setText(value != null ? value.toString() : "Sửa");
             setBackground(getRowBg(tbl, isSel, row));
             return this;
         }
@@ -794,7 +613,6 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         protected void paintChildren(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
             Rectangle r = lbl.getBounds();
             int px = 12, py = 4;
             g2.setColor(PRIMARY_LIGHT);
@@ -803,12 +621,10 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
             g2.setStroke(new BasicStroke(1f));
             g2.drawRoundRect(r.x - px, r.y - py, r.width + 2 * px, r.height + 2 * py, 10, 10);
             g2.dispose();
-
             super.paintChildren(g);
         }
     }
 
-    /** Edit button editor (handles clicks) — only triggers when clicking the button area */
     private class EditButtonEditor extends AbstractCellEditor implements TableCellEditor {
         private final JPanel panel;
         private final JButton button;
@@ -818,19 +634,19 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
             panel = new JPanel(new GridBagLayout());
             panel.setOpaque(true);
 
-            button = new JButton("Chỉnh sửa");
+            button = new JButton("Sửa");
             button.setFont(FONT_BADGE);
             button.setForeground(PRIMARY);
             button.setBackground(PRIMARY_LIGHT);
             button.setBorderPainted(false);
             button.setFocusPainted(false);
             button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            button.setPreferredSize(new Dimension(80, 28));
+            button.setPreferredSize(new Dimension(72, 28));
 
             button.addActionListener(e -> {
                 fireEditingStopped();
-                NhanVien nv = tableModel.getNhanVienAt(editingRow);
-                if (nv != null) onEditNhanVien(nv);
+                KhachHang kh = tableModel.getKhachHangAt(editingRow);
+                if (kh != null) onEditKhachHang(kh);
             });
 
             panel.add(button);
@@ -866,10 +682,9 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         }
 
         @Override
-        public Object getCellEditorValue() { return "Chỉnh sửa"; }
+        public Object getCellEditorValue() { return "Sửa"; }
     }
 
-    /** Row background helper: hover > selected > zebra */
     private Color getRowBg(JTable tbl, boolean isSel, int row) {
         if (isSel) return PRIMARY_LIGHT;
         if (row == hoveredRow) return ROW_HOVER;
@@ -877,12 +692,12 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     }
 
     // =================================================================
-    //  EDIT ACTION (placeholder)
+    //  EDIT ACTION
     // =================================================================
 
-    private void onEditNhanVien(NhanVien nv) {
+    private void onEditKhachHang(KhachHang kh) {
         Window owner = SwingUtilities.getWindowAncestor(this);
-        SuaNhanVienDialog dlg = new SuaNhanVienDialog(owner, nv, this::loadData);
+        SuaKhachHangDialog dlg = new SuaKhachHangDialog(owner, kh, this::loadData);
         dlg.setVisible(true);
     }
 
@@ -890,7 +705,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     //  AppModule interface
     // =================================================================
 
-    @Override public String getTitle() { return "Quản lý nhân viên"; }
+    @Override public String getTitle() { return "Quản lý khách hàng"; }
     @Override public JPanel getView()  { return this; }
     @Override public void setOnResult(Consumer<Object> cb) {
         this.callback = cb;
@@ -901,9 +716,40 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     }
     @Override public void reset() {
         txtSearch.setText("");
-        cboVaiTro.setSelectedIndex(0);
-        cboTrangThai.setSelectedIndex(0);
         currentPage = 1;
         loadData();
+    }
+
+    private void openThemKhachHangDialog() {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        ThemKhachHangDialog dlg = new ThemKhachHangDialog(owner, this::loadData);
+        dlg.setVisible(true);
+    }
+
+    private JButton createPrimaryButton(String text) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isPressed()) {
+                    g2.setColor(PRIMARY.darker());
+                } else if (getModel().isRollover()) {
+                    g2.setColor(PRIMARY.brighter());
+                } else {
+                    g2.setColor(PRIMARY);
+                }
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 10, 10));
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(FONT_BTN);
+        btn.setForeground(Color.WHITE);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return btn;
     }
 }

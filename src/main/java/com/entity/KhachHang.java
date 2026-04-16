@@ -1,5 +1,6 @@
 package com.entity;
 
+import java.time.LocalDate;
 import java.util.Objects;
 
 public class KhachHang {
@@ -7,6 +8,13 @@ public class KhachHang {
     private String hoTen;
     private String cccd;
     private String soDienThoai;
+    // 6 new fields — giống NhanVien, trừ nghiệp vụ bán hàng
+    private String email;
+    private String diaChiThuongTru;
+    private String diaChiTamTru;
+    private LocalDate ngaySinh;
+    private String gioiTinh;     // "NAM" or "NU"
+    private String quocTich;
 
     public KhachHang() {
         super();
@@ -16,12 +24,31 @@ public class KhachHang {
         this.maKhachHang = maKhachHang;
     }
 
+    // Backward-compatible 4-field constructor
     public KhachHang(String maKhachHang, String hoTen, String cccd, String soDienThoai) {
         this.maKhachHang = maKhachHang;
         setHoTen(hoTen);
         setCccd(cccd);
         setSoDienThoai(soDienThoai);
     }
+
+    // Full constructor
+    public KhachHang(String maKhachHang, String hoTen, String cccd, String soDienThoai,
+                     String email, String diaChiThuongTru, String diaChiTamTru,
+                     LocalDate ngaySinh, String gioiTinh, String quocTich) {
+        this.maKhachHang = maKhachHang;
+        setHoTen(hoTen);
+        setCccd(cccd);
+        setSoDienThoai(soDienThoai);
+        this.email = email;
+        this.diaChiThuongTru = diaChiThuongTru;
+        this.diaChiTamTru = diaChiTamTru;
+        this.ngaySinh = ngaySinh;
+        this.gioiTinh = gioiTinh;
+        this.quocTich = quocTich != null ? quocTich : "Việt Nam";
+    }
+
+    // --- Getters / Setters ---
 
     public String getMaKhachHang() { return maKhachHang; }
     public void setMaKhachHang(String maKhachHang) { this.maKhachHang = maKhachHang; }
@@ -49,6 +76,26 @@ public class KhachHang {
         this.soDienThoai = soDienThoai;
     }
 
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getDiaChiThuongTru() { return diaChiThuongTru; }
+    public void setDiaChiThuongTru(String diaChiThuongTru) { this.diaChiThuongTru = diaChiThuongTru; }
+
+    public String getDiaChiTamTru() { return diaChiTamTru; }
+    public void setDiaChiTamTru(String diaChiTamTru) { this.diaChiTamTru = diaChiTamTru; }
+
+    public LocalDate getNgaySinh() { return ngaySinh; }
+    public void setNgaySinh(LocalDate ngaySinh) { this.ngaySinh = ngaySinh; }
+
+    public String getGioiTinh() { return gioiTinh; }
+    public void setGioiTinh(String gioiTinh) { this.gioiTinh = gioiTinh; }
+
+    public String getQuocTich() { return quocTich != null ? quocTich : "Việt Nam"; }
+    public void setQuocTich(String quocTich) { this.quocTich = quocTich; }
+
+    // --- equals / hashCode / toString ---
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -69,6 +116,11 @@ public class KhachHang {
                 ", hoTen='" + hoTen + '\'' +
                 ", cccd='" + cccd + '\'' +
                 ", soDienThoai='" + soDienThoai + '\'' +
+                ", email='" + email + '\'' +
+                ", diaChiThuongTru='" + diaChiThuongTru + '\'' +
+                ", ngaySinh=" + ngaySinh +
+                ", gioiTinh='" + gioiTinh + '\'' +
+                ", quocTich='" + quocTich + '\'' +
                 '}';
     }
 }
