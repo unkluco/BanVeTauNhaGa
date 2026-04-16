@@ -1028,6 +1028,46 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         applyFilter();
     }
 
+    /**
+     * Nhận structured criteria từ Dashboard (TongQuatModule).
+     * Điền filter fields rồi gọi applyFilter().
+     */
+    public void applySearchFromDashboard(LichSearchCriteria criteria) {
+        if (criteria == null) return;
+
+        try {
+            // Select GA ĐI — tìm Ga theo maGa rồi select
+            if (criteria.gaDiCode() != null && filterGaDi != null) {
+                for (Ga g : daoGa.getAll()) {
+                    if (g.getMaGa().equals(criteria.gaDiCode())) {
+                        filterGaDi.selectItem(g);
+                        break;
+                    }
+                }
+            }
+
+            // Select GA ĐẾN
+            if (criteria.gaDenCode() != null && filterGaDen != null) {
+                for (Ga g : daoGa.getAll()) {
+                    if (g.getMaGa().equals(criteria.gaDenCode())) {
+                        filterGaDen.selectItem(g);
+                        break;
+                    }
+                }
+            }
+
+            // Set NGÀY ĐI
+            if (criteria.ngayYmd() != null && dateFrom != null) {
+                java.time.LocalDate ld = java.time.LocalDate.parse(criteria.ngayYmd());
+                dateFrom.setValue(ld);
+            }
+        } catch (Exception ex) {
+            System.err.println("[TongQuat] applySearchFromDashboard error: " + ex.getMessage());
+        }
+
+        applyFilter();
+    }
+
     //  AppModule
     // =====================================================================
 

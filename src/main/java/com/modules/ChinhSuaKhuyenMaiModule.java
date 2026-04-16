@@ -20,11 +20,12 @@ import java.text.DecimalFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Panel chi tiết một KhuyenMai — hiển thị thông tin KM và bảng ChiTietKhuyenMai.
  */
-public class ChinhSuaKhuyenMaiModule extends JPanel {
+public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
 
     // ── Design tokens ──────────────────────────────────────────────────
     private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
@@ -61,8 +62,9 @@ public class ChinhSuaKhuyenMaiModule extends JPanel {
     private static final DecimalFormat     PCT_FMT = new DecimalFormat("##.##");
 
     // ── State ──────────────────────────────────────────────────────────
-    private final KhuyenMai khuyenMai;
-    private final Runnable  onBack;
+    private Consumer<Object> callback;
+    private final KhuyenMai  khuyenMai;
+    private final Runnable   onBack;
 
     private JTable                    table;
     private ChiTietKhuyenMaiTableModel tableModel;
@@ -887,5 +889,33 @@ public class ChinhSuaKhuyenMaiModule extends JPanel {
         }
         @Override public boolean isCellEditable(java.util.EventObject e) { return e instanceof MouseEvent; }
         @Override public Object getCellEditorValue() { return null; }
+    }
+
+    // =================================================================
+    //  4 PHƯƠNG THỨC BẮT BUỘC CỦA AppModule
+    // =================================================================
+
+    @Override
+    public String getTitle() {
+        return "Chi tiết khuyến mãi";
+    }
+
+    @Override
+    public JPanel getView() {
+        return this;
+    }
+
+    @Override
+    public void setOnResult(Consumer<Object> cb) {
+        this.callback = cb;
+        // standalone mode: module không có nút Xác nhận/Hủy cần ẩn/hiện
+    }
+
+    @Override
+    public void reset() {
+        currentPage = 1;
+        if (txtFilterSearch != null) txtFilterSearch.setText("");
+        if (cboFilterLoaiGhe != null) cboFilterLoaiGhe.setSelectedIndex(0);
+        if (tableModel != null) applyFilter();
     }
 }

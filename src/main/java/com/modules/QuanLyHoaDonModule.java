@@ -509,6 +509,14 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
         applyFilter();
     }
 
+    /**
+     * Nhận keyword từ Dashboard — tìm trên maHoaDon, hoTen KH, hoTen NV (đã có trong applyFilter).
+     */
+    public void applySearchFromDashboard(String keyword) {
+        txtSearch.setText(keyword != null ? keyword.trim() : "");
+        applyFilter();
+    }
+
     //  AppModule
     // =========================================================================
 

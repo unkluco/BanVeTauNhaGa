@@ -85,6 +85,7 @@ public class MenuModule extends JPanel implements AppModule {
                 setActive(null);
                 lblPageTitle.setText("Đặt vé mới");
                 BanVeModule banVeModule = new BanVeModule(currentUser);
+                banVeModule.reset();
                 banVeModule.setOnResult(null);
                 contentPanel.removeAll();
                 contentPanel.add(banVeModule.getView(), BorderLayout.CENTER);
@@ -513,11 +514,10 @@ public class MenuModule extends JPanel implements AppModule {
         switch (actionKey) {
             case "TONG_QUAN" -> {
                 TongQuatModule tqModule = new TongQuatModule();
-                tqModule.setOnResult(result -> {
-                    if (result instanceof String[] nav && nav.length == 3) {
-                        navigateWithSearch(nav[0], nav[1], nav[2]);
-                    }
-                });
+                tqModule.reset();
+                tqModule.setOnResult(null);
+                tqModule.setNavigationCallback((ak, lbl, criteria) ->
+                        navigateWithSearch(ak, lbl, criteria));
                 contentPanel.removeAll();
                 contentPanel.add(tqModule.getView(), BorderLayout.CENTER);
                 contentPanel.revalidate();
@@ -526,6 +526,7 @@ public class MenuModule extends JPanel implements AppModule {
             case "THONG_KE" -> {
                 try {
                     ThongKeModule module = new ThongKeModule();
+                    module.reset();
                     module.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(module.getView(), BorderLayout.CENTER);
@@ -539,6 +540,7 @@ public class MenuModule extends JPanel implements AppModule {
             }
             case "QL_NHAN_VIEN" -> {
                 QuanLyNhanVienModule module = new QuanLyNhanVienModule();
+                module.reset();
                 module.setOnResult(null);
                 contentPanel.removeAll();
                 contentPanel.add(module.getView(), BorderLayout.CENTER);
@@ -547,6 +549,7 @@ public class MenuModule extends JPanel implements AppModule {
             }
             case "QL_GIA" -> {
                 QuanLyGiaModule giaModule = new QuanLyGiaModule();
+                giaModule.reset();
                 giaModule.setOnResult(null);
                 contentPanel.removeAll();
                 contentPanel.add(giaModule.getView(), BorderLayout.CENTER);
@@ -556,6 +559,7 @@ public class MenuModule extends JPanel implements AppModule {
             case "QL_KHUYEN_MAI" -> {
                 try {
                     QuanLyKhuyenMaiModule kmModule = new QuanLyKhuyenMaiModule();
+                    kmModule.reset();
                     kmModule.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(kmModule.getView(), BorderLayout.CENTER);
@@ -570,6 +574,7 @@ public class MenuModule extends JPanel implements AppModule {
             case "QL_VE_HOA_DON" -> {
                 try {
                     QuanLyVeModule module = new QuanLyVeModule();
+                    module.reset();
                     module.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(module.getView(), BorderLayout.CENTER);
@@ -584,6 +589,7 @@ public class MenuModule extends JPanel implements AppModule {
             case "QL_HOA_DON" -> {
                 try {
                     QuanLyHoaDonModule module = new QuanLyHoaDonModule();
+                    module.reset();
                     module.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(module.getView(), BorderLayout.CENTER);
@@ -598,6 +604,7 @@ public class MenuModule extends JPanel implements AppModule {
             case "QL_TUYEN" -> {
                 try {
                     QuanLyTuyenModule module = new QuanLyTuyenModule();
+                    module.reset();
                     module.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(module.getView(), BorderLayout.CENTER);
@@ -612,6 +619,7 @@ public class MenuModule extends JPanel implements AppModule {
             case "QL_DOAN_TAU" -> {
                 try {
                     QuanLyDoanTauModule module = new QuanLyDoanTauModule();
+                    module.reset();
                     module.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(module.getView(), BorderLayout.CENTER);
@@ -626,6 +634,7 @@ public class MenuModule extends JPanel implements AppModule {
             case "QL_TOA" -> {
                 try {
                     QuanLyToaModule module = new QuanLyToaModule();
+                    module.reset();
                     module.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(module.getView(), BorderLayout.CENTER);
@@ -640,6 +649,7 @@ public class MenuModule extends JPanel implements AppModule {
             case "QL_LICH_CHAY" -> {
                 try {
                     QuanLyLichChayModule module = new QuanLyLichChayModule();
+                    module.reset();
                     module.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(module.getView(), BorderLayout.CENTER);
@@ -657,7 +667,18 @@ public class MenuModule extends JPanel implements AppModule {
         }
     }
 
+    /**
+     * Navigate with plain-string search (backward compatible).
+     */
     private void navigateWithSearch(String actionKey, String label, String searchText) {
+        navigateWithSearch(actionKey, label, (Object) searchText);
+    }
+
+    /**
+     * Navigate with optional search criteria.
+     * @param searchCriteria  String (plain keyword) or LichSearchCriteria / String
+     */
+    private void navigateWithSearch(String actionKey, String label, Object searchCriteria) {
         lblPageTitle.setText(label);
         for (NavItem item : menuItems) {
             if (actionKey.equals(item.getName()) && item.isEnabled()) {
@@ -669,30 +690,41 @@ public class MenuModule extends JPanel implements AppModule {
             switch (actionKey) {
                 case "QL_LICH_CHAY" -> {
                     QuanLyLichChayModule module = new QuanLyLichChayModule();
+                    module.reset();
                     module.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(module.getView(), BorderLayout.CENTER);
                     contentPanel.revalidate();
                     contentPanel.repaint();
-                    if (!searchText.isEmpty()) module.applySearch(searchText);
+                    if (searchCriteria instanceof LichSearchCriteria lc) {
+                        module.applySearchFromDashboard(lc);
+                    } else if (searchCriteria instanceof String s && !s.isEmpty()) {
+                        module.applySearch(s);
+                    }
                 }
                 case "QL_HOA_DON" -> {
                     QuanLyHoaDonModule module = new QuanLyHoaDonModule();
+                    module.reset();
                     module.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(module.getView(), BorderLayout.CENTER);
                     contentPanel.revalidate();
                     contentPanel.repaint();
-                    if (!searchText.isEmpty()) module.applySearch(searchText);
+                    if (searchCriteria instanceof String s && !s.isEmpty()) {
+                        module.applySearchFromDashboard(s);
+                    }
                 }
                 case "QL_VE_HOA_DON" -> {
                     QuanLyVeModule module = new QuanLyVeModule();
+                    module.reset();
                     module.setOnResult(null);
                     contentPanel.removeAll();
                     contentPanel.add(module.getView(), BorderLayout.CENTER);
                     contentPanel.revalidate();
                     contentPanel.repaint();
-                    if (!searchText.isEmpty()) module.applySearchVe(searchText);
+                    if (searchCriteria instanceof String s && !s.isEmpty()) {
+                        module.applySearchFromDashboard(s);
+                    }
                 }
                 default -> handleMenuAction(actionKey, label);
             }
@@ -705,6 +737,7 @@ public class MenuModule extends JPanel implements AppModule {
         setActive(null);
         lblPageTitle.setText("Thông tin cá nhân");
         ThongTinCaNhanModule module = new ThongTinCaNhanModule(currentUser);
+        module.reset();
         module.setOnResult(null);
         contentPanel.removeAll();
         contentPanel.add(module.getView(), BorderLayout.CENTER);

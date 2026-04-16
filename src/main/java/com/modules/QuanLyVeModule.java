@@ -1066,6 +1066,14 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         searchByMaVe();
     }
 
+    /**
+     * Nhận keyword từ Dashboard — tìm trên maVe và maHoaDon (qua ChiTietHoaDon).
+     */
+    public void applySearchFromDashboard(String keyword) {
+        txtSearchVe.setText(keyword != null ? keyword.trim() : "");
+        searchByMaVe();
+    }
+
     //  AppModule interface
     // =================================================================
 

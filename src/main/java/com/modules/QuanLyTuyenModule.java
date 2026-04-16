@@ -94,7 +94,10 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     public void reset() {
         if (filterGaDi  != null) filterGaDi.clearSelection();
         if (filterGaDen != null) filterGaDen.clearSelection();
-        loadData();
+        // KHÔNG gọi loadData() ở đây — cardsPanel có thể chưa khởi tạo
+        // (reset() được gọi từ MenuModule.TRƯỚC khi module được build lần đầu)
+        // Nếu cardsPanel đã sẵn sàng thì mới refresh
+        if (cardsPanel != null) applyFilter();
     }
 
     // ====================================================================

@@ -20,8 +20,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 
-public class ChinhSuaGiaModule extends JPanel {
+public class ChinhSuaGiaModule extends JPanel implements AppModule {
 
     // ===== Design tokens =====
     private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
@@ -54,8 +55,9 @@ public class ChinhSuaGiaModule extends JPanel {
     private static final NumberFormat      CURRENCY_FMT  = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
 
     // ===== State =====
-    private final Gia      gia;
-    private final Runnable onBack;
+    private Consumer<Object> callback;
+    private final Gia        gia;
+    private final Runnable   onBack;
 
     private JTable               table;
     private ChiTietGiaTableModel tableModel;
@@ -919,5 +921,34 @@ public class ChinhSuaGiaModule extends JPanel {
 
         @Override public boolean isCellEditable(java.util.EventObject e) { return e instanceof MouseEvent; }
         @Override public Object getCellEditorValue() { return null; }
+    }
+
+    // =================================================================
+    //  4 PHƯƠNG THỨC BẮT BUỘC CỦA AppModule
+    // =================================================================
+
+    @Override
+    public String getTitle() {
+        return "Chi tiết biểu giá";
+    }
+
+    @Override
+    public JPanel getView() {
+        return this;
+    }
+
+    @Override
+    public void setOnResult(Consumer<Object> cb) {
+        this.callback = cb;
+        // standalone mode: ẩn nút quay lại vì module không có nút Xác nhận/Hủy
+        // (callback chỉ dùng khi cần báo cáo kết quả ra ngoài)
+    }
+
+    @Override
+    public void reset() {
+        currentPage = 1;
+        if (txtFilterSearch != null) txtFilterSearch.setText("");
+        if (cboFilterLoaiGhe != null) cboFilterLoaiGhe.setSelectedIndex(0);
+        if (tableModel != null) applyFilter();
     }
 }

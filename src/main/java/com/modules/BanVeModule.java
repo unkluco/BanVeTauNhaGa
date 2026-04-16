@@ -1,5 +1,6 @@
 package com.modules;
 
+import com.connectDB.ConnectDB;
 import com.dao.*;
 import com.entity.*;
 import com.enums.LoaiGhe;
@@ -11,6 +12,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -470,11 +475,50 @@ public class BanVeModule extends JPanel implements AppModule {
         }
     }
 
+    /**
+     * Tạo ID an toàn cho đa luồng bằng cách đếm số bản ghi hiện có trong DB.
+     * Giữ nguyên format: PREFIX-ddMMyyyy-NNN
+     * Không dùng UUID — tránh birthday paradox khi nhiều nhân viên bán vé cùng lúc.
+     */
     private String genId(String prefix) {
-        LocalDate n = LocalDate.now();
-        return String.format("%s-%02d%02d%04d-%s",
-            prefix, n.getDayOfMonth(), n.getMonthValue(), n.getYear(),
-            UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+        LocalDate now = LocalDate.now();
+        String datePrefix = String.format("%s-%02d%02d%04d",
+            prefix, now.getDayOfMonth(), now.getMonthValue(), now.getYear());
+
+        Connection con = ConnectDB.getCon();
+        if (con == null) return datePrefix + "-001";
+
+        String tableColumn = switch (prefix) {
+            case "VE"   -> "maVe";
+            case "KH"   -> "maKhachHang";
+            case "CTHD" -> "maChiTietHD";
+            case "ADKM" -> "maADKM";
+            default     -> "maVe";
+        };
+
+        String sql = "SELECT COUNT(*) FROM " + getTableName(prefix) + " WHERE " + tableColumn + " LIKE ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, datePrefix + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int count = rs.getInt(1) + 1;
+                    return datePrefix + "-" + String.format("%03d", count);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi phát sinh ID: " + e.getMessage());
+        }
+        return datePrefix + "-001";
+    }
+
+    private String getTableName(String prefix) {
+        return switch (prefix) {
+            case "VE"   -> "Ve";
+            case "KH"   -> "KhachHang";
+            case "CTHD" -> "ChiTietHoaDon";
+            case "ADKM" -> "ApDungKM";
+            default     -> "Ve";
+        };
     }
 
     // =========================================================================

@@ -1,6 +1,8 @@
 package com.modules;
 
 import com.connectDB.ConnectDB;
+import com.dao.DAO_Ga;
+import com.entity.Ga;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -13,6 +15,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -38,7 +41,13 @@ public class TongQuatModule extends JPanel implements AppModule {
     private static final Color PURPLE        = new Color(0x7C3AED);
 
     // ── State ─────────────────────────────────────────────────────────────────
-    private Consumer<Object> callback;
+    private Consumer<Object>   callback;           // AppModule callback
+    private NavigationCallback navCallback;         // Dashboard → MenuModule navigation
+
+    @FunctionalInterface
+    public interface NavigationCallback {
+        void navigate(String actionKey, String label, Object searchCriteria);
+    }
     private Timer   debounceTimer;
     private Timer   clockTimer;
     private JWindow searchPopup;
@@ -203,7 +212,7 @@ public class TongQuatModule extends JPanel implements AppModule {
         return wrapper;
     }
 
-    // ── TRA CỨU VÉ NHANH ─────────────────────────────────────────────────────
+    // ── TRA CỨU LỊCH CHẠY ───────────────────────────────────────────────────
     private JPanel buildTicketSearchCard() {
         JPanel card = new JPanel(new BorderLayout(0, 14));
         card.setBackground(CARD_BG);
@@ -211,49 +220,86 @@ public class TongQuatModule extends JPanel implements AppModule {
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
 
-        card.add(makeSectionLabel("TRA CỨU VÉ NHANH"), BorderLayout.NORTH);
+        card.add(makeSectionLabel("TRA CỨU LỊCH CHẠY"), BorderLayout.NORTH);
 
         JPanel fields = new JPanel(new GridLayout(1, 5, 10, 0));
         fields.setBackground(CARD_BG);
 
-        JTextField txtGaDi  = makeInput("Từ đâu?");
-        JTextField txtGaDen = makeInput("Điểm đến");
-        JTextField txtNgay  = makeInput("YYYY-MM-DD");
-        JComboBox<String> cbo = new JComboBox<>(new String[]{
-            "Tất cả", "Ghế cứng", "Ghế mềm", "Giường nằm"
-        });
-        styleCombo(cbo);
-        JButton btn = makePrimaryBtn("Tìm vé");
+        // Load ga list for SearchableComboBox
+        List<Ga> gaList = new DAO_Ga().getAll();
 
+        // GA ĐI — SearchableComboBox<Ga>
+        SearchableComboBox<Ga> cbGaDi = new SearchableComboBox<>(
+                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q)
+                        || ga.getMaGa().toLowerCase().contains(q));
+        cbGaDi.setItems(gaList);
+        cbGaDi.setPlaceholder("Chọn ga đi…");
+
+        // GA ĐẾN — SearchableComboBox<Ga>
+        SearchableComboBox<Ga> cbGaDen = new SearchableComboBox<>(
+                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q)
+                        || ga.getMaGa().toLowerCase().contains(q));
+        cbGaDen.setItems(gaList);
+        cbGaDen.setPlaceholder("Chọn ga đến…");
+
+        // NGÀY ĐI — DatePickerField
+        DatePickerField dateNgay = new DatePickerField();
+        dateNgay.setPreferredSize(new Dimension(0, 40));
+
+        // LOẠI GHẾ — 3 loại + "Tất cả", map sang mã DB
+        JComboBox<String> cboLoaiGhe = new JComboBox<>(new String[]{
+                "Tất cả", "Ghế cứng", "Ghế mềm", "Giường nằm"
+        });
+        styleCombo(cboLoaiGhe);
+
+        Map<String, String> loaiGheMap = new java.util.HashMap<>();
+        loaiGheMap.put("Tất cả",    null);
+        loaiGheMap.put("Ghế cứng",  "GHE_CUNG");
+        loaiGheMap.put("Ghế mềm",   "GHE_MEM");
+        loaiGheMap.put("Giường nằm","GIUONG_NAM");
+
+        // Nút TÌM LỊCH
+        JButton btn = makePrimaryBtn("Tìm lịch");
         btn.addActionListener(e -> {
-            String gaDi  = txtGaDi.getText().trim();
-            String gaDen = txtGaDen.getText().trim();
-            String query = (gaDi + " " + gaDen).trim();
-            if (query.isEmpty()) {
+            Ga gaDi  = cbGaDi.getSelectedItem();
+            Ga gaDen = cbGaDen.getSelectedItem();
+
+            if (gaDi == null && gaDen == null) {
                 JOptionPane.showMessageDialog(this,
-                    "Vui lòng nhập ga đi hoặc ga đến.",
-                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                        "Vui lòng chọn ít nhất ga đi hoặc ga đến.",
+                        "Thông báo", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            if (callback != null) {
-                callback.accept(new String[]{"QL_LICH_CHAY", "Quản lý lịch chạy", query});
-            } else {
-                txtSearch.setText(query);
-                doSearch(query);
+
+            LocalDate ngay = dateNgay.getValue();
+            String ngayYmd = ngay != null ? ngay.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) : null;
+            String loaiGhe = loaiGheMap.get((String) cboLoaiGhe.getSelectedItem());
+
+            LichSearchCriteria criteria = new LichSearchCriteria(
+                    gaDi  != null ? gaDi.getMaGa()  : null,
+                    gaDen != null ? gaDen.getMaGa() : null,
+                    ngayYmd,
+                    loaiGhe
+            );
+
+            if (navCallback != null) {
+                navCallback.navigate("QL_LICH_CHAY", "Quản lý lịch chạy", criteria);
             }
         });
 
-        fields.add(wrapFieldGroup("GA ĐI",    txtGaDi));
-        fields.add(wrapFieldGroup("GA ĐẾN",   txtGaDen));
-        fields.add(wrapFieldGroup("NGÀY ĐI",  txtNgay));
-        fields.add(wrapFieldGroup("LOẠI GHẾ", cbo));
+        fields.add(wrapFieldGroup("GA ĐI",    cbGaDi));
+        fields.add(wrapFieldGroup("GA ĐẾN",   cbGaDen));
+        fields.add(wrapFieldGroup("NGÀY ĐI",  dateNgay));
+        fields.add(wrapFieldGroup("LOẠI GHẾ", cboLoaiGhe));
         fields.add(wrapBtnGroup(btn));
 
         card.add(fields, BorderLayout.CENTER);
         return card;
     }
 
-    // ── TRA CỨU LỊCH TRÌNH NHANH ─────────────────────────────────────────────
+    // ── TRA CỨU HÓA ĐƠN & VÉ ────────────────────────────────────────────────
     private JPanel buildScheduleSearchCard() {
         JPanel card = new JPanel(new BorderLayout(0, 14));
         card.setBackground(CARD_BG);
@@ -263,36 +309,26 @@ public class TongQuatModule extends JPanel implements AppModule {
 
         card.add(makeSectionLabel("TRA CỨU HÓA ĐƠN & VÉ NHANH"), BorderLayout.NORTH);
 
-        JPanel row = new JPanel(new GridLayout(1, 2, 16, 0));
+        JPanel row = new JPanel(new BorderLayout(16, 0));
         row.setBackground(CARD_BG);
 
-        JTextField txtHD = makeInput("VD: HD-001");
-        JButton btnHD = makeSecBtn("TÌM");
-        btnHD.addActionListener(e -> {
-            String ma = txtHD.getText().trim();
-            if (ma.isEmpty()) return;
-            if (callback != null) {
-                callback.accept(new String[]{"QL_HOA_DON", "Quản lý hóa đơn", ma});
-            } else {
-                txtSearch.setText(ma);
-                doSearch(ma);
-            }
-        });
-        row.add(wrapSearchGroup("NHẬP MÃ HÓA ĐƠN", txtHD, btnHD));
+        // 1 field tìm kiếm đa năng: mã HĐ, mã vé, tên KH, tên NV, CCCD…
+        JTextField txtSearchHD = makeInput("Mã HĐ, mã vé, tên KH, tên NV, CCCD…");
+        JButton btnTim = makeSecBtn("TÌM");
+        btnTim.addActionListener(e -> {
+            String kw = txtSearchHD.getText().trim();
+            if (kw.isEmpty()) return;
 
-        JTextField txtVe = makeInput("VD: VE-001");
-        JButton btnVe = makeSecBtn("TÌM");
-        btnVe.addActionListener(e -> {
-            String ma = txtVe.getText().trim();
-            if (ma.isEmpty()) return;
-            if (callback != null) {
-                callback.accept(new String[]{"QL_VE_HOA_DON", "Quản lý vé", ma});
-            } else {
-                txtSearch.setText(ma);
-                doSearch(ma);
+            if (navCallback != null) {
+                navCallback.navigate("QL_HOA_DON", "Quản lý hóa đơn", kw);
+            } else if (callback != null) {
+                callback.accept(new String[]{"QL_HOA_DON", "Quản lý hóa đơn", kw});
             }
         });
-        row.add(wrapSearchGroup("NHẬP MÃ VÉ", txtVe, btnVe));
+        txtSearchHD.addActionListener(e -> btnTim.doClick());
+
+        row.add(txtSearchHD, BorderLayout.CENTER);
+        row.add(btnTim, BorderLayout.EAST);
 
         card.add(row, BorderLayout.CENTER);
         return card;
@@ -1258,6 +1294,12 @@ public class TongQuatModule extends JPanel implements AppModule {
         btnSubmit.setVisible(show);
         btnCancel.setVisible(show);
         btnPanel .setVisible(show);
+        // Nếu có callback → đây là standalone mode, không cần navCallback
+    }
+
+    /** Set callback cho navigation từ Dashboard → MenuModule. */
+    public void setNavigationCallback(NavigationCallback cb) {
+        this.navCallback = cb;
     }
 
     @Override public void reset() {
