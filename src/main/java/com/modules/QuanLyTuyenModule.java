@@ -201,52 +201,93 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
 
     // ── Filter Bar ────────────────────────────────────────────────────────
     private JPanel buildFilterBar() {
-        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10)) {
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+        
+        JPanel bgPanel = new JPanel(new GridBagLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 10));
+                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 24, 24);
+                
+                // Background
+                g2.setColor(CARD_BG);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 24, 24);
+                
+                // Border
                 g2.setColor(OUTLINE);
-                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 16, 16);
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 24, 24);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        bar.setOpaque(false);
-        bar.setBorder(new EmptyBorder(5, 10, 5, 10));
+        bgPanel.setOpaque(false);
+        bgPanel.setBorder(new EmptyBorder(8, 20, 12, 20));
 
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(0, 0, 0, 15);
+
+        // Icon
         JLabel iconSearch = new JLabel();
-        ImageIcon icoSearch = loadScaledIcon("nutTimKiem.png", 20);
+        ImageIcon icoSearch = loadScaledIcon("nutTimKiem.png", 22);
         if (icoSearch!=null) iconSearch.setIcon(icoSearch);
-        bar.add(iconSearch);
+        bgPanel.add(iconSearch, gbc);
 
-        filterGaDi = createGaCombo("Ga đi...");
-        filterGaDen = createGaCombo("Ga đến...");
+        // Station Di
+        filterGaDi = createGaCombo("Tìm ga đi...");
+        gbc.weightx = 0.45;
+        bgPanel.add(filterGaDi, gbc);
 
+        // Arrow
         JLabel arrow = new JLabel(" → ");
-        arrow.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        arrow.setFont(new Font("Segoe UI", Font.BOLD, 18));
         arrow.setForeground(TEXT_MUTED);
+        gbc.weightx = 0;
+        bgPanel.add(arrow, gbc);
 
-        bar.add(filterGaDi);
-        bar.add(arrow);
-        bar.add(filterGaDen);
+        // Station Den
+        filterGaDen = createGaCombo("Tìm ga đến...");
+        gbc.weightx = 0.45;
+        bgPanel.add(filterGaDen, gbc);
 
-        JButton btnClear = new JButton("Bỏ lọc");
-        btnClear.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        // Bo loc button
+        JButton btnClear = new JButton("Bỏ lọc") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnClear.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnClear.setForeground(TEXT_MUTED);
         btnClear.setContentAreaFilled(false);
+        btnClear.setBorderPainted(false);
+        btnClear.setFocusPainted(false);
         btnClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnClear.setPreferredSize(new Dimension(100, 42));
         btnClear.addActionListener(e -> {
             filterGaDi.clearSelection();
             filterGaDen.clearSelection();
             applyFilter();
         });
         
-        bar.add(Box.createHorizontalStrut(10));
-        bar.add(btnClear);
+        gbc.weightx = 0;
+        gbc.insets = new Insets(0, 10, 0, 0);
+        bgPanel.add(btnClear, gbc);
 
+        bar.add(bgPanel, BorderLayout.CENTER);
         return bar;
     }
 

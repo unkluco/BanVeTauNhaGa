@@ -4,12 +4,12 @@ import com.dao.DAO_KhachHang;
 import com.entity.KhachHang;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.time.LocalDate;
+import java.util.function.Consumer;
 
 public class SuaKhachHangDialog extends JDialog {
 
@@ -24,6 +24,7 @@ public class SuaKhachHangDialog extends JDialog {
     private static final Color ERROR         = new Color(0xBA, 0x1A, 0x1A);
     private static final Color HEADER_BG    = new Color(0xF1, 0xF5, 0xF9);
     private static final Color FOOTER_BG    = new Color(0xF1, 0xF5, 0xF9);
+    private static final Color WRAPPER_BG   = new Color(0xEE, 0xF2, 0xF6);
 
     private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 18);
     private static final Font FONT_DESC   = new Font("Segoe UI", Font.PLAIN, 12);
@@ -51,11 +52,17 @@ public class SuaKhachHangDialog extends JDialog {
     private JLabel lblErrSoDienThoai;
     private JLabel lblErrCccd;
 
+    // === Buttons ===
+    private JButton btnSave;
+    private JButton btnCancel;
+    private JPanel  btnPanel;
+
     private final KhachHang original;
     private Runnable onSaved;
+    private Consumer<Object> callback;
 
     public SuaKhachHangDialog(Window owner, KhachHang kh, Runnable onSaved) {
-        super(owner, "Sửa thông tin khách hàng", ModalityType.APPLICATION_MODAL);
+        super(owner, ModalityType.APPLICATION_MODAL);
         this.original = kh;
         this.onSaved = onSaved;
         setUndecorated(true);
@@ -71,6 +78,7 @@ public class SuaKhachHangDialog extends JDialog {
         setBackground(new Color(0, 0, 0, 0));
 
         JPanel root = new JPanel(new BorderLayout());
+        root.setOpaque(true);
         root.setBackground(CARD_BG);
         root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
 
@@ -78,12 +86,15 @@ public class SuaKhachHangDialog extends JDialog {
         root.add(buildForm(),   BorderLayout.CENTER);
         root.add(buildFooter(), BorderLayout.SOUTH);
 
-        setContentPane(ThemKhachHangDialog.buildShadowWrapper(root));
+        setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
     }
+
+
 
     // ========================= HEADER =========================
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(true);
         header.setBackground(HEADER_BG);
         header.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
@@ -107,6 +118,30 @@ public class SuaKhachHangDialog extends JDialog {
         left.add(lblDesc);
 
         header.add(left, BorderLayout.CENTER);
+
+        // Close button (×)
+        JButton btnClose = new JButton("✕") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isRollover()) {
+                    g2.setColor(new Color(0xBA, 0x1A, 0x1A, 30));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                }
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnClose.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        btnClose.setForeground(ON_SURF_VAR);
+        btnClose.setContentAreaFilled(false);
+        btnClose.setBorderPainted(false);
+        btnClose.setFocusPainted(false);
+        btnClose.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnClose.setPreferredSize(new Dimension(32, 32));
+        btnClose.addActionListener(e -> dispose());
+        header.add(btnClose, BorderLayout.EAST);
+
         return header;
     }
 
@@ -114,6 +149,7 @@ public class SuaKhachHangDialog extends JDialog {
     private JPanel buildForm() {
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setOpaque(true);
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(20, 24, 12, 24));
 
@@ -126,7 +162,7 @@ public class SuaKhachHangDialog extends JDialog {
         txtMaKH.setText(original.getMaKhachHang());
         row1.add(buildFieldGroup("Mã khách hàng", txtMaKH, "* Không thể thay đổi", false, null));
 
-        txtHoTen = createTextField();
+        txtHoTen = createInputField();
         txtHoTen.setText(original.getHoTen());
         lblErrHoTen = createErrorLabel();
         row1.add(buildFieldGroup("Họ và tên", txtHoTen, null, true, lblErrHoTen));
@@ -139,17 +175,17 @@ public class SuaKhachHangDialog extends JDialog {
         row2.setOpaque(false);
         row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        txtSoDienThoai = createTextField();
+        txtSoDienThoai = createInputField();
         txtSoDienThoai.setText(original.getSoDienThoai() != null ? original.getSoDienThoai() : "");
         lblErrSoDienThoai = createErrorLabel();
         row2.add(buildFieldGroup("Số điện thoại", txtSoDienThoai, null, true, lblErrSoDienThoai));
 
-        txtCccd = createTextField();
+        txtCccd = createInputField();
         txtCccd.setText(original.getCccd() != null ? original.getCccd() : "");
         lblErrCccd = createErrorLabel();
         row2.add(buildFieldGroup("Số CCCD", txtCccd, null, true, lblErrCccd));
 
-        txtEmail = createTextField();
+        txtEmail = createInputField();
         txtEmail.setText(original.getEmail() != null ? original.getEmail() : "");
         row2.add(buildFieldGroup("Email", txtEmail, null, false, null));
 
@@ -162,6 +198,7 @@ public class SuaKhachHangDialog extends JDialog {
         row3.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
         dpNgaySinh = new DatePickerField();
+        dpNgaySinh.setOpaque(true);
         dpNgaySinh.setPreferredSize(new Dimension(0, 40));
         dpNgaySinh.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         if (original.getNgaySinh() != null) {
@@ -172,13 +209,14 @@ public class SuaKhachHangDialog extends JDialog {
         cboGioiTinh = new JComboBox<>(new String[]{"-- Không chọn --", "Nam", "Nữ"});
         cboGioiTinh.setFont(FONT_INPUT);
         cboGioiTinh.setBackground(CARD_BG);
+        cboGioiTinh.setOpaque(true);
         cboGioiTinh.setPreferredSize(new Dimension(0, 36));
         cboGioiTinh.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         if ("NAM".equalsIgnoreCase(original.getGioiTinh())) cboGioiTinh.setSelectedIndex(1);
         else if ("NU".equalsIgnoreCase(original.getGioiTinh())) cboGioiTinh.setSelectedIndex(2);
         row3.add(buildFieldGroup("Giới tính", cboGioiTinh, null, false, null));
 
-        txtQuocTich = createTextField();
+        txtQuocTich = createInputField();
         txtQuocTich.setText(original.getQuocTich() != null ? original.getQuocTich() : "Việt Nam");
         row3.add(buildFieldGroup("Quốc tịch", txtQuocTich, null, false, null));
 
@@ -190,7 +228,7 @@ public class SuaKhachHangDialog extends JDialog {
         row4.setOpaque(false);
         row4.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        txtDiaChiThuongTru = createTextField();
+        txtDiaChiThuongTru = createInputField();
         txtDiaChiThuongTru.setText(original.getDiaChiThuongTru() != null ? original.getDiaChiThuongTru() : "");
         row4.add(buildFieldGroup("Địa chỉ thường trú", txtDiaChiThuongTru, null, false, null));
 
@@ -202,7 +240,7 @@ public class SuaKhachHangDialog extends JDialog {
         row5.setOpaque(false);
         row5.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        txtDiaChiTamTru = createTextField();
+        txtDiaChiTamTru = createInputField();
         txtDiaChiTamTru.setText(original.getDiaChiTamTru() != null ? original.getDiaChiTamTru() : "");
         row5.add(buildFieldGroup("Địa chỉ tạm trú", txtDiaChiTamTru, null, false, null));
 
@@ -214,20 +252,28 @@ public class SuaKhachHangDialog extends JDialog {
     // ========================= FOOTER =========================
     private JPanel buildFooter() {
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        footer.setOpaque(true);
         footer.setBackground(FOOTER_BG);
         footer.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE),
                 new EmptyBorder(16, 28, 16, 28)
         ));
 
-        JButton btnCancel = createOutlineButton("Hủy bỏ");
-        btnCancel.addActionListener(e -> dispose());
+        btnCancel = createOutlineButton("Hủy bỏ");
+        btnCancel.addActionListener(e -> {
+            if (callback != null) callback.accept(null);
+            dispose();
+        });
 
-        JButton btnSave = createPrimaryButton("Lưu thay đổi");
+        btnSave = createPrimaryButton("Lưu thay đổi");
         btnSave.addActionListener(e -> doSave());
 
-        footer.add(btnCancel);
-        footer.add(btnSave);
+        btnPanel = new JPanel();
+        btnPanel.setOpaque(false);
+        btnPanel.add(btnCancel);
+        btnPanel.add(btnSave);
+
+        footer.add(btnPanel);
         return footer;
     }
 
@@ -244,7 +290,6 @@ public class SuaKhachHangDialog extends JDialog {
         String diaChiTamTru = txtDiaChiTamTru.getText().trim();
         String quocTich = txtQuocTich.getText().trim();
 
-        // Validation
         if (hoTen.isEmpty()) {
             showFieldError(txtHoTen, lblErrHoTen, "Vui lòng nhập họ và tên");
             return;
@@ -266,7 +311,6 @@ public class SuaKhachHangDialog extends JDialog {
             return;
         }
 
-        // Resolve gioiTinh
         String gioiTinh = switch (cboGioiTinh.getSelectedIndex()) {
             case 1 -> "NAM";
             case 2 -> "NU";
@@ -292,6 +336,7 @@ public class SuaKhachHangDialog extends JDialog {
                 setCursor(Cursor.getDefaultCursor());
                 try {
                     if (get()) {
+                        if (callback != null) callback.accept(original);
                         if (onSaved != null) onSaved.run();
                         dispose();
                     } else {
@@ -308,7 +353,7 @@ public class SuaKhachHangDialog extends JDialog {
         }.execute();
     }
 
-    // ========================= INLINE ERROR HELPERS =========================
+    // ========================= ERROR HELPERS =========================
 
     private void showFieldError(JComponent field, JLabel errLabel, String msg) {
         errLabel.setText(msg);
@@ -392,6 +437,7 @@ public class SuaKhachHangDialog extends JDialog {
         f.setForeground(PRIMARY);
         f.setBackground(SURFACE);
         f.setEditable(false);
+        f.setOpaque(true);
         f.setPreferredSize(new Dimension(0, 36));
         f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         f.setBorder(BorderFactory.createCompoundBorder(
@@ -401,35 +447,34 @@ public class SuaKhachHangDialog extends JDialog {
         return f;
     }
 
-    private JTextField createTextField() {
+    private JTextField createInputField() {
         JTextField f = new JTextField();
         f.setFont(FONT_INPUT);
         f.setForeground(ON_SURFACE);
+        f.setOpaque(true);
         f.setPreferredSize(new Dimension(0, 36));
         f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         f.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1, true),
                 new EmptyBorder(8, 12, 8, 12)
         ));
-        addFocusBorderEffect(f);
-        return f;
-    }
 
-    private void addFocusBorderEffect(JComponent comp) {
-        comp.addFocusListener(new FocusAdapter() {
-            @Override public void focusGained(FocusEvent e) {
-                comp.setBorder(BorderFactory.createCompoundBorder(
+        f.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override public void focusGained(java.awt.event.FocusEvent e) {
+                f.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(PRIMARY, 2, true),
                         new EmptyBorder(7, 11, 7, 11)
                 ));
             }
-            @Override public void focusLost(FocusEvent e) {
-                comp.setBorder(BorderFactory.createCompoundBorder(
+            @Override public void focusLost(java.awt.event.FocusEvent e) {
+                f.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(OUTLINE, 1, true),
                         new EmptyBorder(8, 12, 8, 12)
                 ));
             }
         });
+
+        return f;
     }
 
     private JButton createPrimaryButton(String text) {
@@ -476,4 +521,7 @@ public class SuaKhachHangDialog extends JDialog {
         btn.setPreferredSize(new Dimension(100, 40));
         return btn;
     }
+
+    // ========================= PUBLIC =========================
+    public void reset() {}
 }

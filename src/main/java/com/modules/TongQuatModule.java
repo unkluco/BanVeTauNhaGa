@@ -847,17 +847,20 @@ public class TongQuatModule extends JPanel implements AppModule {
                 return "SELECT hd.maHoaDon AS [Mã HĐ]," +
                     " hd.maNV AS [Nhân viên (mã)]," +
                     " nv.hoTen AS [Tên nhân viên]," +
-                    " hd.maKhachHang AS [Khách hàng (mã)]," +
-                    " kh.hoTen AS [Tên khách hàng]," +
+                    " kh.maKhachHang AS [Khách hàng đại diện (mã)]," +
+                    " kh.hoTen AS [Tên khách hàng đại diện]," +
+                    " (SELECT COUNT(*) FROM HoaDonKhachHang WHERE maHoaDon=hd.maHoaDon) AS [Số khách]," +
                     " CONVERT(varchar,hd.ngayLap,120) AS [Ngày lập]," +
                     " COUNT(ct.maChiTietHD) AS [Số vé]," +
                     " ISNULL(SUM(ct.giaTien),0) AS [Tổng tiền (VNĐ)]" +
                     " FROM HoaDon hd" +
                     " LEFT JOIN NhanVien nv ON hd.maNV=nv.maNV" +
-                    " LEFT JOIN KhachHang kh ON hd.maKhachHang=kh.maKhachHang" +
+                    " LEFT JOIN HoaDonKhachHang hdkh ON hdkh.maHoaDon=hd.maHoaDon" +
+                    "   AND hdkh.maHDKH=(SELECT MIN(maHDKH) FROM HoaDonKhachHang WHERE maHoaDon=hd.maHoaDon)" +
+                    " LEFT JOIN KhachHang kh ON kh.maKhachHang=hdkh.maKhachHang" +
                     " LEFT JOIN ChiTietHoaDon ct ON hd.maHoaDon=ct.maHoaDon" +
                     " WHERE hd.maHoaDon=?" +
-                    " GROUP BY hd.maHoaDon,hd.maNV,nv.hoTen,hd.maKhachHang,kh.hoTen,hd.ngayLap";
+                    " GROUP BY hd.maHoaDon,hd.maNV,nv.hoTen,kh.maKhachHang,kh.hoTen,hd.ngayLap";
             case "VE":
                 return "SELECT v.maVe AS [Mã vé]," +
                     " v.maLich AS [Lịch chạy (mã)]," +
@@ -943,9 +946,12 @@ public class TongQuatModule extends JPanel implements AppModule {
                     "SELECT TOP 15 hd.maHoaDon, kh.hoTen AS tenKH, " +
                     "  CONVERT(varchar,hd.ngayLap,120) AS nd, " +
                     "  COUNT(ct.maChiTietHD) AS soVe, " +
-                    "  ISNULL(SUM(ct.giaTien),0) AS tong " +
+                    "  ISNULL(SUM(ct.giaTien),0) AS tong, " +
+                    "  (SELECT COUNT(*) FROM HoaDonKhachHang WHERE maHoaDon=hd.maHoaDon) AS soKH " +
                     "FROM HoaDon hd " +
-                    "LEFT JOIN KhachHang kh ON hd.maKhachHang=kh.maKhachHang " +
+                    "LEFT JOIN HoaDonKhachHang hdkh ON hdkh.maHoaDon=hd.maHoaDon " +
+                    "  AND hdkh.maHDKH=(SELECT MIN(maHDKH) FROM HoaDonKhachHang WHERE maHoaDon=hd.maHoaDon) " +
+                    "LEFT JOIN KhachHang kh ON kh.maKhachHang=hdkh.maKhachHang " +
                     "LEFT JOIN ChiTietHoaDon ct ON hd.maHoaDon=ct.maHoaDon " +
                     "GROUP BY hd.maHoaDon, kh.hoTen, hd.ngayLap " +
                     "ORDER BY hd.ngayLap DESC";
@@ -955,6 +961,8 @@ public class TongQuatModule extends JPanel implements AppModule {
                     while (rs.next()) {
                         String tenKH = rs.getString("tenKH");
                         if (tenKH == null) tenKH = "Khách vãng lai";
+                        int soKH = rs.getInt("soKH");
+                        if (soKH > 1) tenKH = tenKH + " (+" + (soKH - 1) + ")";
                         java.math.BigDecimal tong = rs.getBigDecimal("tong");
                         rows.add(new Object[]{
                             rs.getString("maHoaDon"),

@@ -2,6 +2,8 @@ package com.modules;
 
 import com.dao.DAO_Ve;
 import com.dao.DAO_ChiTietHoaDon;
+import com.dao.DAO_HoaDonKhachHang;
+import com.entity.KhachHang;
 import com.entity.Ve;
 import com.entity.ChiTietHoaDon;
 import com.entity.Lich;
@@ -49,7 +51,8 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     // --- Data ---
     private List<Ve> allData      = new ArrayList<>();
     private List<Ve> filteredData = new ArrayList<>();
-    private DAO_ChiTietHoaDon daoChiTietHoaDon = new DAO_ChiTietHoaDon();
+    private DAO_ChiTietHoaDon   daoChiTietHoaDon = new DAO_ChiTietHoaDon();
+    private DAO_HoaDonKhachHang daoHDKH          = new DAO_HoaDonKhachHang();
 
     // --- Stats ---
     private JLabel lblStatTongHoaDon;
@@ -220,78 +223,125 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     // =================================================================
 
     private JPanel buildSearchSection() {
-        JPanel section = new JPanel() {
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setOpaque(false);
+
+        // --- Unified Boxed Container ---
+        JPanel bgPanel = new JPanel(new GridBagLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(0xF2, 0xF4, 0xF6));
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20));
+                
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 10));
+                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 20, 20);
+                
+                // Background
+                g2.setColor(CARD_BG);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                
+                // Border
+                g2.setColor(OUTLINE);
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
                 g2.dispose();
+                super.paintComponent(g);
             }
         };
-        section.setOpaque(false);
-        section.setLayout(new GridLayout(1, 2, 24, 0));
-        section.setBorder(new EmptyBorder(20, 24, 20, 24));
+        bgPanel.setOpaque(false);
+        bgPanel.setBorder(new EmptyBorder(12, 20, 16, 20));
 
-        // Search by hoa don
-        JPanel left = new JPanel();
-        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
-        left.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0, 0, 0, 20);
+        gbc.fill = GridBagConstraints.VERTICAL;
+        gbc.anchor = GridBagConstraints.WEST;
 
-        JLabel lbl1 = new JLabel("TÌM THEO MÃ HÓA ĐƠN");
-        lbl1.setFont(FONT_STAT_LBL);
-        lbl1.setForeground(ON_SURF_VAR);
-        lbl1.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Custom search icon
+        JLabel iconSearch = new JLabel();
+        try {
+            java.net.URL url = getClass().getResource("/icons/nutTimKiem.png");
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
+                iconSearch.setIcon(new ImageIcon(img));
+            }
+        } catch (Exception ignored) {}
+        bgPanel.add(iconSearch, gbc);
 
-        JPanel row1 = new JPanel(new BorderLayout(8, 0));
-        row1.setOpaque(false);
-        row1.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        // Listeners for real-time search
+        javax.swing.event.DocumentListener liveSearch = new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
+        };
 
-        txtSearchHoaDon = createSearchField("Nhập mã HD-...");
-        JButton btn1 = createSearchButton();
-        btn1.addActionListener(e -> searchByHoaDon());
-        txtSearchHoaDon.addActionListener(e -> searchByHoaDon());
+        // --- Column 1: Search HD ---
+        JPanel p1 = new JPanel(new BorderLayout(0, 4));
+        p1.setOpaque(false);
+        JLabel l1 = new JLabel("TÌM THEO MÃ HÓA ĐƠN");
+        l1.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        l1.setForeground(ON_SURF_VAR);
+        txtSearchHoaDon = createSearchField("Ví dụ: HD001");
+        txtSearchHoaDon.getDocument().addDocumentListener(liveSearch);
+        p1.add(l1, BorderLayout.NORTH);
+        p1.add(txtSearchHoaDon, BorderLayout.CENTER);
 
-        row1.add(txtSearchHoaDon, BorderLayout.CENTER);
-        row1.add(btn1, BorderLayout.EAST);
+        gbc.gridx = 1;
+        gbc.weightx = 0.5;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        bgPanel.add(p1, gbc);
 
-        left.add(lbl1);
-        left.add(Box.createVerticalStrut(8));
-        left.add(row1);
+        // --- Column 2: Search Ve ---
+        JPanel p2 = new JPanel(new BorderLayout(0, 4));
+        p2.setOpaque(false);
+        JLabel l2 = new JLabel("TÌM THEO MÃ VÉ");
+        l2.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        l2.setForeground(ON_SURF_VAR);
+        txtSearchVe = createSearchField("Ví dụ: V001");
+        txtSearchVe.getDocument().addDocumentListener(liveSearch);
+        p2.add(l2, BorderLayout.NORTH);
+        p2.add(txtSearchVe, BorderLayout.CENTER);
 
-        // Search by ve
-        JPanel right = new JPanel();
-        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-        right.setOpaque(false);
+        gbc.gridx = 2;
+        bgPanel.add(p2, gbc);
 
-        JLabel lbl2 = new JLabel("TÌM THEO MÃ VÉ");
-        lbl2.setFont(FONT_STAT_LBL);
-        lbl2.setForeground(ON_SURF_VAR);
-        lbl2.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Bo loc / Reset button
+        JButton btnReset = new JButton("Làm mới") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnReset.setFont(FONT_BOLD);
+        btnReset.setForeground(ON_SURF_VAR);
+        btnReset.setContentAreaFilled(false);
+        btnReset.setBorderPainted(false);
+        btnReset.setFocusPainted(false);
+        btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnReset.setPreferredSize(new Dimension(100, 42));
+        btnReset.addActionListener(e -> {
+            txtSearchHoaDon.setText("");
+            txtSearchVe.setText("");
+            applyFilter();
+        });
 
-        JPanel row2 = new JPanel(new BorderLayout(8, 0));
-        row2.setOpaque(false);
-        row2.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        gbc.weightx = 0;
+        gbc.gridx = 3;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.SOUTH;
+        gbc.insets = new Insets(0, 0, 4, 0); // Align with input field area
+        bgPanel.add(btnReset, gbc);
 
-        txtSearchVe = createSearchField("Nhập mã vé...");
-        JButton btn2 = createSearchButton();
-        btn2.addActionListener(e -> searchByMaVe());
-        txtSearchVe.addActionListener(e -> searchByMaVe());
-
-        row2.add(txtSearchVe, BorderLayout.CENTER);
-        row2.add(btn2, BorderLayout.EAST);
-
-        right.add(lbl2);
-        right.add(Box.createVerticalStrut(8));
-        right.add(row2);
-
-        section.add(left);
-        section.add(right);
-
-        return section;
+        wrapper.add(bgPanel);
+        return wrapper;
     }
 
     // =================================================================
@@ -621,10 +671,26 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     // =================================================================
 
     private void applyFilter() {
+        String kwHD = txtSearchHoaDon.getText().trim().toLowerCase();
+        String kwVe = txtSearchVe.getText().trim().toLowerCase();
+
         filteredData = new ArrayList<>();
         for (Ve ve : allData) {
+            // Tab filter
             if (activeTabIndex == 1 && ve.getTrangThai() != TrangThaiVe.DA_BAN) continue;
             if (activeTabIndex == 2 && ve.getTrangThai() != TrangThaiVe.DA_HUY) continue;
+            
+            // Search filters
+            if (!kwVe.isEmpty() && !ve.getMaVe().toLowerCase().contains(kwVe)) continue;
+            
+            if (!kwHD.isEmpty()) {
+                ChiTietHoaDon cthd = daoChiTietHoaDon.findByVe(ve.getMaVe());
+                if (cthd == null || cthd.getHoaDon() == null 
+                    || !cthd.getHoaDon().getMaHoaDon().toLowerCase().contains(kwHD)) {
+                    continue;
+                }
+            }
+
             filteredData.add(ve);
         }
         totalRecords = filteredData.size();
@@ -709,9 +775,14 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                     khoiHanh = ve.getLich().getThoiGianBatDau().format(FMT_DATETIME);
                 }
                 ChiTietHoaDon cthd = daoChiTietHoaDon.findByVe(ve.getMaVe());
-                if (cthd != null && cthd.getHoaDon() != null
-                        && cthd.getHoaDon().getKhachHang() != null) {
-                    tenKhachHang = cthd.getHoaDon().getKhachHang().getHoTen();
+                if (cthd != null && cthd.getHoaDon() != null) {
+                    List<KhachHang> khs = daoHDKH.findKhachHangByHoaDon(
+                            cthd.getHoaDon().getMaHoaDon());
+                    if (khs != null && !khs.isEmpty()) {
+                        String first = khs.get(0).getHoTen();
+                        tenKhachHang = (first != null ? first : "")
+                                + (khs.size() > 1 ? " (+" + (khs.size() - 1) + ")" : "");
+                    }
                 }
             } catch (Exception ignored) {}
             rows.add(new VeTableModel.VeRow(ve, gaDi, gaDen, khoiHanh, tenKhachHang));

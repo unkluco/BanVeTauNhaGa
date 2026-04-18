@@ -12,13 +12,11 @@ import java.util.List;
 
 import com.connectDB.ConnectDB;
 import com.entity.HoaDon;
-import com.entity.KhachHang;
 import com.entity.NhanVien;
 
 public class DAO_HoaDon {
 
     private DAO_NhanVien daoNV = new DAO_NhanVien();
-    private DAO_KhachHang daoKhachHang = new DAO_KhachHang();
 
     public List<HoaDon> getAll() {
         List<HoaDon> ds = new ArrayList<>();
@@ -110,12 +108,11 @@ public class DAO_HoaDon {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "INSERT INTO HoaDon (maHoaDon, maNV, maKhachHang, ngayLap) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO HoaDon (maHoaDon, maNV, ngayLap) VALUES (?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, hd.getMaHoaDon());
             ps.setString(2, hd.getNhanVien().getMaNV());
-            ps.setString(3, hd.getKhachHang().getMaKhachHang());
-            ps.setTimestamp(4, Timestamp.valueOf(hd.getNgayLap()));
+            ps.setTimestamp(3, Timestamp.valueOf(hd.getNgayLap()));
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi thêm hóa đơn: " + e.getMessage());
@@ -126,9 +123,8 @@ public class DAO_HoaDon {
     private HoaDon mapRow(ResultSet rs) throws SQLException {
         String maHoaDon = rs.getString("maHoaDon");
         NhanVien nv = daoNV.findById(rs.getString("maNV"));
-        KhachHang kh = daoKhachHang.findById(rs.getString("maKhachHang"));
         Timestamp ts = rs.getTimestamp("ngayLap");
         LocalDateTime ngayLap = ts != null ? ts.toLocalDateTime() : null;
-        return new HoaDon(maHoaDon, nv, kh, ngayLap);
+        return new HoaDon(maHoaDon, nv, ngayLap);
     }
 }

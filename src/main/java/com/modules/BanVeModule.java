@@ -43,9 +43,8 @@ public class BanVeModule extends JPanel implements AppModule {
     private LocalDate ctxNgayDiFrom, ctxNgayDiTo;
     private Lich      ctxLich;
     private final Map<LoaiGhe, Double> ctxPriceMap = new EnumMap<>(LoaiGhe.class);
-    private ToaTau    ctxToa;
     private final List<Ghe> ctxGhes = new ArrayList<>();
-    private KhachHang      ctxKhachHang;
+    private final List<KhachHang> ctxKhachHangs = new ArrayList<>();
     private ChiTietKhuyenMai ctxChiTietKM;
     private String    ctxPaymentType;
 
@@ -82,11 +81,12 @@ public class BanVeModule extends JPanel implements AppModule {
     private static final Color STEP_INACTIVE = new Color(0xB0, 0xBE, 0xC5);
 
     // --- DAOs for final save ---
-    private final DAO_Ve            daoVe    = new DAO_Ve();
-    private final DAO_HoaDon        daoHD    = new DAO_HoaDon();
-    private final DAO_ChiTietHoaDon daoCTHD  = new DAO_ChiTietHoaDon();
-    private final DAO_KhachHang     daoKH    = new DAO_KhachHang();
-    private final DAO_ApDungKM      daoADKM  = new DAO_ApDungKM();
+    private final DAO_Ve               daoVe    = new DAO_Ve();
+    private final DAO_HoaDon           daoHD    = new DAO_HoaDon();
+    private final DAO_ChiTietHoaDon    daoCTHD  = new DAO_ChiTietHoaDon();
+    private final DAO_KhachHang        daoKH    = new DAO_KhachHang();
+    private final DAO_ApDungKM         daoADKM  = new DAO_ApDungKM();
+    private final DAO_HoaDonKhachHang  daoHDKH  = new DAO_HoaDonKhachHang();
 
     // --- AppModule buttons ---
     private JButton btnSubmit, btnCancel;
@@ -331,8 +331,10 @@ public class BanVeModule extends JPanel implements AppModule {
                 BanVeStep5Module m = new BanVeStep5Module();
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
-                    if (result instanceof KhachHang kh) {
-                        ctxKhachHang = kh;
+                    if (result instanceof List<?> list && !list.isEmpty()) {
+                        ctxKhachHangs.clear();
+                        for (Object o : list) if (o instanceof KhachHang kh) ctxKhachHangs.add(kh);
+                        if (ctxKhachHangs.isEmpty()) return;
                         navigateTo(STEP_5B, true);
                     }
                 });
@@ -341,9 +343,10 @@ public class BanVeModule extends JPanel implements AppModule {
 
             case STEP_5B -> {
                 Tuyen   tuyen      = (ctxLich != null) ? ctxLich.getTuyen() : null;
-                LoaiGhe loaiGhe    = (ctxToa  != null) ? ctxToa.getLoaiGhe() : null;
-                double  unitPrice  = loaiGhe  != null ? ctxPriceMap.getOrDefault(loaiGhe, 0.0) : 0.0;
-                double  baseTotal  = unitPrice * ctxGhes.size();
+                // Khuyến mãi áp theo loại ghế — lấy loại của ghế đầu tiên làm đại diện
+                LoaiGhe loaiGhe    = (!ctxGhes.isEmpty() && ctxGhes.get(0).getToaTau() != null)
+                                    ? ctxGhes.get(0).getToaTau().getLoaiGhe() : null;
+                double  baseTotal  = sumBasePrice();
                 BanVeStep5bModule m5b = new BanVeStep5bModule(tuyen, loaiGhe, baseTotal);
                 m5b.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
@@ -354,9 +357,11 @@ public class BanVeModule extends JPanel implements AppModule {
             }
 
             case STEP_6 -> {
+                // Toa đại diện = toa của ghế đầu tiên (Step6 sẽ hiển thị chi tiết từng ghế nếu mixed)
+                ToaTau repToa = (!ctxGhes.isEmpty()) ? ctxGhes.get(0).getToaTau() : null;
                 BanVeStep6Module m = new BanVeStep6Module(
-                    ctxLich, ctxToa, Collections.unmodifiableList(ctxGhes),
-                    ctxPriceMap, ctxKhachHang, ctxChiTietKM);
+                    ctxLich, repToa, Collections.unmodifiableList(ctxGhes),
+                    ctxPriceMap, Collections.unmodifiableList(ctxKhachHangs), ctxChiTietKM);
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     if (result instanceof String paymentType) {
@@ -405,11 +410,22 @@ public class BanVeModule extends JPanel implements AppModule {
     //  BUSINESS LOGIC
     // =========================================================================
 
+    /** Đơn giá gốc của một ghế, dựa theo LoaiGhe của toa chứa ghế đó. */
+    private double unitPriceFor(Ghe g) {
+        if (g == null || g.getToaTau() == null) return 0.0;
+        return ctxPriceMap.getOrDefault(g.getToaTau().getLoaiGhe(), 0.0);
+    }
+
+    /** Tổng đơn giá gốc (chưa giảm) của tất cả ghế đã chọn. */
+    private double sumBasePrice() {
+        double sum = 0.0;
+        for (Ghe g : ctxGhes) sum += unitPriceFor(g);
+        return sum;
+    }
+
     private BigDecimal calcTotal() {
-        if (ctxToa == null || ctxGhes.isEmpty()) return BigDecimal.ZERO;
-        LoaiGhe loai  = ctxToa.getLoaiGhe();
-        double  unit  = ctxPriceMap.getOrDefault(loai, 0.0);
-        double  total = unit * ctxGhes.size();
+        if (ctxGhes.isEmpty()) return BigDecimal.ZERO;
+        double total = sumBasePrice();
         if (ctxChiTietKM != null) {
             double discount = ctxChiTietKM.getPhanTramGiam(); // đã là 0–1 (vd: 0.20)
             total = total * (1.0 - discount);
@@ -419,39 +435,52 @@ public class BanVeModule extends JPanel implements AppModule {
 
     private void saveTransaction() {
         try {
-            // 1. Lưu / cập nhật KhachHang
-            KhachHang kh;
-            if (ctxKhachHang.getMaKhachHang() != null) {
-                // Khách cũ — ghi đè thông tin
-                daoKH.update(ctxKhachHang);
-                kh = ctxKhachHang;
-            } else {
-                // Khách mới — tạo mới
-                ctxKhachHang.setMaKhachHang(genId("KH"));
-                daoKH.insert(ctxKhachHang);
-                kh = ctxKhachHang;
+            // 0. Kiểm tra giá hợp lệ trước khi ghi DB — DB có CHECK giaTien > 0.
+            double discount = (ctxChiTietKM != null) ? ctxChiTietKM.getPhanTramGiam() : 0.0;
+            for (Ghe g : ctxGhes) {
+                double finalPrice = unitPriceFor(g) * (1.0 - discount);
+                if (finalPrice <= 0.0) {
+                    JOptionPane.showMessageDialog(this,
+                        "Không tìm được giá hợp lệ cho ghế " + (g != null ? g.getMaGhe() : "?") +
+                        ".\nVui lòng kiểm tra bảng giá tuyến cho loại ghế này trước khi bán vé.",
+                        "Lỗi dữ liệu giá", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
             }
 
-            // 2. Tạo HoaDon
+            // 1. Lưu / cập nhật từng KhachHang trong ctxKhachHangs
+            List<KhachHang> savedKHs = new ArrayList<>();
+            for (KhachHang kh : ctxKhachHangs) {
+                if (kh.getMaKhachHang() != null) {
+                    daoKH.update(kh);
+                } else {
+                    kh.setMaKhachHang(genId("KH"));
+                    daoKH.insert(kh);
+                }
+                savedKHs.add(kh);
+            }
+
+            // 2. Tạo HoaDon (không còn maKhachHang — tách sang HoaDonKhachHang)
             String maHD = daoHD.phatSinhMaHoaDon();
-            HoaDon hd   = new HoaDon(maHD, currentUser, kh, LocalDateTime.now());
+            HoaDon hd   = new HoaDon(maHD, currentUser, LocalDateTime.now());
             daoHD.insert(hd);
 
-            // 3. Tính đơn giá sau khuyến mãi
-            LoaiGhe loai      = ctxToa != null ? ctxToa.getLoaiGhe() : null;
-            double  unitPrice = loai   != null ? ctxPriceMap.getOrDefault(loai, 0.0) : 0.0;
-            if (ctxChiTietKM != null) {
-                double discount = ctxChiTietKM.getPhanTramGiam(); // đã là 0–1 (vd: 0.20)
-                unitPrice = unitPrice * (1.0 - discount);
+            // 3. Link HoaDon ↔ từng KhachHang qua bảng junction
+            for (KhachHang kh : savedKHs) {
+                HoaDonKhachHang link = new HoaDonKhachHang(
+                    daoHDKH.phatSinhMaHDKH(), hd, kh);
+                daoHDKH.insert(link);
             }
 
-            // 4. Tạo Ve + ChiTietHoaDon (+ ApDungKM nếu có KM) cho từng ghế
+            // 4. Tạo Ve + ChiTietHoaDon (+ ApDungKM) — giá tính riêng cho từng ghế
             for (Ghe ghe : ctxGhes) {
+                double finalPrice = unitPriceFor(ghe) * (1.0 - discount);
+
                 Ve ve = new Ve(genId("VE"), ctxLich, ghe, TrangThaiVe.DA_BAN, null, null);
                 daoVe.insert(ve);
 
                 ChiTietHoaDon cthd = new ChiTietHoaDon(
-                    genId("CTHD"), hd, ve, BigDecimal.valueOf(unitPrice));
+                    genId("CTHD"), hd, ve, BigDecimal.valueOf(finalPrice));
                 daoCTHD.insert(cthd);
 
                 if (ctxChiTietKM != null) {
@@ -485,7 +514,7 @@ public class BanVeModule extends JPanel implements AppModule {
             case "VE"   -> "maVe";
             case "KH"   -> "maKhachHang";
             case "CTHD" -> "maChiTietHD";
-            case "ADKM" -> "maADKM";
+            case "ADKM" -> "maApDung";
             default     -> "maVe";
         };
 
@@ -534,8 +563,8 @@ public class BanVeModule extends JPanel implements AppModule {
     public void reset() {
         ctxGaDi   = null; ctxGaDen = null; ctxNgayDiFrom = null; ctxNgayDiTo = null;
         ctxLich   = null; ctxPriceMap.clear();
-        ctxToa    = null; ctxGhes.clear();
-        ctxKhachHang = null; ctxChiTietKM = null; ctxPaymentType = null;
+        ctxGhes.clear();
+        ctxKhachHangs.clear(); ctxChiTietKM = null; ctxPaymentType = null;
         stepHistory.clear();
         stepCache.clear();
         navigateTo(STEP_1, false);

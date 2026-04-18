@@ -227,7 +227,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
         searchTuyen.setItems(tuyenList);
         searchTuyen.setPlaceholder("Nhập mã tuyến, ga đi hoặc ga đến...");
         lblErrTuyen = createErrLabel();
-        form.add(buildFieldRow("TUYẼN ĐƯỜNG", searchTuyen, lblErrTuyen));
+        form.add(buildFieldRow("TUYẾN ĐƯỜNG", searchTuyen, lblErrTuyen));
         form.add(Box.createVerticalStrut(16));
 
         // Loại ghế (hàng riêng)

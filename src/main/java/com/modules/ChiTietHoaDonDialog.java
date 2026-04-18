@@ -2,6 +2,7 @@ package com.modules;
 
 import com.dao.DAO_ApDungKM;
 import com.dao.DAO_ChiTietHoaDon;
+import com.dao.DAO_HoaDonKhachHang;
 import com.entity.*;
 import com.enums.TrangThaiVe;
 
@@ -37,8 +38,10 @@ public class ChiTietHoaDonDialog extends JDialog {
 
     private final HoaDon              hoaDon;
     private final List<ChiTietHoaDon> chiTietList;
+    private final List<KhachHang>     khachHangList;
     private final DAO_ChiTietHoaDon   daoCTHD = new DAO_ChiTietHoaDon();
     private final DAO_ApDungKM        daoKM   = new DAO_ApDungKM();
+    private final DAO_HoaDonKhachHang daoHDKH = new DAO_HoaDonKhachHang();
 
     private Point dragStart;
 
@@ -67,8 +70,9 @@ public class ChiTietHoaDonDialog extends JDialog {
 
     public ChiTietHoaDonDialog(JFrame owner, HoaDon hoaDon) {
         super(owner, "", true);
-        this.hoaDon      = hoaDon;
-        this.chiTietList = daoCTHD.findByHoaDon(hoaDon.getMaHoaDon());
+        this.hoaDon        = hoaDon;
+        this.chiTietList   = daoCTHD.findByHoaDon(hoaDon.getMaHoaDon());
+        this.khachHangList = daoHDKH.findKhachHangByHoaDon(hoaDon.getMaHoaDon());
 
         setUndecorated(true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -226,18 +230,40 @@ public class ChiTietHoaDonDialog extends JDialog {
 
     private JPanel buildKhachHangCard() {
         JPanel card = infoCard();
-        KhachHang kh = hoaDon.getKhachHang();
 
-        addCardHeader(card, "/icons/bieuTuongThongTinCaNhan.png", "THÔNG TIN KHÁCH HÀNG",
+        String headerTitle = khachHangList.size() > 1
+                ? "THÔNG TIN KHÁCH HÀNG (" + khachHangList.size() + ")"
+                : "THÔNG TIN KHÁCH HÀNG";
+        addCardHeader(card, "/icons/bieuTuongThongTinCaNhan.png", headerTitle,
                 new Color(0x1E, 0x66, 0xA8));
 
-        if (kh != null) {
+        if (khachHangList.isEmpty()) {
+            addInfoRow(card, "Khách hàng:", "Không rõ", false);
+        } else if (khachHangList.size() == 1) {
+            KhachHang kh = khachHangList.get(0);
             addInfoRow(card, "Họ và tên:",    kh.getHoTen(),        true);
             addInfoRow(card, "CCCD:",         kh.getCccd(),         false);
             addInfoRow(card, "Điện thoại:",   kh.getSoDienThoai(),  false);
             addInfoRow(card, "Mã KH:",        kh.getMaKhachHang(),  false);
         } else {
-            addInfoRow(card, "Khách hàng:", "Không rõ", false);
+            for (int i = 0; i < khachHangList.size(); i++) {
+                KhachHang kh = khachHangList.get(i);
+                if (i > 0) {
+                    JSeparator sep = new JSeparator();
+                    sep.setForeground(OUTLINE);
+                    sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+                    sep.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    card.add(Box.createVerticalStrut(4));
+                    card.add(sep);
+                    card.add(Box.createVerticalStrut(4));
+                }
+                addInfoRow(card, "Khách #" + (i + 1), kh.getHoTen() != null ? kh.getHoTen() : "—", true);
+                addInfoRow(card, "CCCD/SĐT:",
+                        (kh.getCccd() != null ? kh.getCccd() : "—")
+                        + "  •  "
+                        + (kh.getSoDienThoai() != null ? kh.getSoDienThoai() : "—"),
+                        false);
+            }
         }
         return card;
     }
@@ -525,7 +551,7 @@ public class ChiTietHoaDonDialog extends JDialog {
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
         p.add(signatureBox("Người mua hàng", "(Ký, ghi rõ họ tên)",
-                hoaDon.getKhachHang() != null ? hoaDon.getKhachHang().getHoTen() : ""));
+                khachHangNamesJoined()));
         p.add(signatureBox("Nhân viên bán hàng", "(Ký, ghi rõ họ tên)",
                 hoaDon.getNhanVien() != null ? hoaDon.getNhanVien().getHoTen() : ""));
         return p;
@@ -664,5 +690,16 @@ public class ChiTietHoaDonDialog extends JDialog {
     private String abbrev(String s, int maxLen) {
         if (s == null) return "";
         return s.length() <= maxLen ? s : s.substring(0, maxLen - 1) + "…";
+    }
+
+    private String khachHangNamesJoined() {
+        if (khachHangList == null || khachHangList.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < khachHangList.size(); i++) {
+            if (i > 0) sb.append(", ");
+            String name = khachHangList.get(i).getHoTen();
+            sb.append(name != null ? name : "—");
+        }
+        return sb.toString();
     }
 }

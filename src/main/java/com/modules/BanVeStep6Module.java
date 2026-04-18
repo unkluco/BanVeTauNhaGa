@@ -31,7 +31,7 @@ public class BanVeStep6Module extends JPanel implements AppModule {
     private final ToaTau                toa;
     private final List<Ghe>             ghes;
     private final Map<LoaiGhe, Double>  priceMap;
-    private final KhachHang             khachHang;
+    private final List<KhachHang>       khachHangs;
     private final ChiTietKhuyenMai      chiTietKM;
 
     private static final NumberFormat      VND_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
@@ -58,14 +58,14 @@ public class BanVeStep6Module extends JPanel implements AppModule {
     // =========================================================================
 
     public BanVeStep6Module(Lich lich, ToaTau toa, List<Ghe> ghes,
-                            Map<LoaiGhe, Double> priceMap, KhachHang khachHang,
+                            Map<LoaiGhe, Double> priceMap, List<KhachHang> khachHangs,
                             ChiTietKhuyenMai chiTietKM) {
-        this.lich      = lich;
-        this.toa       = toa;
-        this.ghes      = ghes;
-        this.priceMap  = priceMap;
-        this.khachHang = khachHang;
-        this.chiTietKM = chiTietKM;
+        this.lich       = lich;
+        this.toa        = toa;
+        this.ghes       = ghes;
+        this.priceMap   = priceMap;
+        this.khachHangs = khachHangs;
+        this.chiTietKM  = chiTietKM;
         setLayout(new BorderLayout());
         setBackground(SURFACE);
         buildUI();
@@ -143,21 +143,45 @@ public class BanVeStep6Module extends JPanel implements AppModule {
     private JPanel buildSeatsCard() {
         JPanel card = card("Chi tiết vé");
 
-        LoaiGhe loai      = toa != null ? toa.getLoaiGhe() : null;
-        double  unitPrice = loai != null ? priceMap.getOrDefault(loai, 0.0) : 0.0;
-        double  total     = unitPrice * ghes.size();
-
-        addInfoRow(card, "Toa:",      toa != null ? toa.getMaToaTau() : "—", ON_SURFACE);
-        addInfoRow(card, "Loại ghế:", loai != null ? loai.toString() : "—", ON_SURFACE);
-
-        StringBuilder gheStr = new StringBuilder();
-        for (int i = 0; i < ghes.size(); i++) {
-            if (i > 0) gheStr.append(", ");
-            gheStr.append("Ghế ").append(ghes.get(i).getSoGhe());
+        // Tính tổng giá gốc theo từng ghế (ghế có thể thuộc nhiều loại khác nhau)
+        double total = 0.0;
+        boolean mixed = false;
+        LoaiGhe firstLoai = (!ghes.isEmpty() && ghes.get(0).getToaTau() != null)
+            ? ghes.get(0).getToaTau().getLoaiGhe() : null;
+        for (Ghe g : ghes) {
+            LoaiGhe l = g.getToaTau() != null ? g.getToaTau().getLoaiGhe() : null;
+            if (l != firstLoai) mixed = true;
+            total += l != null ? priceMap.getOrDefault(l, 0.0) : 0.0;
         }
-        addInfoRow(card, "Ghế:",          gheStr.toString(), ON_SURFACE);
-        addInfoRow(card, "Đơn giá gốc:", fmt(unitPrice), ON_SURFACE);
-        addInfoRow(card, "Số lượng:",    ghes.size() + " ghế", ON_SURFACE);
+
+        if (!mixed) {
+            // Toàn bộ ghế cùng loại — hiển thị gọn như trước
+            double unitPrice = firstLoai != null ? priceMap.getOrDefault(firstLoai, 0.0) : 0.0;
+            String toaLabel = toa != null ? toa.getMaToaTau()
+                : (!ghes.isEmpty() && ghes.get(0).getToaTau() != null
+                    ? ghes.get(0).getToaTau().getMaToaTau() : "—");
+            addInfoRow(card, "Toa:",      toaLabel, ON_SURFACE);
+            addInfoRow(card, "Loại ghế:", firstLoai != null ? firstLoai.toString() : "—", ON_SURFACE);
+
+            StringBuilder gheStr = new StringBuilder();
+            for (int i = 0; i < ghes.size(); i++) {
+                if (i > 0) gheStr.append(", ");
+                gheStr.append("Ghế ").append(ghes.get(i).getSoGhe());
+            }
+            addInfoRow(card, "Ghế:",          gheStr.toString(), ON_SURFACE);
+            addInfoRow(card, "Đơn giá gốc:",  fmt(unitPrice), ON_SURFACE);
+            addInfoRow(card, "Số lượng:",     ghes.size() + " ghế", ON_SURFACE);
+        } else {
+            // Ghế thuộc nhiều loại — hiển thị từng ghế kèm giá riêng
+            addInfoRow(card, "Số lượng:", ghes.size() + " ghế (nhiều loại)", ON_SURFACE);
+            for (Ghe g : ghes) {
+                LoaiGhe l = g.getToaTau() != null ? g.getToaTau().getLoaiGhe() : null;
+                String toaMa = g.getToaTau() != null ? g.getToaTau().getMaToaTau() : "—";
+                double price = l != null ? priceMap.getOrDefault(l, 0.0) : 0.0;
+                String label = "Ghế " + g.getSoGhe() + " (" + toaMa + " — " + (l != null ? l : "?") + "):";
+                addInfoRow(card, label, fmt(price), ON_SURFACE);
+            }
+        }
 
         // Divider
         JSeparator sep = new JSeparator();
@@ -173,6 +197,7 @@ public class BanVeStep6Module extends JPanel implements AppModule {
             Color  ORANGE      = new Color(0xE6, 0x52, 0x00);
             String promoLabel  = chiTietKM.getTenChiTiet() != null && !chiTietKM.getTenChiTiet().isBlank()
                 ? chiTietKM.getTenChiTiet() : "Khuyến mãi";
+            addInfoRow(card, "Tạm tính:",   fmt(total), ON_SURFACE);
             addInfoRow(card, "Khuyến mãi:", promoLabel + "  (−" + (int)(chiTietKM.getPhanTramGiam() * 100) + "%)", ORANGE);
             addInfoRow(card, "Giảm:",       "−" + fmt(discountAmt), ORANGE);
             addInfoRow(card, "Tổng tiền:",  fmt(finalTotal), AMOUNT_COLOR, true);
@@ -183,14 +208,38 @@ public class BanVeStep6Module extends JPanel implements AppModule {
     }
 
     private JPanel buildCustomerCard() {
-        JPanel card = card("Thông tin khách hàng");
-        if (khachHang == null) {
+        JPanel card = card("Thông tin khách hàng" + (khachHangs != null && khachHangs.size() > 1
+                ? " (" + khachHangs.size() + " khách)" : ""));
+        if (khachHangs == null || khachHangs.isEmpty()) {
             addInfoRow(card, "", "Chưa có thông tin khách hàng", ON_SURF_VAR);
             return card;
         }
-        addInfoRow(card, "Họ và tên:", khachHang.getHoTen(), ON_SURFACE);
-        addInfoRow(card, "CCCD:",      khachHang.getCccd(), ON_SURFACE);
-        addInfoRow(card, "SĐT:",       khachHang.getSoDienThoai(), ON_SURFACE);
+        if (khachHangs.size() == 1) {
+            KhachHang kh = khachHangs.get(0);
+            addInfoRow(card, "Họ và tên:", kh.getHoTen(), ON_SURFACE);
+            addInfoRow(card, "CCCD:",      kh.getCccd(), ON_SURFACE);
+            addInfoRow(card, "SĐT:",       kh.getSoDienThoai(), ON_SURFACE);
+            return card;
+        }
+        for (int i = 0; i < khachHangs.size(); i++) {
+            KhachHang kh = khachHangs.get(i);
+            JLabel idxLbl = new JLabel("Khách #" + (i + 1));
+            idxLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            idxLbl.setForeground(PRIMARY);
+            idxLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+            card.add(idxLbl);
+            card.add(Box.createVerticalStrut(4));
+            addInfoRow(card, "Họ và tên:", kh.getHoTen(), ON_SURFACE);
+            addInfoRow(card, "CCCD:",      kh.getCccd(), ON_SURFACE);
+            addInfoRow(card, "SĐT:",       kh.getSoDienThoai(), ON_SURFACE);
+            if (i < khachHangs.size() - 1) {
+                JSeparator sep = new JSeparator();
+                sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+                sep.setForeground(OUTLINE);
+                card.add(sep);
+                card.add(Box.createVerticalStrut(8));
+            }
+        }
         return card;
     }
 

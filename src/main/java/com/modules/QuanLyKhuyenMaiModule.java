@@ -46,6 +46,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
     private int totalRecords = 0;
 
     private JLabel  lblPageInfo;
+    private JLabel  lblTableMeta;
     private JPanel  paginationPanel;
 
     // --- Data ---
@@ -60,6 +61,9 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
     private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
     private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
     private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
+    private static final Color TABLE_HEAD_BG = new Color(0xF3, 0xF7, 0xFB);
+    private static final Color TABLE_HEAD_FG = new Color(0x4E, 0x5F, 0x70);
+    private static final Color TABLE_DIVIDER = new Color(0xE7, 0xED, 0xF3);
     private static final Color ROW_ALT       = new Color(0xF8, 0xFA, 0xFC);
     private static final Color ROW_HOVER     = new Color(0xEE, 0xF5, 0xFB);
 
@@ -125,7 +129,30 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
 
     private void buildUI() {
         listView.add(buildHeader(), BorderLayout.NORTH);
-        listView.add(buildTableCard(), BorderLayout.CENTER);
+        JPanel content = new JPanel(new BorderLayout(0, 16));
+        content.setOpaque(false);
+        content.add(buildFilterCard(), BorderLayout.NORTH);
+        content.add(buildTableCard(), BorderLayout.CENTER);
+        listView.add(content, BorderLayout.CENTER);
+    }
+
+    private JPanel buildFilterCard() {
+        JPanel card = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(CARD_BG);
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 16, 16));
+                g2.setColor(OUTLINE);
+                g2.setStroke(new BasicStroke(1f));
+                g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1, getHeight() - 1, 16, 16));
+                g2.dispose();
+            }
+        };
+        card.setOpaque(false);
+        card.add(buildFilterBar(), BorderLayout.CENTER);
+        return card;
     }
 
     private JPanel buildHeader() {
@@ -181,99 +208,139 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
         };
         card.setOpaque(false);
 
-        card.add(buildFilterBar(), BorderLayout.NORTH);
+        card.add(buildTableTopBar(), BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
         card.add(buildPaginationBar(), BorderLayout.SOUTH);
 
         return card;
     }
 
-    private JPanel buildFilterBar() {
-        JPanel bar = new JPanel();
-        bar.setLayout(new BoxLayout(bar, BoxLayout.Y_AXIS));
+    private JPanel buildTableTopBar() {
+        JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
-                new EmptyBorder(14, 20, 14, 20)
+                BorderFactory.createMatteBorder(0, 0, 1, 0, TABLE_DIVIDER),
+                new EmptyBorder(14, 20, 12, 20)
         ));
 
-        // Row 1: search field
-        JPanel row1 = new JPanel(new BorderLayout());
-        row1.setOpaque(false);
-        row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        JPanel left = new JPanel();
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        left.setOpaque(false);
 
-        txtSearch = new JTextField() {
+        JLabel title = new JLabel("Danh sách khuyến mãi");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        title.setForeground(ON_SURFACE);
+
+        JLabel desc = new JLabel("Theo dõi thời gian hiệu lực và trạng thái áp dụng của từng chương trình.");
+        desc.setFont(FONT_SMALL);
+        desc.setForeground(ON_SURF_VAR);
+
+        left.add(title);
+        left.add(Box.createVerticalStrut(2));
+        left.add(desc);
+
+        lblTableMeta = new JLabel("0 bản ghi");
+        lblTableMeta.setFont(FONT_BADGE);
+        lblTableMeta.setForeground(PRIMARY);
+        lblTableMeta.setBorder(new EmptyBorder(6, 12, 6, 12));
+        lblTableMeta.setOpaque(true);
+        lblTableMeta.setBackground(new Color(0xE8, 0xF1, 0xFB));
+
+        bar.add(left, BorderLayout.WEST);
+        bar.add(lblTableMeta, BorderLayout.EAST);
+        return bar;
+    }
+
+    private JPanel buildFilterBar() {
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setOpaque(false);
+
+        // --- UNIFIED Boxed Container ---
+        JPanel bgPanel = new JPanel(new GridBagLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 10));
+                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 20, 20);
+                
+                // Background
+                g2.setColor(CARD_BG);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                
+                // Border
+                g2.setColor(OUTLINE);
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                g2.dispose();
                 super.paintComponent(g);
-                if (getText().isEmpty() && !hasFocus()) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                    g2.setColor(new Color(0x9E, 0xA7, 0xB0));
-                    g2.setFont(FONT_BODY);
-                    Insets insets = getInsets();
-                    g2.drawString("Tìm kiếm theo mã KM, tên, mô tả...", insets.left, getHeight() / 2 + 5);
-                    g2.dispose();
-                }
             }
         };
+        bgPanel.setOpaque(false);
+        bgPanel.setBorder(new EmptyBorder(16, 20, 20, 20));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(0, 0, 12, 0);
+
+        // --- ROW 1: SEARCH ---
+        JPanel searchRow = new JPanel(new GridBagLayout());
+        searchRow.setOpaque(false);
+        GridBagConstraints sgbc = new GridBagConstraints();
+        sgbc.insets = new Insets(0, 0, 0, 12);
+        
+        JLabel iconSearch = new JLabel();
+        try {
+            java.net.URL url = getClass().getResource("/icons/nutTimKiem.png");
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+                iconSearch.setIcon(new ImageIcon(img));
+            }
+        } catch (Exception ignored) {}
+        searchRow.add(iconSearch, sgbc);
+
+        txtSearch = new JTextField();
         txtSearch.setFont(FONT_BODY);
-        txtSearch.setPreferredSize(new Dimension(0, 38));
+        txtSearch.setOpaque(true);
+        txtSearch.setBackground(Color.WHITE);
         txtSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1),
-                new EmptyBorder(6, 12, 6, 12)
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(8, 12, 8, 12)
         ));
-        txtSearch.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusGained(java.awt.event.FocusEvent e) { txtSearch.repaint(); }
-            public void focusLost(java.awt.event.FocusEvent e)   { txtSearch.repaint(); }
-        });
+        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm kiếm theo mã KM, tên, mô tả...");
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e)  { applyFilter(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e)  { applyFilter(); }
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
         });
-
-        row1.add(txtSearch, BorderLayout.CENTER);
-
-        // Row 2: date range + trang thai + reset
-        dpTuNgay  = new DatePickerField();
-        dpTuNgay.setPreferredSize(new Dimension(158, 38));
-        dpTuNgay.setMaximumSize(new Dimension(158, 38));
-        dpTuNgay.addPropertyChangeListener("value", e -> applyFilter());
-
-        dpDenNgay = new DatePickerField();
-        dpDenNgay.setPreferredSize(new Dimension(158, 38));
-        dpDenNgay.setMaximumSize(new Dimension(158, 38));
-        dpDenNgay.addPropertyChangeListener("value", e -> applyFilter());
-
-        cboTrangThai = createFilterCombo(new String[]{
-                "Tất cả trạng thái",
-                "Đang áp dụng",
-                "Ngừng áp dụng"
-        });
-        cboTrangThai.setPreferredSize(new Dimension(170, 38));
-        cboTrangThai.setMaximumSize(new Dimension(170, 38));
-        cboTrangThai.addActionListener(e -> applyFilter());
+        sgbc.weightx = 1.0;
+        sgbc.fill = GridBagConstraints.HORIZONTAL;
+        searchRow.add(txtSearch, sgbc);
 
         JButton btnReset = new JButton("Bỏ lọc") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? OUTLINE.darker() : OUTLINE);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 8, 8));
+                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        btnReset.setFont(FONT_BODY);
+        btnReset.setFont(FONT_BOLD);
         btnReset.setForeground(ON_SURF_VAR);
         btnReset.setContentAreaFilled(false);
         btnReset.setBorderPainted(false);
         btnReset.setFocusPainted(false);
         btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnReset.setPreferredSize(new Dimension(80, 38));
-        btnReset.setMaximumSize(new Dimension(80, 38));
+        btnReset.setPreferredSize(new Dimension(100, 38));
         btnReset.addActionListener(e -> {
             txtSearch.setText("");
             cboTrangThai.setSelectedIndex(0);
@@ -281,32 +348,57 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
             dpDenNgay.setValue(null);
             applyFilter();
         });
+        sgbc.weightx = 0; sgbc.insets = new Insets(0, 0, 0, 0); sgbc.fill = GridBagConstraints.NONE;
+        searchRow.add(btnReset, sgbc);
 
-        JPanel row2 = new JPanel();
-        row2.setLayout(new BoxLayout(row2, BoxLayout.X_AXIS));
-        row2.setOpaque(false);
-        row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 1.0;
+        bgPanel.add(searchRow, gbc);
 
-        row2.add(createFilterLabel("Từ ngày:"));
-        row2.add(Box.createHorizontalStrut(6));
-        row2.add(dpTuNgay);
-        row2.add(Box.createHorizontalStrut(16));
-        row2.add(createFilterLabel("Đến ngày:"));
-        row2.add(Box.createHorizontalStrut(6));
-        row2.add(dpDenNgay);
-        row2.add(Box.createHorizontalStrut(20));
-        row2.add(createFilterLabel("Trạng thái:"));
-        row2.add(Box.createHorizontalStrut(6));
-        row2.add(cboTrangThai);
-        row2.add(Box.createHorizontalStrut(12));
-        row2.add(btnReset);
-        row2.add(Box.createHorizontalGlue());
+        // --- ROW 2: FILTERS ---
+        JPanel filterRow = new JPanel(new GridBagLayout());
+        filterRow.setOpaque(false);
+        GridBagConstraints fgbc = new GridBagConstraints();
+        fgbc.gridy = 0; fgbc.fill = GridBagConstraints.HORIZONTAL; fgbc.weightx = 1.0; fgbc.insets = new Insets(0, 0, 0, 12);
 
-        bar.add(row1);
-        bar.add(Box.createVerticalStrut(10));
-        bar.add(row2);
+        dpTuNgay = new DatePickerField();
+        dpTuNgay.addPropertyChangeListener("value", e -> applyFilter());
+        filterRow.add(buildFilterGroupKM("TỪ NGÀY", dpTuNgay), fgbc);
 
-        return bar;
+        dpDenNgay = new DatePickerField();
+        dpDenNgay.addPropertyChangeListener("value", e -> applyFilter());
+        fgbc.gridx = 1;
+        filterRow.add(buildFilterGroupKM("ĐẾN NGÀY", dpDenNgay), fgbc);
+
+        cboTrangThai = createFilterCombo(new String[]{"Tất cả trạng thái", "Đang áp dụng", "Ngừng áp dụng"});
+        cboTrangThai.addActionListener(e -> applyFilter());
+        fgbc.gridx = 2; fgbc.insets = new Insets(0, 0, 0, 0);
+        filterRow.add(buildFilterGroupKM("TRẠNG THÁI", cboTrangThai), fgbc);
+
+        gbc.gridy = 1; gbc.insets = new Insets(0, 0, 0, 0);
+        bgPanel.add(filterRow, gbc);
+
+        wrapper.add(bgPanel);
+        wrapper.setBorder(new EmptyBorder(16, 20, 16, 20));
+        return wrapper;
+    }
+
+    private JPanel buildFilterGroupKM(String labelText, JComponent field) {
+        JPanel group = new JPanel();
+        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
+        group.setOpaque(false);
+
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lbl.setForeground(ON_SURF_VAR);
+        lbl.setBorder(new EmptyBorder(0, 4, 4, 0));
+
+        int h = Math.max(40, field.getPreferredSize().height);
+        field.setPreferredSize(new Dimension(0, h));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, h));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        group.add(lbl);
+        group.add(field);
+        return group;
     }
 
     private JTextField createPlainDateField() {
@@ -482,10 +574,10 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
     private JScrollPane buildTableSection() {
         tableModel = new KhuyenMaiTableModel();
         table = new JTable(tableModel);
-        table.setRowHeight(56);
+        table.setRowHeight(60);
         table.setShowGrid(false);
-        table.setShowHorizontalLines(true);
-        table.setGridColor(OUTLINE);
+        table.setShowHorizontalLines(false);
+        table.setGridColor(TABLE_DIVIDER);
         table.setIntercellSpacing(new Dimension(0, 0));
         table.setSelectionBackground(PRIMARY_LIGHT);
         table.setSelectionForeground(ON_SURFACE);
@@ -521,28 +613,29 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 lbl.setFont(FONT_HEADER);
-                lbl.setForeground(ON_SURF_VAR);
-                lbl.setBackground(new Color(0xF8, 0xFA, 0xFC));
+                lbl.setForeground(TABLE_HEAD_FG);
+                lbl.setBackground(TABLE_HEAD_BG);
                 lbl.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
-                        new EmptyBorder(0, 20, 0, 8)
+                        BorderFactory.createMatteBorder(0, 0, 1, 0, TABLE_DIVIDER),
+                        new EmptyBorder(0, column <= 1 ? 18 : 8, 0, 8)
                 ));
-                lbl.setPreferredSize(new Dimension(lbl.getPreferredSize().width, 44));
+                lbl.setHorizontalAlignment(column <= 1 ? SwingConstants.LEFT : SwingConstants.CENTER);
+                lbl.setPreferredSize(new Dimension(lbl.getPreferredSize().width, 46));
                 return lbl;
             }
         });
 
         TableColumnModel colModel = table.getColumnModel();
         // Mã KM | Tên KM | Bắt đầu | Kết thúc | Trạng thái | Chi tiết
-        int[] widths = {110, 260, 150, 150, 130, 100};
+        int[] widths = {115, 320, 170, 170, 145, 120};
         for (int i = 0; i < widths.length; i++) {
             colModel.getColumn(i).setPreferredWidth(widths[i]);
         }
 
         colModel.getColumn(0).setCellRenderer(new RowCellRenderer(FONT_MONO, PRIMARY, SwingConstants.LEFT));
         colModel.getColumn(1).setCellRenderer(new RowCellRenderer(FONT_BOLD, ON_SURFACE, SwingConstants.LEFT));
-        colModel.getColumn(2).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
-        colModel.getColumn(3).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
+        colModel.getColumn(2).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.CENTER));
+        colModel.getColumn(3).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.CENTER));
         colModel.getColumn(4).setCellRenderer(new BadgeCellRenderer());
         colModel.getColumn(5).setCellRenderer(new ChiTietButtonRenderer());
         colModel.getColumn(5).setCellEditor(new ChiTietButtonEditor());
@@ -637,7 +730,21 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
     private JComboBox<String> createFilterCombo(String[] items) {
         JComboBox<String> cbo = new JComboBox<>(items);
         cbo.setFont(FONT_BODY);
-        cbo.setEditable(true);
+        cbo.setEditable(false);
+        cbo.setOpaque(true);
+        cbo.setBackground(Color.WHITE);
+        cbo.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
+        cbo.setPreferredSize(new Dimension(0, 40));
+        cbo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        cbo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                JLabel lbl = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                lbl.setBorder(new EmptyBorder(0, 10, 0, 10));
+                return lbl;
+            }
+        });
         return cbo;
     }
 
@@ -759,6 +866,9 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
             lblPageInfo.setText(totalRecords == 0
                     ? "Không tìm thấy chương trình khuyến mãi nào"
                     : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " khuyến mãi");
+            if (lblTableMeta != null) {
+                lblTableMeta.setText(totalRecords + " bản ghi");
+            }
 
             rebuildPagination(totalPages);
         } finally {
@@ -885,11 +995,12 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
     private class RowCellRenderer extends DefaultTableCellRenderer {
         private final Font  font;
         private final Color fg;
+        private final int align;
 
         RowCellRenderer(Font font, Color fg, int align) {
             this.font = font;
             this.fg   = fg;
-            setHorizontalAlignment(align);
+            this.align = align;
         }
 
         @Override
@@ -898,7 +1009,11 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
             super.getTableCellRendererComponent(tbl, value, isSel, hasFocus, row, col);
             setFont(font);
             setForeground(fg);
-            setBorder(new EmptyBorder(0, 20, 0, 8));
+            setHorizontalAlignment(align);
+            setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, 1, 0, TABLE_DIVIDER),
+                    new EmptyBorder(0, align == SwingConstants.LEFT ? 18 : 8, 0, 8)
+            ));
             setBackground(getRowBg(tbl, isSel, row));
             return this;
         }
@@ -933,6 +1048,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
             }
             badge.setForeground(badgeFg);
             setBackground(getRowBg(tbl, isSel, row));
+            setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, TABLE_DIVIDER));
             return this;
         }
 
@@ -968,6 +1084,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
                 boolean isSel, boolean hasFocus, int row, int col) {
             lbl.setText(value != null ? value.toString() : "Chi tiết");
             setBackground(getRowBg(tbl, isSel, row));
+            setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, TABLE_DIVIDER));
             return this;
         }
 
@@ -976,7 +1093,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             Rectangle r = lbl.getBounds();
-            int px = 12, py = 4;
+            int px = 12, py = 5;
             g2.setColor(PRIMARY_LIGHT);
             g2.fillRoundRect(r.x - px, r.y - py, r.width + 2 * px, r.height + 2 * py, 10, 10);
             g2.setColor(new Color(PRIMARY.getRed(), PRIMARY.getGreen(), PRIMARY.getBlue(), 60));
@@ -1003,7 +1120,7 @@ public class QuanLyKhuyenMaiModule extends JPanel implements AppModule {
             button.setBorderPainted(false);
             button.setFocusPainted(false);
             button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            button.setPreferredSize(new Dimension(80, 28));
+            button.setPreferredSize(new Dimension(92, 30));
 
             button.addActionListener(e -> {
                 fireEditingStopped();

@@ -131,21 +131,14 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         stats.setAlignmentX(Component.LEFT_ALIGNMENT);
         stats.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
 
-        JPanel search = buildSearchSection();
-        search.setAlignmentX(Component.LEFT_ALIGNMENT);
-        search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
-
-        JPanel filterBar = buildFilterBar();
-        filterBar.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filterBar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+        JPanel filterArea = buildFilterBar();
+        filterArea.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         top.add(header);
         top.add(Box.createVerticalStrut(20));
         top.add(stats);
         top.add(Box.createVerticalStrut(20));
-        top.add(search);
-        top.add(Box.createVerticalStrut(12));
-        top.add(filterBar);
+        top.add(filterArea);
         top.add(Box.createVerticalStrut(20));
 
         add(top, BorderLayout.NORTH);
@@ -197,9 +190,9 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         lblStatHomNay = new JLabel("0");
         lblStatTuyen  = new JLabel("0");
 
-        row.add(buildStatCard("TỔNG LịCH CHẠY", lblStatTong, PRIMARY, "bieuTuongLich.png"));
-        row.add(buildStatCard("LịCH HÔM NAY", lblStatHomNay, SUCCESS_FG, "bieuTuongThoiGian.png"));
-        row.add(buildStatCard("LƯợT ĐOÀN TÀU", lblStatTuyen, WARN_FG, "bieuTuongTau.png"));
+        row.add(buildStatCard("TỔNG LỊCH CHẠY", lblStatTong, PRIMARY, "bieuTuongLich.png"));
+        row.add(buildStatCard("LỊCH HÔM NAY", lblStatHomNay, SUCCESS_FG, "bieuTuongThoiGian.png"));
+        row.add(buildStatCard("LƯỢT ĐOÀN TÀU", lblStatTuyen, WARN_FG, "bieuTuongTau.png"));
         return row;
     }
 
@@ -246,177 +239,160 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         return card;
     }
 
-    // ---- Search section ----
-    private JPanel buildSearchSection() {
-        JPanel section = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(SURFACE_DIM);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20));
-                g2.dispose();
-            }
-        };
-        section.setOpaque(false);
-        section.setLayout(new BorderLayout(12, 0));
-        section.setBorder(new EmptyBorder(16, 24, 16, 24));
-
-        JPanel labelRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        labelRow.setOpaque(false);
-        ImageIcon icoSearch = loadScaledIcon("nutTimKiem.png", 14);
-        if (icoSearch != null) labelRow.add(new JLabel(icoSearch));
-        JLabel lbl = new JLabel("TÌM KIẾM LịCH");
-        lbl.setFont(FONT_STAT_LBL);
-        lbl.setForeground(ON_SURF_VAR);
-        labelRow.add(lbl);
-
-        JPanel fieldRow = new JPanel(new BorderLayout(8, 0));
-        fieldRow.setOpaque(false);
-
-        txtSearch = createSearchField("Nhập mã lịch, tên tuyến, mã đoàn tàu...");
-        txtSearch.addActionListener(e -> doSearch());
-
-        JButton btnSearch = createSearchButton();
-        btnSearch.addActionListener(e -> doSearch());
-
-        JButton btnReset = new JButton("Làm mới");
-        btnReset.setFont(FONT_BADGE);
-        btnReset.setForeground(ON_SURF_VAR);
-        btnReset.setBackground(CARD_BG);
-        btnReset.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(4, 12, 4, 12)));
-        btnReset.setFocusPainted(false);
-        btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnReset.setPreferredSize(new Dimension(90, 38));
-        btnReset.addActionListener(e -> { txtSearch.setText(""); applyFilter(); });
-
-        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        btnRow.setOpaque(false);
-        btnRow.add(btnSearch);
-        btnRow.add(btnReset);
-
-        fieldRow.add(txtSearch, BorderLayout.CENTER);
-        fieldRow.add(btnRow, BorderLayout.EAST);
-
-        JPanel inner = new JPanel();
-        inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
-        inner.setOpaque(false);
-        inner.add(labelRow);
-        inner.add(Box.createVerticalStrut(8));
-        inner.add(fieldRow);
-
-        section.add(inner, BorderLayout.CENTER);
-        return section;
-    }
-
     // ---- Filter bar ----
     private JPanel buildFilterBar() {
-        JPanel bar = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setOpaque(false);
+
+        // --- Row 1: Primary Search (Full Width) ---
+        JPanel searchRow = new JPanel(new BorderLayout());
+        searchRow.setOpaque(false);
+
+        JPanel bgPanel = new JPanel(new GridBagLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(SURFACE_DIM);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20));
-                g2.dispose();
-            }
-        };
-        bar.setOpaque(false);
-        bar.setLayout(new BorderLayout(0, 8));
-        bar.setBorder(new EmptyBorder(14, 24, 14, 24));
-
-        // Label row
-        JPanel labelRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        labelRow.setOpaque(false);
-        ImageIcon icoFilter = loadScaledIcon("nutBoLoc.png", 13);
-        if (icoFilter != null) labelRow.add(new JLabel(icoFilter));
-        JLabel lbl = new JLabel("BỘ LọC");
-        lbl.setFont(FONT_STAT_LBL);
-        lbl.setForeground(ON_SURF_VAR);
-        labelRow.add(lbl);
-
-        // Fields row — GridBagLayout so combos/pickers expand
-        JPanel fieldsRow = new JPanel(new GridBagLayout());
-        fieldsRow.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridy   = 0;
-        gbc.fill    = GridBagConstraints.HORIZONTAL;
-        gbc.weighty = 0;
-
-        // Ga đi
-        filterGaDi = new SearchableComboBox<>(
-                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
-                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
-        filterGaDi.setPlaceholder("Tất cả ga đi");
-        filterGaDi.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        filterGaDi.setOnChanged(this::applyFilter);
-        gbc.gridx = 0; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
-        fieldsRow.add(buildFilterGroupLich("GA ĐI", filterGaDi), gbc);
-
-        // Ga đến
-        filterGaDen = new SearchableComboBox<>(
-                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
-                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
-        filterGaDen.setPlaceholder("Tất cả ga đến");
-        filterGaDen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        filterGaDen.setOnChanged(this::applyFilter);
-        gbc.gridx = 1; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
-        fieldsRow.add(buildFilterGroupLich("GA ĐẾN", filterGaDen), gbc);
-
-        // Từ ngày
-        dateFrom = new DatePickerField();
-        dateFrom.setPreferredSize(new Dimension(0, 40));
-        dateFrom.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        dateFrom.addPropertyChangeListener("value", e -> applyFilter());
-        gbc.gridx = 2; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
-        fieldsRow.add(buildFilterGroupLich("Từ NGÀY", dateFrom), gbc);
-
-        // Đến ngày
-        dateTo = new DatePickerField();
-        dateTo.setPreferredSize(new Dimension(0, 40));
-        dateTo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        dateTo.addPropertyChangeListener("value", e -> applyFilter());
-        gbc.gridx = 3; gbc.weightx = 1.0; gbc.insets = new Insets(0, 0, 0, 10);
-        fieldsRow.add(buildFilterGroupLich("ĐẾN NGÀY", dateTo), gbc);
-
-        // Bỏ lọc button
-        JButton btnClear = new JButton("Bỏ lọc") {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? OUTLINE.darker() : OUTLINE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 10));
+                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 20, 20);
+                
+                // Background
+                g2.setColor(CARD_BG);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                
+                // Border
+                g2.setColor(OUTLINE);
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        btnClear.setFont(FONT_BOLD);
-        btnClear.setForeground(PRIMARY);
-        btnClear.setContentAreaFilled(false);
-        btnClear.setBorderPainted(false);
-        btnClear.setFocusPainted(false);
-        btnClear.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnClear.setPreferredSize(new Dimension(100, 40));
-        btnClear.addActionListener(e -> {
+        bgPanel.setOpaque(false);
+        bgPanel.setBorder(new EmptyBorder(6, 15, 10, 15));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0, 0, 0, 12);
+        gbc.fill = GridBagConstraints.VERTICAL;
+
+        // Custom search icon
+        JLabel iconSearch = new JLabel();
+        try {
+            java.net.URL url = getClass().getResource("/icons/nutTimKiem.png");
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+                iconSearch.setIcon(new ImageIcon(img));
+            }
+        } catch (Exception ignored) {}
+        bgPanel.add(iconSearch, gbc);
+
+        txtSearch = new JTextField();
+        txtSearch.setFont(FONT_BODY);
+        txtSearch.setOpaque(true);
+        txtSearch.setBackground(Color.WHITE);
+        txtSearch.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo mã lịch, tên tuyến, mã đoàn tàu...");
+        
+        // Real-time search
+        txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
+        });
+
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        bgPanel.add(txtSearch, gbc);
+
+        // Bo loc button
+        JButton btnResetAll = new JButton("Bỏ lọc") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnResetAll.setFont(FONT_BOLD);
+        btnResetAll.setForeground(ON_SURF_VAR);
+        btnResetAll.setContentAreaFilled(false);
+        btnResetAll.setBorderPainted(false);
+        btnResetAll.setFocusPainted(false);
+        btnResetAll.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnResetAll.setPreferredSize(new Dimension(100, 38));
+        btnResetAll.addActionListener(e -> {
+            txtSearch.setText("");
             if (filterGaDi  != null) filterGaDi.clearSelection();
             if (filterGaDen != null) filterGaDen.clearSelection();
             if (dateFrom != null) dateFrom.setValue(null);
             if (dateTo   != null) dateTo.setValue(null);
             applyFilter();
         });
-        // wrap so the button aligns at field level (below the label)
-        JPanel clearWrap = new JPanel(new BorderLayout());
-        clearWrap.setOpaque(false);
-        JLabel clearSpacer = new JLabel(" ");
-        clearSpacer.setFont(FONT_STAT_LBL);
-        clearWrap.add(clearSpacer, BorderLayout.NORTH);
-        clearWrap.add(btnClear, BorderLayout.CENTER);
-        gbc.gridx = 4; gbc.weightx = 0; gbc.insets = new Insets(0, 0, 0, 0);
-        fieldsRow.add(clearWrap, gbc);
 
-        bar.add(labelRow,   BorderLayout.NORTH);
-        bar.add(fieldsRow,  BorderLayout.CENTER);
-        return bar;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        bgPanel.add(btnResetAll, gbc);
+
+        searchRow.add(bgPanel, BorderLayout.CENTER);
+        wrapper.add(searchRow);
+
+        // --- Row 2: Entity Filters (Below Search) ---
+        JPanel filterRow = new JPanel(new GridBagLayout());
+        filterRow.setOpaque(false);
+        filterRow.setBorder(new EmptyBorder(12, 5, 0, 5));
+
+        GridBagConstraints fgbc = new GridBagConstraints();
+        fgbc.gridy = 0;
+        fgbc.fill = GridBagConstraints.HORIZONTAL;
+        fgbc.weightx = 1.0;
+        fgbc.insets = new Insets(0, 0, 0, 10);
+
+        // Ga di
+        filterGaDi = new SearchableComboBox<>(
+                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
+        filterGaDi.setPlaceholder("Tất cả ga đi");
+        filterGaDi.setOnChanged(this::applyFilter);
+        filterRow.add(buildFilterGroupLich("GA ĐI", filterGaDi), fgbc);
+
+        // Ga den
+        filterGaDen = new SearchableComboBox<>(
+                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
+        filterGaDen.setPlaceholder("Tất cả ga đến");
+        filterGaDen.setOnChanged(this::applyFilter);
+        fgbc.gridx = 1;
+        filterRow.add(buildFilterGroupLich("GA ĐẾN", filterGaDen), fgbc);
+
+        // Tu ngay
+        dateFrom = new DatePickerField();
+        dateFrom.setPreferredSize(new Dimension(0, 40));
+        dateFrom.addPropertyChangeListener("value", e -> applyFilter());
+        fgbc.gridx = 2;
+        filterRow.add(buildFilterGroupLich("TỪ NGÀY", dateFrom), fgbc);
+
+        // Den ngay
+        dateTo = new DatePickerField();
+        dateTo.setPreferredSize(new Dimension(0, 40));
+        dateTo.addPropertyChangeListener("value", e -> applyFilter());
+        fgbc.gridx = 3; fgbc.insets = new Insets(0, 0, 0, 0);
+        filterRow.add(buildFilterGroupLich("ĐẾN NGÀY", dateTo), fgbc);
+
+        wrapper.add(filterRow);
+
+        return wrapper;
     }
 
     private JPanel buildFilterGroupLich(String labelText, JComponent field) {
@@ -869,8 +845,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
 
     private class LichTableModel extends AbstractTableModel {
         private final String[] COLS = {
-            "MÃ LịCH", "ĐOÀN TÀU", "TUYẼN",
-            "THỞI GIAN BỪT ĐẦU", "THỞI GIAN CHẠY", "THAO TÁC"
+            "MÃ LỊCH", "ĐOÀN TÀU", "TUYẾN",
+            "THỜI GIAN BẮT ĐẦU", "THỜI GIAN CHẠY", "THAO TÁC"
         };
         private List<Lich> data = new ArrayList<>();
 

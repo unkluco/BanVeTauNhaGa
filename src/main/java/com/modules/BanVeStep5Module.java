@@ -4,6 +4,7 @@ import com.dao.DAO_KhachHang;
 import com.entity.KhachHang;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -12,14 +13,22 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Bước 5 — Nhập thông tin khách hàng.
- * Số điện thoại có autocomplete popup (JWindow) hiện ngay dưới ô khi gõ ≥6 ký tự.
- * Chọn một dòng trong popup → fill txSdt, txHoTen, txCccd cùng lúc.
- * Output: KhachHang
+ * Bước 5 — Nhập thông tin khách hàng (hỗ trợ nhiều khách cho cùng một hóa đơn).
+ *
+ * Mỗi khách hàng là một card với đầy đủ 9 trường của entity KhachHang.
+ * Nút "+ Thêm khách hàng" thêm card mới. Tối thiểu 1 card.
+ * SĐT có autocomplete popup — chọn một gợi ý sẽ điền sạch toàn bộ field
+ * của card đó (không nối chuỗi).
+ *
+ * Output: List<KhachHang>
  *   - maKhachHang != null → khách cũ (saveTransaction sẽ update)
  *   - maKhachHang == null → khách mới (saveTransaction sẽ insert)
  */
@@ -36,27 +45,23 @@ public class BanVeStep5Module extends JPanel implements AppModule {
     private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
     private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
     private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SUCCESS_BG    = new Color(0xE8, 0xF5, 0xE9);
-    private static final Color SUCCESS_FG    = new Color(0x1B, 0x5E, 0x20);
+    private static final Color ERROR_FG      = new Color(0xBA, 0x1A, 0x1A);
 
-    // Form fields
-    private JTextField txSdt, txHoTen, txCccd;
-    private JPanel     statusCard;
-    private JLabel     lblStatus;
-    private JPanel     formCard;
+    // Layout holders
+    private JPanel customersHolder;
+    private JButton btnAddCustomer;
 
-    // Autocomplete popup
+    // Autocomplete popup (dùng chung cho tất cả card — bám theo card đang focus)
     private JWindow           suggestionWindow;
     private JList<KhachHang>  suggestionList;
-    private boolean           fillingFromSuggestion = false;
-
-    // State
-    private boolean   foundInDb      = false;
-    private KhachHang foundKhachHang = null;
+    private CustomerCard      activeCard;  // card đang mở popup
 
     // AppModule buttons
     private JButton btnSubmit, btnCancel;
     private JPanel  btnPanel;
+
+    // Danh sách card hiện có
+    private final List<CustomerCard> cards = new ArrayList<>();
 
     // =========================================================================
     //  CONSTRUCTOR
@@ -75,20 +80,36 @@ public class BanVeStep5Module extends JPanel implements AppModule {
     private void buildUI() {
         add(buildHeaderBar(), BorderLayout.NORTH);
 
+        customersHolder = new JPanel();
+        customersHolder.setLayout(new BoxLayout(customersHolder, BoxLayout.Y_AXIS));
+        customersHolder.setBackground(SURFACE);
+
         JPanel center = new JPanel();
         center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
         center.setBackground(SURFACE);
         center.setBorder(new EmptyBorder(24, 80, 24, 80));
 
-        formCard   = buildFormCard();
-        statusCard = buildStatusCard();
-        center.add(formCard);
-        center.add(Box.createVerticalStrut(16));
-        center.add(statusCard);
+        center.add(customersHolder);
+        center.add(Box.createVerticalStrut(12));
+
+        btnAddCustomer = new JButton("+ Thêm khách hàng");
+        btnAddCustomer.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnAddCustomer.setForeground(PRIMARY);
+        btnAddCustomer.setBackground(CARD_BG);
+        btnAddCustomer.setFocusPainted(false);
+        btnAddCustomer.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnAddCustomer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createDashedBorder(PRIMARY, 1.5f, 4, 3, true),
+                new EmptyBorder(10, 16, 10, 16)));
+        btnAddCustomer.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnAddCustomer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+        btnAddCustomer.addActionListener(e -> addNewCard());
+        center.add(btnAddCustomer);
 
         JScrollPane scroll = new JScrollPane(center);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(SURFACE);
+        scroll.getVerticalScrollBar().setUnitIncrement(18);
         add(scroll, BorderLayout.CENTER);
 
         btnSubmit = new JButton("Tiếp theo →");
@@ -106,6 +127,9 @@ public class BanVeStep5Module extends JPanel implements AppModule {
         btnPanel.add(btnSubmit);
         btnPanel.setVisible(false);
         add(btnPanel, BorderLayout.SOUTH);
+
+        // Seed: 1 card mặc định
+        addNewCard();
     }
 
     private JPanel buildHeaderBar() {
@@ -119,58 +143,42 @@ public class BanVeStep5Module extends JPanel implements AppModule {
         return bar;
     }
 
-    private JPanel buildFormCard() {
-        JPanel card = new JPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(OUTLINE, 1),
-            new EmptyBorder(24, 32, 24, 32)
-        ));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+    // =========================================================================
+    //  CUSTOMER CARD MANAGEMENT
+    // =========================================================================
 
-        JLabel titleLbl = new JLabel("Nhập / Tìm thông tin khách hàng");
-        titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        titleLbl.setForeground(ON_SURFACE);
-        titleLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(titleLbl);
-        card.add(Box.createVerticalStrut(16));
+    private void addNewCard() {
+        CustomerCard card = new CustomerCard(cards.size() + 1);
+        cards.add(card);
+        customersHolder.add(card);
+        customersHolder.add(Box.createVerticalStrut(12));
+        updateCardHeaders();
+        customersHolder.revalidate();
+        customersHolder.repaint();
+    }
 
-        // Số điện thoại — gõ ≥6 ký tự → popup gợi ý hiện ngay dưới
-        txSdt = makeTextField();
-        card.add(makeRow("Số điện thoại *:", txSdt));
-        card.add(Box.createVerticalStrut(10));
+    private void removeCard(CustomerCard card) {
+        if (cards.size() <= 1) return; // min 1
+        int idx = customersHolder.getComponentZOrder(card);
+        cards.remove(card);
+        customersHolder.remove(card);
+        // remove strut ngay dưới card (nếu có)
+        if (idx < customersHolder.getComponentCount()) {
+            customersHolder.remove(idx);
+        }
+        updateCardHeaders();
+        customersHolder.revalidate();
+        customersHolder.repaint();
+    }
 
-        // Họ và tên
-        txHoTen = makeTextField();
-        card.add(makeRow("Họ và tên *:", txHoTen));
-        card.add(Box.createVerticalStrut(10));
-
-        // CCCD
-        txCccd = makeTextField();
-        card.add(makeRow("CCCD *:", txCccd));
-
-        // ---- Listeners ----
-        txSdt.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e)  { onSdtChanged(); }
-            @Override public void removeUpdate(DocumentEvent e)  { onSdtChanged(); }
-            @Override public void changedUpdate(DocumentEvent e) { onSdtChanged(); }
-        });
-
-        // Ẩn popup khi txSdt mất focus (sang txHoTen, txCccd, v.v.)
-        // Vì suggestionWindow là non-focusable, click vào list không trigger focusLost
-        txSdt.addFocusListener(new FocusAdapter() {
-            @Override public void focusLost(FocusEvent e) {
-                // Delay nhỏ để mouseClicked trên list kịp xử lý trước khi ẩn
-                SwingUtilities.invokeLater(() -> hideSuggestions());
-            }
-        });
-
-        return card;
+    private void updateCardHeaders() {
+        for (int i = 0; i < cards.size(); i++) {
+            cards.get(i).setIndex(i + 1, cards.size() > 1);
+        }
     }
 
     // =========================================================================
-    //  AUTOCOMPLETE POPUP
+    //  AUTOCOMPLETE POPUP (shared)
     // =========================================================================
 
     private void ensureSuggestionWindow() {
@@ -186,7 +194,9 @@ public class BanVeStep5Module extends JPanel implements AppModule {
         suggestionList.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 KhachHang kh = suggestionList.getSelectedValue();
-                if (kh != null) fillFromCustomer(kh);
+                if (kh != null && activeCard != null) {
+                    activeCard.fillFromCustomer(kh);
+                }
             }
         });
 
@@ -200,21 +210,22 @@ public class BanVeStep5Module extends JPanel implements AppModule {
         suggestionWindow.setContentPane(scroll);
     }
 
-    private void showSuggestions(List<KhachHang> items) {
+    private void showSuggestions(CustomerCard card, List<KhachHang> items) {
         ensureSuggestionWindow();
+        activeCard = card;
         suggestionList.setListData(items.toArray(new KhachHang[0]));
 
         try {
-            Point loc = txSdt.getLocationOnScreen();
-            int w = txSdt.getWidth();
+            Point loc = card.txSdt.getLocationOnScreen();
+            int w = card.txSdt.getWidth();
             int rows = Math.min(items.size(), 5);
             int h = rows * 36 + 6;
 
             suggestionWindow.setSize(w, h);
-            suggestionWindow.setLocation(loc.x, loc.y + txSdt.getHeight());
+            suggestionWindow.setLocation(loc.x, loc.y + card.txSdt.getHeight());
             suggestionWindow.setVisible(true);
         } catch (IllegalComponentStateException ex) {
-            // component not yet on screen — ignore
+            // component not yet on screen
         }
     }
 
@@ -222,127 +233,79 @@ public class BanVeStep5Module extends JPanel implements AppModule {
         if (suggestionWindow != null) suggestionWindow.setVisible(false);
     }
 
-    private void fillFromCustomer(KhachHang kh) {
-        fillingFromSuggestion = true;
-        txSdt.setText(kh.getSoDienThoai());
-        txHoTen.setText(kh.getHoTen());
-        txCccd.setText(kh.getCccd() != null ? kh.getCccd() : "");
-        foundKhachHang = kh;
-        foundInDb      = true;
-        hideSuggestions();
-        fillingFromSuggestion = false;
-        showStatus("Đã chọn: " + kh.getHoTen() + " — thông tin được điền sẵn, có thể chỉnh sửa.");
-    }
-
     // =========================================================================
-    //  SEARCH (triggered by DocumentListener)
-    // =========================================================================
-
-    private void onSdtChanged() {
-        if (fillingFromSuggestion) return;
-
-        // Reset khi user gõ tay
-        foundKhachHang = null;
-        foundInDb      = false;
-        statusCard.setVisible(false);
-
-        String sdt = txSdt.getText().trim();
-        if (sdt.length() < 6) {
-            hideSuggestions();
-            return;
-        }
-
-        List<KhachHang> results = daoKH.findBySoDienThoaiLike(sdt);
-        if (results.isEmpty()) {
-            hideSuggestions();
-            return;
-        }
-        showSuggestions(results);
-    }
-
-    // =========================================================================
-    //  STATUS CARD
-    // =========================================================================
-
-    private JPanel buildStatusCard() {
-        JPanel card = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 10));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-        card.setVisible(false);
-        card.setBackground(SUCCESS_BG);
-        card.setBorder(BorderFactory.createLineBorder(new Color(0xA5, 0xD6, 0xA7), 1));
-        lblStatus = new JLabel("");
-        lblStatus.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblStatus.setForeground(SUCCESS_FG);
-        card.add(lblStatus);
-        return card;
-    }
-
-    private void showStatus(String msg) {
-        lblStatus.setText(msg);
-        statusCard.setVisible(true);
-        statusCard.revalidate();
-    }
-
-    // =========================================================================
-    //  EXECUTE
+    //  EXECUTE — VALIDATE & OUTPUT
     // =========================================================================
 
     private void execute() {
-        String sdt   = txSdt.getText().trim();
-        String hoTen = txHoTen.getText().trim();
-        String cccd  = txCccd.getText().trim();
+        CustomerCard firstBadCard = null;
+        JComponent firstBadField = null;
 
-        if (sdt.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập số điện thoại.",
-                "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        if (hoTen.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập họ và tên khách hàng.",
-                "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        if (cccd.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập số CCCD.",
-                "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
-            return;
+        // Reset tất cả lỗi
+        for (CustomerCard c : cards) c.clearAllErrors();
+
+        // Validate per-card
+        for (CustomerCard c : cards) {
+            JComponent bad = c.validateFields();
+            if (bad != null && firstBadField == null) {
+                firstBadCard  = c;
+                firstBadField = bad;
+            }
         }
 
-        // maKhachHang != null → khách cũ (saveTransaction sẽ update)
-        // maKhachHang == null → khách mới (saveTransaction sẽ insert)
-        KhachHang kh = (foundInDb && foundKhachHang != null)
-            ? new KhachHang(foundKhachHang.getMaKhachHang(), hoTen, cccd, sdt)
-            : new KhachHang(null, hoTen, cccd, sdt);
+        // Chặn trùng SĐT / CCCD giữa các card
+        if (firstBadField == null) {
+            for (int i = 0; i < cards.size(); i++) {
+                String sdtI  = cards.get(i).txSdt.getText().trim();
+                String cccdI = cards.get(i).txCccd.getText().trim();
+                for (int j = i + 1; j < cards.size(); j++) {
+                    if (sdtI.equals(cards.get(j).txSdt.getText().trim())) {
+                        cards.get(j).showFieldError(cards.get(j).txSdt, cards.get(j).errSdt,
+                                "Trùng SĐT với khách hàng khác trong hóa đơn");
+                        if (firstBadField == null) {
+                            firstBadCard  = cards.get(j);
+                            firstBadField = cards.get(j).txSdt;
+                        }
+                    }
+                    if (cccdI.equals(cards.get(j).txCccd.getText().trim())) {
+                        cards.get(j).showFieldError(cards.get(j).txCccd, cards.get(j).errCccd,
+                                "Trùng CCCD với khách hàng khác trong hóa đơn");
+                        if (firstBadField == null) {
+                            firstBadCard  = cards.get(j);
+                            firstBadField = cards.get(j).txCccd;
+                        }
+                    }
+                }
+            }
+        }
 
-        if (callback != null) callback.accept(kh);
+        if (firstBadField != null) {
+            firstBadField.requestFocusInWindow();
+            if (firstBadCard != null) firstBadCard.scrollRectToVisible(firstBadCard.getBounds());
+            return;
+        }
+
+        // Tạo list KhachHang output
+        List<KhachHang> result = new ArrayList<>();
+        for (CustomerCard c : cards) result.add(c.toKhachHang());
+
+        if (callback != null) callback.accept(result);
     }
 
     // =========================================================================
     //  HELPERS
     // =========================================================================
 
-    private JTextField makeTextField() {
-        JTextField tf = new JTextField();
-        tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tf.setPreferredSize(new Dimension(320, 40));
-        tf.setMaximumSize(new Dimension(Short.MAX_VALUE, 40));
-        return tf;
-    }
-
-    private JPanel makeRow(String labelText, JComponent field) {
-        JPanel row = new JPanel(new BorderLayout(12, 0));
-        row.setBackground(CARD_BG);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-        row.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel lbl = new JLabel(labelText);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lbl.setForeground(ON_SURFACE);
-        lbl.setPreferredSize(new Dimension(160, 28));
-        row.add(lbl, BorderLayout.WEST);
-        row.add(field, BorderLayout.CENTER);
-        return row;
+    private void styleBtn(JButton btn, boolean primary) {
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(9, 22, 9, 22));
+        if (primary) {
+            btn.setBackground(PRIMARY); btn.setForeground(Color.WHITE); btn.setOpaque(true);
+        } else {
+            btn.setBackground(CARD_BG); btn.setForeground(ON_SURF_VAR); btn.setOpaque(true);
+        }
     }
 
     class KhachHangRenderer extends DefaultListCellRenderer {
@@ -354,18 +317,6 @@ public class BanVeStep5Module extends JPanel implements AppModule {
                 setText(kh.getSoDienThoai() + "  —  " + kh.getHoTen());
             setBorder(new EmptyBorder(4, 10, 4, 10));
             return this;
-        }
-    }
-
-    private void styleBtn(JButton btn, boolean primary) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(9, 22, 9, 22));
-        if (primary) {
-            btn.setBackground(PRIMARY); btn.setForeground(Color.WHITE); btn.setOpaque(true);
-        } else {
-            btn.setBackground(CARD_BG); btn.setForeground(ON_SURF_VAR); btn.setOpaque(true);
         }
     }
 
@@ -387,12 +338,393 @@ public class BanVeStep5Module extends JPanel implements AppModule {
 
     @Override
     public void reset() {
-        txSdt.setText("");
-        txHoTen.setText("");
-        txCccd.setText("");
-        statusCard.setVisible(false);
-        foundInDb      = false;
-        foundKhachHang = null;
+        cards.clear();
+        customersHolder.removeAll();
         hideSuggestions();
+        addNewCard();
+    }
+
+    // =========================================================================
+    //  INNER CLASS — CustomerCard
+    // =========================================================================
+
+    private class CustomerCard extends JPanel {
+        JTextField txSdt, txHoTen, txCccd, txEmail, txQuocTich, txThuongTru, txTamTru;
+        JSpinner   spNgaySinh;
+        JComboBox<String> cbGioiTinh;
+        JLabel     errSdt, errHoTen, errCccd;
+        JLabel     headerLbl;
+        JButton    btnRemove;
+        Border     defaultFieldBorder;
+
+        KhachHang foundKhachHang = null;
+        boolean   fillingFromSuggestion = false;
+
+        CustomerCard(int index) {
+            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+            setBackground(CARD_BG);
+            setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(OUTLINE, 1),
+                    new EmptyBorder(18, 24, 18, 24)));
+            setAlignmentX(Component.LEFT_ALIGNMENT);
+            setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+            buildCard(index);
+        }
+
+        void setIndex(int index, boolean canRemove) {
+            headerLbl.setText("Khách hàng #" + index);
+            btnRemove.setVisible(canRemove);
+        }
+
+        private void buildCard(int index) {
+            // Header: "Khách hàng #N" + nút Xóa (ẩn với card #1 khi chỉ có 1 card)
+            JPanel header = new JPanel(new BorderLayout());
+            header.setBackground(CARD_BG);
+            header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+            header.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            headerLbl = new JLabel("Khách hàng #" + index);
+            headerLbl.setFont(new Font("Segoe UI", Font.BOLD, 15));
+            headerLbl.setForeground(PRIMARY);
+            header.add(headerLbl, BorderLayout.WEST);
+
+            btnRemove = new JButton("✕ Xóa khách");
+            btnRemove.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            btnRemove.setForeground(ERROR_FG);
+            btnRemove.setBackground(CARD_BG);
+            btnRemove.setFocusPainted(false);
+            btnRemove.setBorder(new EmptyBorder(6, 12, 6, 12));
+            btnRemove.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            btnRemove.setVisible(false);
+            btnRemove.addActionListener(e -> removeCard(this));
+            header.add(btnRemove, BorderLayout.EAST);
+
+            add(header);
+            add(Box.createVerticalStrut(14));
+
+            // --- Row 1: SĐT + Họ tên ---
+            txSdt   = makeTextField();
+            txHoTen = makeTextField();
+            errSdt   = makeErrLabel();
+            errHoTen = makeErrLabel();
+            defaultFieldBorder = txSdt.getBorder();
+
+            add(makeRowPair("Số điện thoại *", txSdt, errSdt, "Họ và tên *", txHoTen, errHoTen));
+            add(Box.createVerticalStrut(10));
+
+            // --- Row 2: CCCD + Email ---
+            txCccd  = makeTextField();
+            txEmail = makeTextField();
+            errCccd = makeErrLabel();
+            add(makeRowPair("CCCD *", txCccd, errCccd, "Email", txEmail, null));
+            add(Box.createVerticalStrut(10));
+
+            // --- Row 3: Ngày sinh + Giới tính + Quốc tịch ---
+            spNgaySinh = new JSpinner(new SpinnerDateModel());
+            JSpinner.DateEditor ed = new JSpinner.DateEditor(spNgaySinh, "dd/MM/yyyy");
+            spNgaySinh.setEditor(ed);
+            spNgaySinh.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            spNgaySinh.setPreferredSize(new Dimension(160, 40));
+            spNgaySinh.setMaximumSize(new Dimension(Short.MAX_VALUE, 40));
+            spNgaySinh.setValue(java.sql.Date.valueOf(LocalDate.of(2000, 1, 1)));
+
+            cbGioiTinh = new JComboBox<>(new String[]{"Nam", "Nữ"});
+            cbGioiTinh.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            cbGioiTinh.setPreferredSize(new Dimension(120, 40));
+            cbGioiTinh.setMaximumSize(new Dimension(Short.MAX_VALUE, 40));
+
+            txQuocTich = makeTextField();
+            txQuocTich.setText("Việt Nam");
+
+            add(makeRowTriple("Ngày sinh", spNgaySinh, "Giới tính", cbGioiTinh, "Quốc tịch", txQuocTich));
+            add(Box.createVerticalStrut(10));
+
+            // --- Row 4: Địa chỉ thường trú ---
+            txThuongTru = makeTextField();
+            add(makeSingleRow("Địa chỉ thường trú", txThuongTru));
+            add(Box.createVerticalStrut(10));
+
+            // --- Row 5: Địa chỉ tạm trú ---
+            txTamTru = makeTextField();
+            add(makeSingleRow("Địa chỉ tạm trú", txTamTru));
+
+            // --- Listeners ---
+            txSdt.getDocument().addDocumentListener(new DocumentListener() {
+                @Override public void insertUpdate(DocumentEvent e)  { onSdtChanged(); clearFieldError(txSdt, errSdt); }
+                @Override public void removeUpdate(DocumentEvent e)  { onSdtChanged(); clearFieldError(txSdt, errSdt); }
+                @Override public void changedUpdate(DocumentEvent e) { onSdtChanged(); clearFieldError(txSdt, errSdt); }
+            });
+            txHoTen.getDocument().addDocumentListener(new DocumentListener() {
+                @Override public void insertUpdate(DocumentEvent e)  { clearFieldError(txHoTen, errHoTen); }
+                @Override public void removeUpdate(DocumentEvent e)  { clearFieldError(txHoTen, errHoTen); }
+                @Override public void changedUpdate(DocumentEvent e) { clearFieldError(txHoTen, errHoTen); }
+            });
+            txCccd.getDocument().addDocumentListener(new DocumentListener() {
+                @Override public void insertUpdate(DocumentEvent e)  { clearFieldError(txCccd, errCccd); }
+                @Override public void removeUpdate(DocumentEvent e)  { clearFieldError(txCccd, errCccd); }
+                @Override public void changedUpdate(DocumentEvent e) { clearFieldError(txCccd, errCccd); }
+            });
+            txSdt.addFocusListener(new FocusAdapter() {
+                @Override public void focusLost(FocusEvent e) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (activeCard == CustomerCard.this) hideSuggestions();
+                    });
+                }
+            });
+        }
+
+        private void onSdtChanged() {
+            if (fillingFromSuggestion) return;
+
+            // Reset state khi user gõ tay
+            foundKhachHang = null;
+
+            String sdt = txSdt.getText().trim();
+            if (sdt.length() < 6) {
+                if (activeCard == this) hideSuggestions();
+                return;
+            }
+
+            List<KhachHang> results = daoKH.findBySoDienThoaiLike(sdt);
+            if (results.isEmpty()) {
+                if (activeCard == this) hideSuggestions();
+                return;
+            }
+            showSuggestions(this, results);
+        }
+
+        /**
+         * Điền thông tin khách hàng từ gợi ý.
+         * Đảm bảo XÓA TRẮNG từng field trước khi set để tránh cảm giác "nối chuỗi".
+         */
+        void fillFromCustomer(KhachHang kh) {
+            fillingFromSuggestion = true;
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    // Xóa trắng rồi set giá trị mới cho mỗi ô, đặt caret về đầu
+                    setFieldText(txSdt,   safe(kh.getSoDienThoai()));
+                    setFieldText(txHoTen, safe(kh.getHoTen()));
+                    setFieldText(txCccd,  safe(kh.getCccd()));
+                    setFieldText(txEmail, safe(kh.getEmail()));
+                    setFieldText(txQuocTich, kh.getQuocTich() != null ? kh.getQuocTich() : "Việt Nam");
+                    setFieldText(txThuongTru, safe(kh.getDiaChiThuongTru()));
+                    setFieldText(txTamTru,    safe(kh.getDiaChiTamTru()));
+
+                    if (kh.getNgaySinh() != null) {
+                        spNgaySinh.setValue(java.sql.Date.valueOf(kh.getNgaySinh()));
+                    }
+                    if ("NAM".equalsIgnoreCase(kh.getGioiTinh()) || "Nam".equalsIgnoreCase(kh.getGioiTinh())) {
+                        cbGioiTinh.setSelectedIndex(0);
+                    } else if ("NU".equalsIgnoreCase(kh.getGioiTinh()) || "Nữ".equalsIgnoreCase(kh.getGioiTinh())) {
+                        cbGioiTinh.setSelectedIndex(1);
+                    }
+
+                    foundKhachHang = kh;
+                    hideSuggestions();
+                    clearAllErrors();
+                } finally {
+                    fillingFromSuggestion = false;
+                }
+            });
+        }
+
+        private void setFieldText(JTextField f, String v) {
+            f.setText("");
+            f.setText(v);
+            f.setCaretPosition(0);
+        }
+
+        private String safe(String s) { return s == null ? "" : s; }
+
+        /**
+         * Validate các trường bắt buộc. Trả về component đầu tiên có lỗi (để focus),
+         * hoặc null nếu OK.
+         */
+        JComponent validateFields() {
+            JComponent firstBad = null;
+            String sdt   = txSdt.getText().trim();
+            String hoTen = txHoTen.getText().trim();
+            String cccd  = txCccd.getText().trim();
+
+            if (sdt.isEmpty()) {
+                showFieldError(txSdt, errSdt, "Vui lòng nhập số điện thoại");
+                firstBad = txSdt;
+            } else if (!sdt.matches("0\\d{9}")) {
+                showFieldError(txSdt, errSdt, "Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0");
+                if (firstBad == null) firstBad = txSdt;
+            }
+
+            if (hoTen.isEmpty()) {
+                showFieldError(txHoTen, errHoTen, "Vui lòng nhập họ và tên");
+                if (firstBad == null) firstBad = txHoTen;
+            } else if (hoTen.length() > 100) {
+                showFieldError(txHoTen, errHoTen, "Họ tên tối đa 100 ký tự");
+                if (firstBad == null) firstBad = txHoTen;
+            }
+
+            if (cccd.isEmpty()) {
+                showFieldError(txCccd, errCccd, "Vui lòng nhập số CCCD");
+                if (firstBad == null) firstBad = txCccd;
+            } else if (!cccd.matches("\\d{9}|\\d{12}")) {
+                showFieldError(txCccd, errCccd, "CCCD phải gồm 9 hoặc 12 chữ số");
+                if (firstBad == null) firstBad = txCccd;
+            }
+            return firstBad;
+        }
+
+        /**
+         * Map các field trong card về đối tượng KhachHang để caller dùng.
+         */
+        KhachHang toKhachHang() {
+            String sdt   = txSdt.getText().trim();
+            String hoTen = txHoTen.getText().trim();
+            String cccd  = txCccd.getText().trim();
+            String email = txEmail.getText().trim();
+            String thuongTru = txThuongTru.getText().trim();
+            String tamTru    = txTamTru.getText().trim();
+            String quocTich  = txQuocTich.getText().trim();
+
+            LocalDate ngaySinh = null;
+            Object v = spNgaySinh.getValue();
+            if (v instanceof Date d) {
+                ngaySinh = d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            }
+
+            String gioiTinh = cbGioiTinh.getSelectedIndex() == 0 ? "NAM" : "NU";
+
+            // Reuse nếu đã chọn từ DB: cập nhật setter trên object cũ (path update)
+            if (foundKhachHang != null) {
+                foundKhachHang.setHoTen(hoTen);
+                foundKhachHang.setCccd(cccd);
+                foundKhachHang.setSoDienThoai(sdt);
+                foundKhachHang.setEmail(email.isEmpty() ? null : email);
+                foundKhachHang.setDiaChiThuongTru(thuongTru.isEmpty() ? null : thuongTru);
+                foundKhachHang.setDiaChiTamTru(tamTru.isEmpty() ? null : tamTru);
+                foundKhachHang.setNgaySinh(ngaySinh);
+                foundKhachHang.setGioiTinh(gioiTinh);
+                foundKhachHang.setQuocTich(quocTich.isEmpty() ? "Việt Nam" : quocTich);
+                return foundKhachHang;
+            }
+
+            return new KhachHang(
+                    null, hoTen, cccd, sdt,
+                    email.isEmpty() ? null : email,
+                    thuongTru.isEmpty() ? null : thuongTru,
+                    tamTru.isEmpty() ? null : tamTru,
+                    ngaySinh, gioiTinh,
+                    quocTich.isEmpty() ? "Việt Nam" : quocTich);
+        }
+
+        void clearAllErrors() {
+            clearFieldError(txSdt, errSdt);
+            clearFieldError(txHoTen, errHoTen);
+            clearFieldError(txCccd, errCccd);
+        }
+
+        void showFieldError(JTextField field, JLabel errLbl, String msg) {
+            errLbl.setText(msg);
+            errLbl.setVisible(true);
+            field.setBorder(BorderFactory.createLineBorder(ERROR_FG, 2));
+        }
+
+        void clearFieldError(JTextField field, JLabel errLbl) {
+            if (errLbl == null) return;
+            if (errLbl.isVisible()) {
+                errLbl.setVisible(false);
+                errLbl.setText(" ");
+                if (defaultFieldBorder != null) field.setBorder(defaultFieldBorder);
+            }
+        }
+
+        // --- row builders ---
+
+        private JPanel makeRowPair(String label1, JComponent f1, JLabel err1,
+                                   String label2, JComponent f2, JLabel err2) {
+            JPanel row = new JPanel(new GridBagLayout());
+            row.setBackground(CARD_BG);
+            row.setAlignmentX(Component.LEFT_ALIGNMENT);
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 96));
+
+            GridBagConstraints gc = new GridBagConstraints();
+            gc.fill = GridBagConstraints.HORIZONTAL;
+            gc.insets = new Insets(0, 0, 0, 8);
+
+            gc.gridx = 0; gc.gridy = 0; gc.weightx = 1.0;
+            row.add(makeFieldBlock(label1, f1, err1), gc);
+            gc.gridx = 1; gc.gridy = 0;
+            gc.insets = new Insets(0, 8, 0, 0);
+            row.add(makeFieldBlock(label2, f2, err2), gc);
+            return row;
+        }
+
+        private JPanel makeRowTriple(String l1, JComponent f1, String l2, JComponent f2, String l3, JComponent f3) {
+            JPanel row = new JPanel(new GridBagLayout());
+            row.setBackground(CARD_BG);
+            row.setAlignmentX(Component.LEFT_ALIGNMENT);
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 76));
+
+            GridBagConstraints gc = new GridBagConstraints();
+            gc.fill = GridBagConstraints.HORIZONTAL;
+            gc.weightx = 1.0;
+
+            gc.gridx = 0; gc.insets = new Insets(0, 0, 0, 8);
+            row.add(makeFieldBlock(l1, f1, null), gc);
+            gc.gridx = 1; gc.insets = new Insets(0, 8, 0, 8);
+            row.add(makeFieldBlock(l2, f2, null), gc);
+            gc.gridx = 2; gc.insets = new Insets(0, 8, 0, 0);
+            row.add(makeFieldBlock(l3, f3, null), gc);
+            return row;
+        }
+
+        private JPanel makeSingleRow(String label, JComponent field) {
+            JPanel row = new JPanel(new BorderLayout());
+            row.setBackground(CARD_BG);
+            row.setAlignmentX(Component.LEFT_ALIGNMENT);
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 76));
+            row.add(makeFieldBlock(label, field, null), BorderLayout.CENTER);
+            return row;
+        }
+
+        private JPanel makeFieldBlock(String label, JComponent field, JLabel errLbl) {
+            JPanel block = new JPanel();
+            block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
+            block.setBackground(CARD_BG);
+
+            JLabel lbl = new JLabel(label);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            lbl.setForeground(ON_SURF_VAR);
+            lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+            block.add(lbl);
+            block.add(Box.createVerticalStrut(4));
+
+            if (field instanceof JComponent jc) jc.setAlignmentX(Component.LEFT_ALIGNMENT);
+            block.add(field);
+
+            if (errLbl != null) {
+                errLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+                block.add(errLbl);
+            }
+            return block;
+        }
+    }
+
+    // ---- shared helpers used by CustomerCard ----
+
+    private JTextField makeTextField() {
+        JTextField tf = new JTextField();
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tf.setPreferredSize(new Dimension(200, 40));
+        tf.setMaximumSize(new Dimension(Short.MAX_VALUE, 40));
+        return tf;
+    }
+
+    private JLabel makeErrLabel() {
+        JLabel l = new JLabel(" ");
+        l.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        l.setForeground(ERROR_FG);
+        l.setVisible(false);
+        l.setBorder(new EmptyBorder(2, 0, 0, 0));
+        l.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
+        return l;
     }
 }

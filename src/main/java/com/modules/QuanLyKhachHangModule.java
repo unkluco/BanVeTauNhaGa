@@ -92,7 +92,11 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
 
     private void buildUI() {
         add(buildHeader(), BorderLayout.NORTH);
-        add(buildTableCard(), BorderLayout.CENTER);
+        JPanel content = new JPanel(new BorderLayout(0, 16));
+        content.setOpaque(false);
+        content.add(buildFilterCard(), BorderLayout.NORTH);
+        content.add(buildTableCard(), BorderLayout.CENTER);
+        add(content, BorderLayout.CENTER);
     }
 
     private JPanel buildHeader() {
@@ -132,6 +136,25 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         return header;
     }
 
+    private JPanel buildFilterCard() {
+        JPanel card = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(CARD_BG);
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 16, 16));
+                g2.setColor(OUTLINE);
+                g2.setStroke(new BasicStroke(1f));
+                g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1, getHeight() - 1, 16, 16));
+                g2.dispose();
+            }
+        };
+        card.setOpaque(false);
+        card.add(buildFilterBar(), BorderLayout.CENTER);
+        return card;
+    }
+
     private JPanel buildTableCard() {
         JPanel card = new JPanel(new BorderLayout()) {
             @Override
@@ -149,7 +172,6 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         card.setOpaque(false);
         card.setBorder(new EmptyBorder(0, 0, 0, 0));
 
-        card.add(buildFilterBar(), BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
         card.add(buildPaginationBar(), BorderLayout.SOUTH);
 
@@ -157,77 +179,111 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
     }
 
     private JPanel buildFilterBar() {
-        JPanel bar = new JPanel(new BorderLayout(12, 0));
-        bar.setOpaque(false);
-        bar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
-                new EmptyBorder(16, 20, 16, 20)
-        ));
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setOpaque(false);
+        wrapper.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        // Search field
-        txtSearch = new JTextField() {
+        // Row 1: Search row (full width)
+        JPanel searchRow = new JPanel(new BorderLayout());
+        searchRow.setOpaque(false);
+
+        JPanel bgPanel = new JPanel(new GridBagLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 10));
+                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 20, 20);
+                
+                // Background
+                g2.setColor(CARD_BG);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                
+                // Border
+                g2.setColor(OUTLINE);
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                g2.dispose();
                 super.paintComponent(g);
-                if (getText().isEmpty() && !hasFocus()) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                    g2.setColor(new Color(0x9E, 0xA7, 0xB0));
-                    g2.setFont(FONT_BODY);
-                    Insets insets = getInsets();
-                    g2.drawString("Tìm theo tên, mã KH, CCCD, SĐT, email...", insets.left, getHeight() / 2 + 5);
-                    g2.dispose();
-                }
             }
         };
+        bgPanel.setOpaque(false);
+        bgPanel.setBorder(new EmptyBorder(6, 15, 10, 15));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0, 0, 0, 12);
+        gbc.fill = GridBagConstraints.VERTICAL;
+
+        // Custom search icon label
+        JLabel iconSearch = new JLabel();
+        try {
+            java.net.URL url = getClass().getResource("/icons/nutTimKiem.png");
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+                iconSearch.setIcon(new ImageIcon(img));
+            }
+        } catch (Exception ignored) {}
+        bgPanel.add(iconSearch, gbc);
+
+        txtSearch = new JTextField();
         txtSearch.setFont(FONT_BODY);
-        txtSearch.setPreferredSize(new Dimension(200, 36));
+        txtSearch.setOpaque(true);
+        txtSearch.setBackground(Color.WHITE);
         txtSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1),
-                new EmptyBorder(6, 12, 6, 12)
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(8, 12, 8, 12)
         ));
-        txtSearch.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusGained(java.awt.event.FocusEvent e) { txtSearch.repaint(); }
-            public void focusLost(java.awt.event.FocusEvent e)   { txtSearch.repaint(); }
-        });
+        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên, mã KH, CCCD, SĐT, email...");
+        
+        // Real-time search
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
         });
 
-        // Bo loc
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        bgPanel.add(txtSearch, gbc);
+
+        // Bo loc button
         JButton btnReset = new JButton("Bỏ lọc") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? OUTLINE.darker() : OUTLINE);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 8, 8));
+                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        btnReset.setFont(FONT_BODY);
+        btnReset.setFont(FONT_BOLD);
         btnReset.setForeground(ON_SURF_VAR);
         btnReset.setContentAreaFilled(false);
         btnReset.setBorderPainted(false);
         btnReset.setFocusPainted(false);
         btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnReset.setPreferredSize(new Dimension(90, 36));
-        btnReset.setMaximumSize(new Dimension(90, 36));
+        btnReset.setPreferredSize(new Dimension(100, 38));
         btnReset.addActionListener(e -> {
             txtSearch.setText("");
+            applyFilter();
         });
 
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        right.setOpaque(false);
-        right.add(btnReset);
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        bgPanel.add(btnReset, gbc);
 
-        bar.add(txtSearch, BorderLayout.CENTER);
-        bar.add(right, BorderLayout.EAST);
+        searchRow.add(bgPanel, BorderLayout.CENTER);
+        wrapper.add(searchRow);
 
-        return bar;
+        return wrapper;
     }
 
     private JScrollPane buildTableSection() {

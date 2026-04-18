@@ -7,6 +7,8 @@ import com.enums.LoaiGhe;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -206,72 +208,123 @@ public class QuanLyToaModule extends JPanel implements AppModule {
     }
 
     private JPanel buildFilterBar() {
-        JPanel bar = new JPanel(new BorderLayout());
-        bar.setOpaque(false);
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setOpaque(false);
         
-        JPanel bgPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 12)) {
+        // Row 1: Search and Filter fields (full width)
+        JPanel searchRow = new JPanel(new BorderLayout());
+        searchRow.setOpaque(false);
+
+        JPanel bgPanel = new JPanel(new GridBagLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 10));
+                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 24, 24);
+                
+                // Background
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 24, 24);
+                
+                // Border
                 g2.setColor(OUTLINE);
                 g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 24, 24);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 24, 24);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
         bgPanel.setOpaque(false);
-        bgPanel.setBorder(new EmptyBorder(8, 15, 8, 15));
+        bgPanel.setBorder(new EmptyBorder(8, 20, 12, 20));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0, 0, 0, 15);
+        gbc.fill = GridBagConstraints.VERTICAL;
 
         JLabel iconSearch = new JLabel();
         ImageIcon icoSearch = loadScaledIcon("nutTimKiem.png", 22);
         if (icoSearch!=null) iconSearch.setIcon(icoSearch);
-        bgPanel.add(iconSearch);
+        bgPanel.add(iconSearch, gbc);
 
-        txtSearch = new JTextField(16);
-        txtSearch.setOpaque(false);
-        txtSearch.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        txtSearch = new JTextField(20); 
+        txtSearch.setOpaque(true);
+        txtSearch.setBackground(Color.WHITE);
+        txtSearch.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         txtSearch.putClientProperty("JTextField.placeholderText", "Tìm mã toa...");
+        
+        // Real-time search
+        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { applyFilter(); }
+            @Override public void removeUpdate(DocumentEvent e) { applyFilter(); }
+            @Override public void changedUpdate(DocumentEvent e) { applyFilter(); }
+        });
         txtSearch.addActionListener(e -> applyFilter());
         
-        cbLoai = new JComboBox<>(new String[]{"- Tất cả loại ghế -", "GHE_CUNG", "GHE_MEM", "GIUONG_NAM"});
-        cbLoai.setPreferredSize(new Dimension(170, 36));
+        gbc.weightx = 1.0; // Expand to fill width
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        bgPanel.add(txtSearch, gbc);
+        
+        cbLoai = new JComboBox<>(new String[]{"- Tất cả loại ghế -", "Ghế cứng", "Ghế mềm", "Giường nằm"});
+        cbLoai.setPreferredSize(new Dimension(180, 42));
         cbLoai.setFont(FONT_BODY);
         cbLoai.setBackground(Color.WHITE);
+        cbLoai.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
         cbLoai.addActionListener(e -> applyFilter());
 
-        bgPanel.add(txtSearch);
-        bgPanel.add(Box.createHorizontalStrut(15));
-        bgPanel.add(cbLoai);
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        bgPanel.add(cbLoai, gbc);
 
-        JButton btnClear = new JButton("Bỏ lọc");
+        JButton btnClear = new JButton("Bỏ lọc") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         btnClear.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnClear.setForeground(TEXT_MUTED);
         btnClear.setContentAreaFilled(false);
+        btnClear.setBorderPainted(false);
+        btnClear.setFocusPainted(false);
         btnClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnClear.setPreferredSize(new Dimension(100, 42));
         btnClear.addActionListener(e -> {
             txtSearch.setText("");
             cbLoai.setSelectedIndex(0);
             applyFilter();
         });
-        bgPanel.add(Box.createHorizontalStrut(10));
-        bgPanel.add(btnClear);
+        
+        gbc.insets = new Insets(0, 0, 0, 0);
+        bgPanel.add(btnClear, gbc);
 
-        bar.add(bgPanel, BorderLayout.CENTER);
+        searchRow.add(bgPanel, BorderLayout.CENTER);
+        wrapper.add(searchRow);
 
-        // Legend moved to the right of filter bar
-        JPanel pLegend = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 12));
+        // Row 2: Legend below search
+        JPanel pLegend = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         pLegend.setOpaque(false);
+        pLegend.setBorder(new EmptyBorder(12, 0, 0, 0));
         pLegend.add(legendDot(COLOR_CUNG,   "Ghế cứng"));
         pLegend.add(legendDot(COLOR_MEM,    "Ghế mềm"));
         pLegend.add(legendDot(COLOR_GIUONG, "Giường"));
-        bar.add(pLegend, BorderLayout.EAST);
+        wrapper.add(pLegend);
 
-        return bar;
+        return wrapper;
     }
 
     // ====================================================================

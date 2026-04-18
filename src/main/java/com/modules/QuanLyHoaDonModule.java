@@ -2,7 +2,9 @@ package com.modules;
 
 import com.dao.DAO_ChiTietHoaDon;
 import com.dao.DAO_HoaDon;
+import com.dao.DAO_HoaDonKhachHang;
 import com.entity.HoaDon;
+import com.entity.KhachHang;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -24,8 +26,9 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     private Consumer<Object> callback;
 
     // DAOs
-    private final DAO_HoaDon        daoHD   = new DAO_HoaDon();
-    private final DAO_ChiTietHoaDon daoCTHD = new DAO_ChiTietHoaDon();
+    private final DAO_HoaDon            daoHD   = new DAO_HoaDon();
+    private final DAO_ChiTietHoaDon     daoCTHD = new DAO_ChiTietHoaDon();
+    private final DAO_HoaDonKhachHang   daoHDKH = new DAO_HoaDonKhachHang();
 
     // Filter
     private JTextField txtSearch;
@@ -72,7 +75,7 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     private JPanel  btnPanel;
 
     // DTO row
-    record HoaDonRow(HoaDon hoaDon, int soVe, BigDecimal tongTien) {}
+    record HoaDonRow(HoaDon hoaDon, List<KhachHang> khachHangs, int soVe, BigDecimal tongTien) {}
 
     public QuanLyHoaDonModule() {
         setLayout(new BorderLayout());
@@ -146,37 +149,110 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     }
 
     private JPanel buildFilterBar() {
-        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        bar.setBackground(SURFACE);
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setOpaque(false);
 
-        // Search field
-        txtSearch = new JTextField(22);
+        // --- Row 1: Primary Search Row (Full Width) ---
+        JPanel searchRow = new JPanel(new BorderLayout());
+        searchRow.setOpaque(false);
+
+        JPanel bgPanel = new JPanel(new GridBagLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 10));
+                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 20, 20);
+                
+                // Background
+                g2.setColor(CARD_BG);
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                
+                // Border
+                g2.setColor(OUTLINE);
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        bgPanel.setOpaque(false);
+        bgPanel.setBorder(new EmptyBorder(6, 15, 10, 15));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0, 0, 0, 12);
+        gbc.fill = GridBagConstraints.VERTICAL;
+
+        // Custom search icon
+        JLabel iconSearch = new JLabel();
+        try {
+            java.net.URL url = getClass().getResource("/icons/nutTimKiem.png");
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+                iconSearch.setIcon(new ImageIcon(img));
+            }
+        } catch (Exception ignored) {}
+        bgPanel.add(iconSearch, gbc);
+
+        txtSearch = new JTextField();
         txtSearch.setFont(FONT_BODY);
-        txtSearch.setPreferredSize(new Dimension(260, 34));
-        txtSearch.putClientProperty("JTextField.placeholderText",
-                "Tìm theo mã HĐ, khách hàng, nhân viên…");
+        txtSearch.setOpaque(true);
+        txtSearch.setBackground(Color.WHITE);
         txtSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1),
-                new EmptyBorder(4, 10, 4, 10)));
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo mã HĐ, khách hàng, nhân viên…");
+        
+        // Real-time search
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
         });
 
-        JLabel searchIcon = loadIcon("/icons/nutTimKiem.png", 18);
-        JPanel searchWrap = new JPanel(new BorderLayout(4, 0));
-        searchWrap.setBackground(SURFACE);
-        searchWrap.add(searchIcon, BorderLayout.WEST);
-        searchWrap.add(txtSearch, BorderLayout.CENTER);
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        bgPanel.add(txtSearch, gbc);
 
-        // Refresh button
-        JButton btnRefresh = iconButton("/icons/nutBoLoc.png", "Làm mới", 18);
-        btnRefresh.addActionListener(e -> { txtSearch.setText(""); loadData(); });
+        // Bo loc button
+        JButton btnReset = new JButton("Bỏ lọc") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnReset.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnReset.setForeground(ON_SURF_VAR);
+        btnReset.setContentAreaFilled(false);
+        btnReset.setBorderPainted(false);
+        btnReset.setFocusPainted(false);
+        btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnReset.setPreferredSize(new Dimension(100, 38));
+        btnReset.addActionListener(e -> {
+            txtSearch.setText("");
+            applyFilter();
+        });
 
-        bar.add(searchWrap);
-        bar.add(btnRefresh);
-        return bar;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        bgPanel.add(btnReset, gbc);
+
+        searchRow.add(bgPanel, BorderLayout.CENTER);
+        wrapper.add(searchRow);
+
+        return wrapper;
     }
 
     private JPanel buildTableCard() {
@@ -252,9 +328,10 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     private void loadData() {
         allData.clear();
         for (HoaDon hd : daoHD.getAll()) {
-            int soVe      = daoCTHD.getSoVeByHoaDon(hd.getMaHoaDon());
-            BigDecimal tong = daoCTHD.getTongTienByHoaDon(hd.getMaHoaDon());
-            allData.add(new HoaDonRow(hd, soVe, tong));
+            int soVe          = daoCTHD.getSoVeByHoaDon(hd.getMaHoaDon());
+            BigDecimal tong   = daoCTHD.getTongTienByHoaDon(hd.getMaHoaDon());
+            List<KhachHang> khs = daoHDKH.findKhachHangByHoaDon(hd.getMaHoaDon());
+            allData.add(new HoaDonRow(hd, khs, soVe, tong));
         }
         applyFilter();
     }
@@ -266,11 +343,12 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
                 .filter(r -> {
                     if (kw.isEmpty()) return true;
                     String maHD  = r.hoaDon().getMaHoaDon().toLowerCase();
-                    String kh    = r.hoaDon().getKhachHang() != null
-                            ? r.hoaDon().getKhachHang().getHoTen().toLowerCase() : "";
+                    boolean khMatch = r.khachHangs() != null && r.khachHangs().stream()
+                            .anyMatch(kh -> kh.getHoTen() != null
+                                    && kh.getHoTen().toLowerCase().contains(kw));
                     String nv    = r.hoaDon().getNhanVien()  != null
                             ? r.hoaDon().getNhanVien().getHoTen().toLowerCase()  : "";
-                    return maHD.contains(kw) || kh.contains(kw) || nv.contains(kw);
+                    return maHD.contains(kw) || khMatch || nv.contains(kw);
                 })
                 .collect(Collectors.toList()));
         currentPage = 1;
@@ -374,12 +452,18 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
         @Override public Object getValueAt(int r, int c) {
             HoaDonRow row = data.get(r);
             HoaDon hd = row.hoaDon();
+            List<KhachHang> khs = row.khachHangs();
+            KhachHang first = (khs != null && !khs.isEmpty()) ? khs.get(0) : null;
+            int extra = (khs != null && khs.size() > 1) ? khs.size() - 1 : 0;
             return switch (c) {
                 case 0 -> "icon";
                 case 1 -> hd.getMaHoaDon();
                 case 2 -> hd.getNgayLap() != null ? hd.getNgayLap().format(DT_FMT) : "";
-                case 3 -> hd.getKhachHang() != null ? hd.getKhachHang().getHoTen() : "";
-                case 4 -> hd.getKhachHang() != null ? hd.getKhachHang().getSoDienThoai() : "";
+                case 3 -> first != null
+                        ? (first.getHoTen() != null ? first.getHoTen() : "")
+                          + (extra > 0 ? " (+" + extra + ")" : "")
+                        : "";
+                case 4 -> first != null && first.getSoDienThoai() != null ? first.getSoDienThoai() : "";
                 case 5 -> hd.getNhanVien()  != null ? hd.getNhanVien().getHoTen()  : "";
                 case 6 -> row.soVe();
                 case 7 -> row.tongTien();

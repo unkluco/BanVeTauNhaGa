@@ -153,7 +153,7 @@ public class EntityDetailModule extends JPanel implements AppModule {
         btnPanel.setBackground(FOOTER_BG);
         btnPanel.setBorder(new MatteBorder(1, 0, 0, 0, DIVIDER));
 
-        btnClose = new JButton("  Óng  ");
+        btnClose = new JButton("  Đóng  ");
         btnClose.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnClose.setBackground(typeColor);
         btnClose.setForeground(Color.WHITE);
