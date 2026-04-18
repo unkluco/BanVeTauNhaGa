@@ -51,6 +51,7 @@ public class BanVeModule extends JPanel implements AppModule {
 
     // --- Navigation stack ---
     private final Deque<String> stepHistory = new ArrayDeque<>();
+    private final Map<String, JPanel> stepCache = new HashMap<>();
     private String currentStep = "";
 
     private static final String STEP_1  = "1";
@@ -65,7 +66,7 @@ public class BanVeModule extends JPanel implements AppModule {
     private static final String STEP_8  = "8";   // Hoàn thành
 
     private static final String[] STEP_LABELS = {
-        "Thông tin", "Chọn chuyến", "Chọn toa", "Chọn ghế",
+        "Thông tin", "Chọn chuyến", "Chọn chỗ",
         "Khách hàng", "Khuyến mãi", "Xác nhận", "Thanh toán", "Hoàn thành"
     };
 
@@ -236,12 +237,11 @@ public class BanVeModule extends JPanel implements AppModule {
             case STEP_1             -> 0;
             case STEP_2             -> 1;
             case STEP_3             -> 2;
-            case STEP_4             -> 3;
-            case STEP_5             -> 4;
-            case STEP_5B            -> 5;
-            case STEP_6             -> 6;
-            case STEP_7A, STEP_7B   -> 7;
-            case STEP_8             -> 8;
+            case STEP_5             -> 3;
+            case STEP_5B            -> 4;
+            case STEP_6             -> 5;
+            case STEP_7A, STEP_7B   -> 6;
+            case STEP_8             -> 7;
             default                 -> 0;
         };
     }
@@ -253,6 +253,8 @@ public class BanVeModule extends JPanel implements AppModule {
     private void navigateTo(String step, boolean pushHistory) {
         if (pushHistory && !currentStep.isEmpty()) {
             stepHistory.push(currentStep);
+            // Moving forward: clear the next step from cache to ensure it's fresh
+            stepCache.remove(step);
         }
         currentStep = step;
         renderStep();
@@ -269,7 +271,11 @@ public class BanVeModule extends JPanel implements AppModule {
     }
 
     private void renderStep() {
-        JPanel view = buildStepView(currentStep);
+        JPanel view = stepCache.get(currentStep);
+        if (view == null) {
+            view = buildStepView(currentStep);
+            stepCache.put(currentStep, view);
+        }
         stagePanel.removeAll();
         stagePanel.add(view, BorderLayout.CENTER);
         stagePanel.revalidate();
@@ -312,22 +318,9 @@ public class BanVeModule extends JPanel implements AppModule {
                 BanVeStep3Module m = new BanVeStep3Module(ctxLich);
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
-                    if (result instanceof ToaTau toa) {
-                        ctxToa = toa;
+                    if (result instanceof List<?> ghes) {
                         ctxGhes.clear();
-                        navigateTo(STEP_4, true);
-                    }
-                });
-                yield m.getView();
-            }
-
-            case STEP_4 -> {
-                BanVeStep4Module m = new BanVeStep4Module(ctxLich, ctxToa);
-                m.setOnResult(result -> {
-                    if (result == null) { goBack(); return; }
-                    if (result instanceof List<?> list && !list.isEmpty()) {
-                        ctxGhes.clear();
-                        for (Object o : list) if (o instanceof Ghe g) ctxGhes.add(g);
+                        for (Object o : ghes) if (o instanceof Ghe g) ctxGhes.add(g);
                         navigateTo(STEP_5, true);
                     }
                 });
@@ -544,6 +537,7 @@ public class BanVeModule extends JPanel implements AppModule {
         ctxToa    = null; ctxGhes.clear();
         ctxKhachHang = null; ctxChiTietKM = null; ctxPaymentType = null;
         stepHistory.clear();
+        stepCache.clear();
         navigateTo(STEP_1, false);
     }
 }
