@@ -144,8 +144,8 @@ public class ChinhSuaLichChayDialog extends JDialog {
         textPart.setOpaque(false);
 
         String titleStr = isEditMode
-                ? "✎  Chỉnh sửa lịch chạy"
-                : "+  Thêm lịch chạy mới";
+                ? "Chỉnh sửa lịch chạy"
+                : "Thêm lịch chạy mới";
         JLabel lblTitle = new JLabel(titleStr);
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(PRIMARY);
@@ -162,18 +162,7 @@ public class ChinhSuaLichChayDialog extends JDialog {
         textPart.add(lblDesc);
         left.add(textPart, BorderLayout.CENTER);
 
-        // Close button
-        JButton btnClose = new JButton("✕");
-        btnClose.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        btnClose.setForeground(ON_SURF_VAR);
-        btnClose.setContentAreaFilled(false);
-        btnClose.setBorderPainted(false);
-        btnClose.setFocusPainted(false);
-        btnClose.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnClose.addActionListener(e -> dispose());
-
         header.add(left, BorderLayout.CENTER);
-        header.add(btnClose, BorderLayout.EAST);
         return header;
     }
 

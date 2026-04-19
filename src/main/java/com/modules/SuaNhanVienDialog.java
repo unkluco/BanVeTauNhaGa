@@ -132,7 +132,7 @@ public class SuaNhanVienDialog extends JDialog {
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("✎  Sửa thông tin nhân viên");
+        JLabel lblTitle = new JLabel("Sửa thông tin nhân viên");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(PRIMARY);
 

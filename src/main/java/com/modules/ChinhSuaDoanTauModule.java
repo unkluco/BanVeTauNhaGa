@@ -519,11 +519,15 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
 
         Window parentWindow = SwingUtilities.getWindowAncestor(this);
         JDialog dialog = new JDialog(parentWindow, "Thêm Toa Tàu", Dialog.ModalityType.APPLICATION_MODAL);
-        dialog.setSize(450, 500);
-        dialog.setLocationRelativeTo(this);
+        dialog.setUndecorated(true);
+        dialog.setResizable(false);
+        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        dialog.setBackground(new Color(0, 0, 0, 0));
         
         JPanel cpan = new JPanel(new BorderLayout(0, 10));
-        cpan.setBorder(new EmptyBorder(15, 15, 15, 15));
+        cpan.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1),
+                new EmptyBorder(15, 15, 15, 15)));
         cpan.setBackground(SURFACE);
         
         JTextField txtSearch = createInputField("Tìm mã toa...");
@@ -579,12 +583,17 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
                 dialog.dispose();
             }
         });
+        JButton btnCancel = createOutlineButton("Hủy");
+        btnCancel.addActionListener(e -> dialog.dispose());
         JPanel bot = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bot.setOpaque(false);
+        bot.add(btnCancel);
         bot.add(btnAdd);
         cpan.add(bot, BorderLayout.SOUTH);
         
-        dialog.setContentPane(cpan);
+        dialog.setContentPane(ThemNhanVienDialog.buildShadowWrapper(cpan));
+        dialog.setSize(470, 540);
+        dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
     }
 

@@ -144,7 +144,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
                 g2.setColor(PRIMARY);
                 g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
                 FontMetrics fm = g2.getFontMetrics();
-                String s = isAddMode ? "+" : "✎";
+                String s = isAddMode ? "+" : "S";
                 g2.drawString(s, (40 - fm.stringWidth(s)) / 2, 27);
                 g2.dispose();
             }
@@ -164,8 +164,8 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel lblDesc = new JLabel(isAddMode
-                ? "Thêm thông số cho tuyến đượng và hạng ghế"
-                : "Chỉnh sửa thông số cho tuyến đượng và hạng ghế");
+                ? "Thêm thông số cho tuyến đường và hạng ghế"
+                : "Chỉnh sửa thông số cho tuyến đường và hạng ghế");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -177,7 +177,7 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
         iconTitle.add(icon);
         iconTitle.add(textArea);
 
-        JButton btnClose = new JButton("✕");
+        JButton btnClose = new JButton("X");
         btnClose.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         btnClose.setForeground(ON_SURF_VAR);
         btnClose.setContentAreaFilled(false);

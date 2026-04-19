@@ -2,6 +2,8 @@ package com.modules;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.function.Consumer;
 
 public class ModuleLauncher {
@@ -10,9 +12,15 @@ public class ModuleLauncher {
         module.reset();
         module.setOnResult(onResult);
 
-        final int SHADOW_PAD = 14;
+        final boolean dismissOnOutside = module instanceof EntityDetailModule;
+        final boolean[] closed = {false};
 
-        JDialog dialog = new JDialog(parent, module.getTitle(), true);
+        JDialog dialog = new JDialog(
+            parent,
+            module.getTitle(),
+            dismissOnOutside ? Dialog.ModalityType.MODELESS : Dialog.ModalityType.APPLICATION_MODAL
+        );
+
         dialog.setUndecorated(true);
         dialog.setBackground(new Color(0, 0, 0, 0));
 
@@ -23,33 +31,37 @@ public class ModuleLauncher {
         dialog.setContentPane(ThemNhanVienDialog.buildShadowWrapper(content));
         dialog.pack();
 
-        // Overlay close button via glass pane (adjusted for shadow padding)
-        JButton btnClose = com.Main.createCloseButton();
-        btnClose.addActionListener(e -> { onResult.accept(null); dialog.dispose(); });
-        JPanel glass = new JPanel(null) {
-            @Override
-            public boolean contains(int x, int y) {
-                for (Component c : getComponents()) {
-                    Point p = SwingUtilities.convertPoint(this, x, y, c);
-                    if (c.contains(p)) return true;
-                }
-                return false;
-            }
+        Runnable closeAction = () -> {
+            if (closed[0]) return;
+            closed[0] = true;
+            if (onResult != null) onResult.accept(null);
+            dialog.dispose();
         };
-        glass.setOpaque(false);
-        glass.add(btnClose);
-        btnClose.setBounds(dialog.getWidth() - SHADOW_PAD - 42, SHADOW_PAD + 2, 40, 32);
-        dialog.setGlassPane(glass);
-        glass.setVisible(true);
+
+        dialog.getRootPane().registerKeyboardAction(
+            e -> closeAction.run(),
+            KeyStroke.getKeyStroke("ESCAPE"),
+            JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
 
         dialog.setLocationRelativeTo(parent);
 
         dialog.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                onResult.accept(null);
+                closeAction.run();
             }
         });
+
+        if (dismissOnOutside) {
+            dialog.addWindowFocusListener(new WindowAdapter() {
+                @Override public void windowLostFocus(WindowEvent e) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (dialog.isShowing() && !dialog.isFocused()) closeAction.run();
+                    });
+                }
+            });
+        }
 
         dialog.setVisible(true);
     }

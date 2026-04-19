@@ -201,7 +201,7 @@ public class Main {
     }
 
     public static JButton createCloseButton() {
-        JButton btn = new JButton("✕");
+        JButton btn = new JButton("X");
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         btn.setForeground(new Color(0x64, 0x74, 0x8B));
         btn.setPreferredSize(new Dimension(40, 32));

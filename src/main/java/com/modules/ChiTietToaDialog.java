@@ -12,6 +12,8 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.List;
 
 /**
@@ -24,8 +26,6 @@ public class ChiTietToaDialog extends JDialog {
     // --- DAOs ---
     private final DAO_Ghe              daoGhe    = new DAO_Ghe();
     private final DAO_ChiTietDoanTau   daoCTDT   = new DAO_ChiTietDoanTau();
-
-    private Point dragStart;
 
     // --- Dữ liệu ---
     private final ToaTau        toa;
@@ -51,14 +51,17 @@ public class ChiTietToaDialog extends JDialog {
     private static final Color CLR_KHOANG_LINE = new Color(0xBD, 0xBD, 0xBD);
 
     public ChiTietToaDialog(JFrame owner, ToaTau toa) {
-        super(owner, "Chi tiết toa: " + toa.getMaToaTau(), true);
+        super(owner, "Chi tiết toa: " + toa.getMaToaTau(), Dialog.ModalityType.MODELESS);
         this.toa        = toa;
         this.gheList    = daoGhe.findByToaTau(toa.getMaToaTau());
         this.doanTauList = daoCTDT.findDoanTauByToaTau(toa.getMaToaTau());
 
         setUndecorated(true);
+        setResizable(false);
+        setBackground(new Color(0, 0, 0, 0));
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         buildUI();
+        installDismissOnOutsideClick();
         pack();
         setMinimumSize(new Dimension(820, 560));
         setLocationRelativeTo(owner);
@@ -71,6 +74,7 @@ public class ChiTietToaDialog extends JDialog {
     private void buildUI() {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(SURFACE);
+        root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
 
         // ---- Header ----
         root.add(buildHeader(), BorderLayout.NORTH);
@@ -104,7 +108,17 @@ public class ChiTietToaDialog extends JDialog {
 
         root.add(footer, BorderLayout.SOUTH);
 
-        setContentPane(root);
+        setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
+    }
+
+    private void installDismissOnOutsideClick() {
+        addWindowFocusListener(new WindowAdapter() {
+            @Override public void windowLostFocus(WindowEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    if (isShowing() && !isFocused()) dispose();
+                });
+            }
+        });
     }
 
     private JPanel buildHeader() {
@@ -113,22 +127,6 @@ public class ChiTietToaDialog extends JDialog {
         p.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
                 new EmptyBorder(16, 24, 16, 24)));
-
-        // Window drag via header
-        p.addMouseListener(new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) {
-                dragStart = SwingUtilities.convertPoint(p, e.getPoint(), ChiTietToaDialog.this);
-            }
-        });
-        p.addMouseMotionListener(new MouseAdapter() {
-            @Override public void mouseDragged(MouseEvent e) {
-                if (dragStart == null) return;
-                Point cur = SwingUtilities.convertPoint(p, e.getPoint(), ChiTietToaDialog.this);
-                Point loc = getLocation();
-                setLocation(loc.x + cur.x - dragStart.x, loc.y + cur.y - dragStart.y);
-                dragStart = cur;
-            }
-        });
 
         String loaiText = toa.getLoaiGhe() != null ? toa.getLoaiGhe().toString() : "Không rõ";
         int soGhe = gheList.size();

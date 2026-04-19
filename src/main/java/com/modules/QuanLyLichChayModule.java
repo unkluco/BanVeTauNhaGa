@@ -1012,6 +1012,12 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         if (criteria == null) return;
 
         try {
+            // Reset filter trước khi áp dụng criteria từ Dashboard
+            if (filterGaDi != null) filterGaDi.selectItem(null);
+            if (filterGaDen != null) filterGaDen.selectItem(null);
+            if (dateFrom != null) dateFrom.setValue(null);
+            if (dateTo != null) dateTo.setValue(null);
+
             // Select GA ĐI — tìm Ga theo maGa rồi select
             if (criteria.gaDiCode() != null && filterGaDi != null) {
                 for (Ga g : daoGa.getAll()) {
@@ -1032,10 +1038,14 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
                 }
             }
 
-            // Set NGÀY ĐI
-            if (criteria.ngayYmd() != null && dateFrom != null) {
-                java.time.LocalDate ld = java.time.LocalDate.parse(criteria.ngayYmd());
+            // Set khoảng ngày
+            if (criteria.tuNgayYmd() != null && dateFrom != null) {
+                java.time.LocalDate ld = java.time.LocalDate.parse(criteria.tuNgayYmd());
                 dateFrom.setValue(ld);
+            }
+            if (criteria.denNgayYmd() != null && dateTo != null) {
+                java.time.LocalDate ld = java.time.LocalDate.parse(criteria.denNgayYmd());
+                dateTo.setValue(ld);
             }
         } catch (Exception ex) {
             System.err.println("[TongQuat] applySearchFromDashboard error: " + ex.getMessage());

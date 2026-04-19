@@ -10,8 +10,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
@@ -21,12 +21,12 @@ import java.util.Locale;
 /**
  * Cửa sổ Chi tiết Hóa đơn — thiết kế theo bố cục hóa đơn thực tế.
  * Không có title bar hệ thống (setUndecorated(true)).
- * Header xanh đậm dùng làm title bar tuỳ chỉnh, có thể kéo và có nút đóng [✕].
+ * Header xanh đậm cố định, không kéo thả.
  *
- *  ┌─ HEADER (xanh đậm, draggable) ──────────────────────────────────┐
- *  │  🏢  HÓA ĐƠN BÁN VÉ TÀU         Số: HD-...          [✕]       │
+ *  ┌─ HEADER (xanh đậm, cố định) ────────────────────────────────────┐
+ *  │  [LOGO] HÓA ĐƠN BÁN VÉ TÀU      Số: HD-...                     │
  *  ├─ INFO CARDS ───────────────────────────────────────────────────  ┤
- *  │  [👤 KHÁCH HÀNG]              │  [👷 NHÂN VIÊN LẬP]             │
+ *  │  [KHÁCH HÀNG]                │  [NHÂN VIÊN LẬP]                │
  *  ├─ TABLE (11 cột) ────────────────────────────────────────────────┤
  *  │  STT │ Mã vé │ Ga đi │ Ga đến │ Đoàn tàu │ Ngày đi │ Loại ghế │
  *  │      │       │       │        │          │         │ Ghế │ TT  │
@@ -42,8 +42,6 @@ public class ChiTietHoaDonDialog extends JDialog {
     private final DAO_ChiTietHoaDon   daoCTHD = new DAO_ChiTietHoaDon();
     private final DAO_ApDungKM        daoKM   = new DAO_ApDungKM();
     private final DAO_HoaDonKhachHang daoHDKH = new DAO_HoaDonKhachHang();
-
-    private Point dragStart;
 
     // Formatters
     private static final NumberFormat     VND_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
@@ -69,14 +67,17 @@ public class ChiTietHoaDonDialog extends JDialog {
     private static final Color KM_FG          = new Color(0x92, 0x40, 0x0E);  // amber/orange
 
     public ChiTietHoaDonDialog(JFrame owner, HoaDon hoaDon) {
-        super(owner, "", true);
+        super(owner, "", Dialog.ModalityType.MODELESS);
         this.hoaDon        = hoaDon;
         this.chiTietList   = daoCTHD.findByHoaDon(hoaDon.getMaHoaDon());
         this.khachHangList = daoHDKH.findKhachHangByHoaDon(hoaDon.getMaHoaDon());
 
         setUndecorated(true);
+        setResizable(false);
+        setBackground(new Color(0, 0, 0, 0));
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         buildUI();
+        installDismissOnOutsideClick();
         pack();
         setMinimumSize(new Dimension(1150, 640));
         setLocationRelativeTo(owner);
@@ -89,6 +90,7 @@ public class ChiTietHoaDonDialog extends JDialog {
     private void buildUI() {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(SURFACE);
+        root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
 
         // Header fixed at top (serves as custom title bar)
         root.add(buildInvoiceHeader(), BorderLayout.NORTH);
@@ -113,10 +115,20 @@ public class ChiTietHoaDonDialog extends JDialog {
 
         root.add(scroll,           BorderLayout.CENTER);
         root.add(buildFooterBar(), BorderLayout.SOUTH);
-        setContentPane(root);
+        setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
     }
 
-    // ---- Header xanh đậm — fixed, draggable, has close button ----
+    private void installDismissOnOutsideClick() {
+        addWindowFocusListener(new WindowAdapter() {
+            @Override public void windowLostFocus(WindowEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    if (isShowing() && !isFocused()) dispose();
+                });
+            }
+        });
+    }
+
+    // ---- Header xanh đậm — cố định, không kéo thả cửa sổ ----
     private JPanel buildInvoiceHeader() {
         JPanel outer = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
@@ -129,22 +141,6 @@ public class ChiTietHoaDonDialog extends JDialog {
         };
         outer.setOpaque(false);
         outer.setBorder(new EmptyBorder(18, 24, 18, 24));
-
-        // Window drag: press on header → drag window
-        outer.addMouseListener(new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) {
-                dragStart = SwingUtilities.convertPoint(outer, e.getPoint(), ChiTietHoaDonDialog.this);
-            }
-        });
-        outer.addMouseMotionListener(new MouseAdapter() {
-            @Override public void mouseDragged(MouseEvent e) {
-                if (dragStart == null) return;
-                Point cur = SwingUtilities.convertPoint(outer, e.getPoint(), ChiTietHoaDonDialog.this);
-                Point loc = getLocation();
-                setLocation(loc.x + cur.x - dragStart.x, loc.y + cur.y - dragStart.y);
-                dragStart = cur;
-            }
-        });
 
         // Left: icon + title + company
         JPanel left = new JPanel();
@@ -175,24 +171,10 @@ public class ChiTietHoaDonDialog extends JDialog {
         left.add(Box.createVerticalStrut(4));
         left.add(lblCompany);
 
-        // Right: close [✕] + mã HĐ + ngày
+        // Right: mã HĐ + ngày
         JPanel right = new JPanel();
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
         right.setOpaque(false);
-
-        JButton btnX = new JButton("✕");
-        btnX.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        btnX.setForeground(new Color(0xCC, 0xE5, 0xFF));
-        btnX.setContentAreaFilled(false);
-        btnX.setBorderPainted(false);
-        btnX.setFocusPainted(false);
-        btnX.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnX.addActionListener(e -> dispose());
-        btnX.setAlignmentX(Component.RIGHT_ALIGNMENT);
-        btnX.addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) { btnX.setForeground(Color.WHITE); }
-            @Override public void mouseExited(MouseEvent e)  { btnX.setForeground(new Color(0xCC, 0xE5, 0xFF)); }
-        });
 
         JLabel lblMa = new JLabel("Số:  " + hoaDon.getMaHoaDon());
         lblMa.setFont(new Font("Consolas", Font.BOLD, 14));
@@ -205,8 +187,6 @@ public class ChiTietHoaDonDialog extends JDialog {
         lblNgay.setForeground(new Color(0xB0, 0xD4, 0xF0));
         lblNgay.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
-        right.add(btnX);
-        right.add(Box.createVerticalStrut(4));
         right.add(lblMa);
         right.add(Box.createVerticalStrut(6));
         right.add(lblNgay);

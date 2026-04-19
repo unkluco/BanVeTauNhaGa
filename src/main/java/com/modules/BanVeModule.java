@@ -201,7 +201,7 @@ public class BanVeModule extends JPanel implements AppModule {
             JPanel chip = new JPanel(new FlowLayout(FlowLayout.CENTER, 3, 1));
             chip.setOpaque(false);
 
-            String badgeStr = done ? "✓" : String.valueOf(i + 1);
+            String badgeStr = done ? "V" : String.valueOf(i + 1);
             JLabel badge = new JLabel(badgeStr) {
                 @Override
                 protected void paintComponent(Graphics g) {

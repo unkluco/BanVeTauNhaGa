@@ -214,7 +214,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
         iconTitle.add(icon);
         iconTitle.add(lblCardTitle);
 
-        JButton btnEdit = new JButton("✎ Chỉnh sửa");
+        JButton btnEdit = new JButton("Chỉnh sửa");
         btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnEdit.setForeground(PRIMARY);
         btnEdit.setContentAreaFilled(false); btnEdit.setBorderPainted(false);

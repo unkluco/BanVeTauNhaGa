@@ -26,6 +26,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
@@ -1068,14 +1069,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                 fireEditingStopped();
                 var veRow = tableModel.getRowAt(editingRow);
                 if (veRow != null) {
-                    Ve ve = veRow.ve();
-                    String info = "Mã vé: " + ve.getMaVe()
-                            + "\nHành khách: " + veRow.tenKhachHang()
-                            + "\nTuyến: " + veRow.gaDi() + " → " + veRow.gaDen()
-                            + "\nKhởi hành: " + veRow.khoiHanh()
-                            + "\nTrạng thái: " + ve.getTrangThai();
-                    JOptionPane.showMessageDialog(QuanLyVeModule.this,
-                            info, "Chi tiết vé", JOptionPane.INFORMATION_MESSAGE);
+                    openVeDetailDialog(veRow);
                 }
             });
 
@@ -1090,19 +1084,23 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                                 "Thông báo", JOptionPane.WARNING_MESSAGE);
                         return;
                     }
-                    int confirm = JOptionPane.showConfirmDialog(QuanLyVeModule.this,
-                            "Xác nhận hoàn vé " + ve.getMaVe() + "?",
-                            "Hoàn vé", JOptionPane.YES_NO_OPTION);
-                    if (confirm == JOptionPane.YES_OPTION) {
-                        String lyDo = JOptionPane.showInputDialog(QuanLyVeModule.this,
-                                "Lý do hủy vé:", "Lý do", JOptionPane.QUESTION_MESSAGE);
-                        if (lyDo != null) {
-                            boolean ok = new DAO_Ve().huyVe(ve.getMaVe(), lyDo);
-                            if (ok) {
-                                JOptionPane.showMessageDialog(QuanLyVeModule.this,
-                                        "Hoàn vé thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                                loadData();
-                            }
+                    Window owner = SwingUtilities.getWindowAncestor(QuanLyVeModule.this);
+                    HoanVeDialog dialog = new HoanVeDialog(
+                            owner, ve, veRow.tenKhachHang(),
+                            veRow.gaDi() + " → " + veRow.gaDen(),
+                            veRow.khoiHanh());
+                    dialog.setVisible(true);
+
+                    if (dialog.isConfirmed()) {
+                        boolean ok = new DAO_Ve().huyVe(ve.getMaVe(), dialog.getLyDo());
+                        if (ok) {
+                            JOptionPane.showMessageDialog(QuanLyVeModule.this,
+                                    "Hoàn vé thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                            loadData();
+                        } else {
+                            JOptionPane.showMessageDialog(QuanLyVeModule.this,
+                                    "Không thể hoàn vé. Vui lòng thử lại.",
+                                    "Hoàn vé thất bại", JOptionPane.ERROR_MESSAGE);
                         }
                     }
                 }
@@ -1143,6 +1141,85 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     public void applySearchFromDashboard(String keyword) {
         txtSearchVe.setText(keyword != null ? keyword.trim() : "");
         searchByMaVe();
+    }
+
+    private void openVeDetailDialog(VeTableModel.VeRow veRow) {
+        Ve ve = veRow.ve();
+        ChiTietHoaDon cthd = daoChiTietHoaDon.findByVe(ve.getMaVe());
+
+        String maHoaDon = "—";
+        String giaVe = "—";
+        if (cthd != null) {
+            if (cthd.getHoaDon() != null && cthd.getHoaDon().getMaHoaDon() != null) {
+                maHoaDon = cthd.getHoaDon().getMaHoaDon();
+            }
+            if (cthd.getGiaTien() != null) {
+                giaVe = FMT_MONEY.format(cthd.getGiaTien()) + " ₫";
+            }
+        }
+
+        List<KhachHang> khList = "—".equals(maHoaDon) ? new ArrayList<>() : daoHDKH.findKhachHangByHoaDon(maHoaDon);
+        String hanhKhach = "—";
+        String cccd = "—";
+        if (!khList.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < khList.size(); i++) {
+                KhachHang kh = khList.get(i);
+                if (i > 0) sb.append(", ");
+                sb.append(kh.getHoTen() == null ? "—" : kh.getHoTen());
+            }
+            hanhKhach = sb.toString();
+            String firstCccd = khList.get(0).getCccd();
+            if (firstCccd != null && !firstCccd.isBlank()) cccd = firstCccd;
+        } else if (veRow.tenKhachHang() != null && !veRow.tenKhachHang().isBlank()) {
+            hanhKhach = veRow.tenKhachHang();
+        }
+
+        Lich lich = ve.getLich();
+        String maLich = (lich != null && lich.getMaLich() != null) ? lich.getMaLich() : "—";
+        String maDoanTau = (lich != null && lich.getDoanTau() != null && lich.getDoanTau().getMaDoanTau() != null)
+                ? lich.getDoanTau().getMaDoanTau() : "—";
+
+        String maGhe = (ve.getGhe() != null && ve.getGhe().getMaGhe() != null) ? ve.getGhe().getMaGhe() : "—";
+        String toa = (ve.getGhe() != null && ve.getGhe().getToaTau() != null && ve.getGhe().getToaTau().getMaToaTau() != null)
+                ? ve.getGhe().getToaTau().getMaToaTau() : "—";
+        String soGhe = (ve.getGhe() != null && ve.getGhe().getSoGhe() > 0) ? String.valueOf(ve.getGhe().getSoGhe()) : "—";
+
+        TrangThaiVe tt = ve.getTrangThai();
+        String trangThai = tt == null ? "—" : switch (tt) {
+            case DA_BAN -> "Đã thanh toán";
+            case DA_HUY -> "Đã hủy";
+        };
+
+        String ngayHuy = (ve.getNgayHuy() != null) ? ve.getNgayHuy().format(FMT_DATETIME) : "—";
+        String lyDoHuy = (ve.getLyDoHuy() != null && !ve.getLyDoHuy().isBlank()) ? ve.getLyDoHuy() : "—";
+
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+        fields.put("Mã vé", ve.getMaVe());
+        fields.put("Mã hóa đơn", maHoaDon);
+        fields.put("Hành khách", hanhKhach);
+        fields.put("CCCD", cccd);
+        fields.put("Ga đi", veRow.gaDi());
+        fields.put("Ga đến", veRow.gaDen());
+        fields.put("Khởi hành", veRow.khoiHanh());
+        fields.put("Mã lịch", maLich);
+        fields.put("Mã đoàn tàu", maDoanTau);
+        fields.put("Mã ghế", maGhe);
+        fields.put("Toa", toa);
+        fields.put("Số ghế", soGhe);
+        fields.put("Giá vé", giaVe);
+        fields.put("Trạng thái", trangThai);
+        fields.put("Lý do hủy", lyDoHuy);
+        fields.put("Ngày hủy", ngayHuy);
+
+        EntityDetailModule detail = new EntityDetailModule(
+                "Vé", new Color(0xEA, 0x58, 0x0C),
+                "Chi tiết vé", ve.getMaVe(), fields
+        );
+
+        Window win = SwingUtilities.getWindowAncestor(this);
+        JFrame frame = (win instanceof JFrame) ? (JFrame) win : null;
+        ModuleLauncher.asDialog(detail, frame, res -> {});
     }
 
     //  AppModule interface

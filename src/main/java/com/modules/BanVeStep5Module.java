@@ -388,7 +388,7 @@ public class BanVeStep5Module extends JPanel implements AppModule {
             headerLbl.setForeground(PRIMARY);
             header.add(headerLbl, BorderLayout.WEST);
 
-            btnRemove = new JButton("✕ Xóa khách");
+            btnRemove = new JButton("Xóa khách");
             btnRemove.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             btnRemove.setForeground(ERROR_FG);
             btnRemove.setBackground(CARD_BG);

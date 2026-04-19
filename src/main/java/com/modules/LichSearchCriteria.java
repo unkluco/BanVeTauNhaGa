@@ -4,14 +4,14 @@ package com.modules;
  * Structured search criteria record — dùng chung giữa Dashboard (TongQuatModule)
  * và các module đích (QuanLyLichChayModule).
  *
- * @param gaDiCode   mã ga đi  (maGa từ DB, ví dụ "GA-001") hoặc null
- * @param gaDenCode  mã ga đến (maGa từ DB) hoặc null
- * @param ngayYmd    ngày đi   ("yyyy-MM-dd") hoặc null
- * @param loaiGhe    loại ghế  ("GHE_CUNG"|"GHE_MEM"|"GIUONG_NAM") hoặc null cho "Tất cả"
+ * @param gaDiCode    mã ga đi  (maGa từ DB, ví dụ "GA-001") hoặc null
+ * @param gaDenCode   mã ga đến (maGa từ DB) hoặc null
+ * @param tuNgayYmd   từ ngày ("yyyy-MM-dd") hoặc null
+ * @param denNgayYmd  đến ngày ("yyyy-MM-dd") hoặc null
  */
 public record LichSearchCriteria(
     String gaDiCode,
     String gaDenCode,
-    String ngayYmd,
-    String loaiGhe
+    String tuNgayYmd,
+    String denNgayYmd
 ) {}

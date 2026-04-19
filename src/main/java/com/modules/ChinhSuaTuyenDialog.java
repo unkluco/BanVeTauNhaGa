@@ -130,10 +130,15 @@ public class ChinhSuaTuyenDialog extends JDialog {
         iconCircle.setOpaque(false);
         iconCircle.setPreferredSize(new Dimension(44, 44));
         iconCircle.setLayout(new GridBagLayout());
-        JLabel iconLbl = new JLabel("⇌");
-        iconLbl.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        iconLbl.setForeground(PRIMARY);
-        iconCircle.add(iconLbl);
+        ImageIcon routeIcon = loadScaledIcon("bieuTuongTuyen.png", 22);
+        if (routeIcon != null) {
+            iconCircle.add(new JLabel(routeIcon));
+        } else {
+            JLabel iconLbl = new JLabel("TUY");
+            iconLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            iconLbl.setForeground(PRIMARY);
+            iconCircle.add(iconLbl);
+        }
 
         JPanel textPanel = new JPanel();
         textPanel.setOpaque(false);
@@ -156,29 +161,6 @@ public class ChinhSuaTuyenDialog extends JDialog {
         titleRow.add(iconCircle);
         titleRow.add(textPanel);
         hdr.add(titleRow, BorderLayout.CENTER);
-
-        // Close (×) button
-        JButton btnClose = new JButton("✕") {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isRollover()) {
-                    g2.setColor(ERROR_BG);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
-                }
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnClose.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnClose.setForeground(ON_SURF_VAR);
-        btnClose.setContentAreaFilled(false);
-        btnClose.setBorderPainted(false);
-        btnClose.setFocusPainted(false);
-        btnClose.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnClose.setPreferredSize(new Dimension(32, 32));
-        btnClose.addActionListener(e -> dispose());
-        hdr.add(btnClose, BorderLayout.EAST);
 
         return hdr;
     }
@@ -444,5 +426,17 @@ public class ChinhSuaTuyenDialog extends JDialog {
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setPreferredSize(new Dimension(primary ? 160 : 100, 40));
         return btn;
+    }
+
+    private ImageIcon loadScaledIcon(String name, int size) {
+        try {
+            java.net.URL url = getClass().getResource("/icons/" + name);
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage()
+                    .getScaledInstance(size, size, Image.SCALE_SMOOTH);
+                return new ImageIcon(img);
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 }

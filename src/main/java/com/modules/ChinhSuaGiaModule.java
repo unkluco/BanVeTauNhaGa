@@ -213,7 +213,7 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
         iconTitle.add(icon);
         iconTitle.add(lblCardTitle);
 
-        JButton btnEdit = new JButton("✎ Chỉnh sửa");
+        JButton btnEdit = new JButton("Chỉnh sửa");
         btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnEdit.setForeground(PRIMARY);
         btnEdit.setContentAreaFilled(false);
@@ -246,7 +246,7 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
         lblInfoKetThuc = new JLabel(ketThucStr);
         lblInfoKetThuc.setFont(FONT_BOLD);
         lblInfoKetThuc.setForeground(ON_SURFACE);
-        fields.add(buildInfoFieldWithLabel("NGÀY KẼT THÚC", lblInfoKetThuc));
+        fields.add(buildInfoFieldWithLabel("NGÀY KẾT THÚC", lblInfoKetThuc));
 
         card.add(cardHeader, BorderLayout.NORTH);
         card.add(fields, BorderLayout.CENTER);

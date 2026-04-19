@@ -244,44 +244,43 @@ public class TongQuatModule extends JPanel implements AppModule {
         cbGaDen.setItems(gaList);
         cbGaDen.setPlaceholder("Chọn ga đến…");
 
-        // NGÀY ĐI — DatePickerField
-        DatePickerField dateNgay = new DatePickerField();
-        dateNgay.setPreferredSize(new Dimension(0, 40));
+        // TỪ NGÀY / ĐẾN NGÀY — đồng bộ với bộ lọc Quản lý lịch chạy
+        DatePickerField dateFrom = new DatePickerField();
+        dateFrom.setPreferredSize(new Dimension(0, 40));
 
-        // LOẠI GHẾ — 3 loại + "Tất cả", map sang mã DB
-        JComboBox<String> cboLoaiGhe = new JComboBox<>(new String[]{
-                "Tất cả", "Ghế cứng", "Ghế mềm", "Giường nằm"
-        });
-        styleCombo(cboLoaiGhe);
-
-        Map<String, String> loaiGheMap = new java.util.HashMap<>();
-        loaiGheMap.put("Tất cả",    null);
-        loaiGheMap.put("Ghế cứng",  "GHE_CUNG");
-        loaiGheMap.put("Ghế mềm",   "GHE_MEM");
-        loaiGheMap.put("Giường nằm","GIUONG_NAM");
+        DatePickerField dateTo = new DatePickerField();
+        dateTo.setPreferredSize(new Dimension(0, 40));
 
         // Nút TÌM LỊCH
-        JButton btn = makePrimaryBtn("Tìm lịch");
+        JButton btn = makeSearchActionBtn("Tìm lịch");
         btn.addActionListener(e -> {
             Ga gaDi  = cbGaDi.getSelectedItem();
             Ga gaDen = cbGaDen.getSelectedItem();
+            LocalDate tuNgay = dateFrom.getValue();
+            LocalDate denNgay = dateTo.getValue();
 
-            if (gaDi == null && gaDen == null) {
+            if (tuNgay != null && denNgay != null && tuNgay.isAfter(denNgay)) {
                 JOptionPane.showMessageDialog(this,
-                        "Vui lòng chọn ít nhất ga đi hoặc ga đến.",
+                        "Từ ngày phải trước hoặc bằng Đến ngày.",
+                        "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            if (gaDi == null && gaDen == null && tuNgay == null && denNgay == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Vui lòng nhập ít nhất một điều kiện tìm kiếm.",
                         "Thông báo", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
-            LocalDate ngay = dateNgay.getValue();
-            String ngayYmd = ngay != null ? ngay.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) : null;
-            String loaiGhe = loaiGheMap.get((String) cboLoaiGhe.getSelectedItem());
+            String tuNgayYmd = tuNgay != null ? tuNgay.format(DateTimeFormatter.ISO_LOCAL_DATE) : null;
+            String denNgayYmd = denNgay != null ? denNgay.format(DateTimeFormatter.ISO_LOCAL_DATE) : null;
 
             LichSearchCriteria criteria = new LichSearchCriteria(
                     gaDi  != null ? gaDi.getMaGa()  : null,
                     gaDen != null ? gaDen.getMaGa() : null,
-                    ngayYmd,
-                    loaiGhe
+                    tuNgayYmd,
+                    denNgayYmd
             );
 
             if (navCallback != null) {
@@ -291,8 +290,8 @@ public class TongQuatModule extends JPanel implements AppModule {
 
         fields.add(wrapFieldGroup("GA ĐI",    cbGaDi));
         fields.add(wrapFieldGroup("GA ĐẾN",   cbGaDen));
-        fields.add(wrapFieldGroup("NGÀY ĐI",  dateNgay));
-        fields.add(wrapFieldGroup("LOẠI GHẾ", cboLoaiGhe));
+        fields.add(wrapFieldGroup("TỪ NGÀY",  dateFrom));
+        fields.add(wrapFieldGroup("ĐẾN NGÀY", dateTo));
         fields.add(wrapBtnGroup(btn));
 
         card.add(fields, BorderLayout.CENTER);
@@ -314,7 +313,7 @@ public class TongQuatModule extends JPanel implements AppModule {
 
         // 1 field tìm kiếm đa năng: mã HĐ, mã vé, tên KH, tên NV, CCCD…
         JTextField txtSearchHD = makeInput("Mã HĐ, mã vé, tên KH, tên NV, CCCD…");
-        JButton btnTim = makeSecBtn("TÌM");
+        JButton btnTim = makeSearchActionBtn("Tìm");
         btnTim.addActionListener(e -> {
             String kw = txtSearchHD.getText().trim();
             if (kw.isEmpty()) return;
@@ -390,7 +389,7 @@ public class TongQuatModule extends JPanel implements AppModule {
     }
 
     private JPanel kpiCard(String label, JLabel valueLbl, Color accent) {
-        JPanel card = new JPanel(new BorderLayout(0, 4));
+        JPanel card = new JPanel(new BorderLayout(10, 4));
         card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
             new LineBorder(DIVIDER, 1, true),
@@ -410,6 +409,7 @@ public class TongQuatModule extends JPanel implements AppModule {
 
         JPanel txt = new JPanel(new BorderLayout(0, 3));
         txt.setBackground(CARD_BG);
+        txt.setBorder(new EmptyBorder(0, 2, 0, 0));
         txt.add(lbl,      BorderLayout.NORTH);
         txt.add(valueLbl, BorderLayout.CENTER);
 
@@ -1156,15 +1156,10 @@ public class TongQuatModule extends JPanel implements AppModule {
         return btn;
     }
 
-    private JButton makeSecBtn(String text) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btn.setForeground(new Color(0x4C616C));
-        btn.setBackground(new Color(0xCFE6F2));
-        btn.setBorder(new EmptyBorder(8, 16, 8, 16));
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setOpaque(true);
+    private JButton makeSearchActionBtn(String text) {
+        JButton btn = makePrimaryBtn(text);
+        btn.setPreferredSize(new Dimension(140, 40));
+        btn.setMinimumSize(new Dimension(120, 40));
         return btn;
     }
 

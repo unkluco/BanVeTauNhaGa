@@ -144,7 +144,7 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
                 int h = scrollPane.getHeight();
                 int cardW = 280;
                 int cols = Math.max(1, (w - 15) / (cardW + 15));
-                int rH = 130 + 15;
+                int rH = 168 + 15;
                 int rows = Math.max(2, h / rH);
                 int newItems = cols * rows;
                 
@@ -277,9 +277,14 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
 
         filteredData = new ArrayList<>();
         for (DauMay dm : allData) {
-            boolean ok = q.isEmpty() || 
-                         dm.getMaDauMay().toLowerCase().contains(q) || 
-                         dm.getTenDauMay().toLowerCase().contains(q);
+            boolean ok = q.isEmpty()
+                    || safeContains(dm.getMaDauMay(), q)
+                    || safeContains(dm.getTenDauMay(), q)
+                    || safeContains(dm.getHangSanXuat(), q)
+                    || safeContains(dm.getTrangThai(), q)
+                    || safeContains(dm.getMoTa(), q)
+                    || (dm.getNamSanXuat() != null && String.valueOf(dm.getNamSanXuat()).contains(q))
+                    || (dm.getCongSuatKw() != null && String.valueOf(dm.getCongSuatKw()).contains(q));
             if (ok) filteredData.add(dm);
         }
 
@@ -363,8 +368,8 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
             }
         };
         card.setOpaque(false);
-        card.setPreferredSize(new Dimension(width, 144));
-        card.setMaximumSize(new Dimension(width, 144));
+        card.setPreferredSize(new Dimension(width, 168));
+        card.setMaximumSize(new Dimension(width, 168));
         card.setBorder(new EmptyBorder(10, 12, 10, 12));
 
         JPanel content = new JPanel(new BorderLayout(0, 14));
@@ -419,8 +424,8 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         btnEdit.setBorderPainted(false);
         btnEdit.setFocusPainted(false);
         btnEdit.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnEdit.setToolTipText("Sửa");
-        btnEdit.addActionListener(e -> updateTenDauMay(dm));
+        btnEdit.setToolTipText("Sửa chi tiết");
+        btnEdit.addActionListener(e -> openEditDauMayDialog(dm));
 
         top.add(topLeft, BorderLayout.WEST);
         top.add(btnEdit, BorderLayout.EAST);
@@ -430,19 +435,48 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         infoBlock.setLayout(new BoxLayout(infoBlock, BoxLayout.Y_AXIS));
         infoBlock.setOpaque(false);
 
-        JLabel lblName = new JLabel(ellipsize(dm.getTenDauMay(), 24));
+        JLabel lblName = new JLabel(ellipsize(dm.getTenDauMay(), 26));
         lblName.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblName.setForeground(TEXT_MAIN);
         lblName.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblType = new JLabel("TRẠM ĐẦU KÉO");
+        JLabel lblType = new JLabel(ellipsize(
+                dm.getHangSanXuat() == null ? "CHƯA CẬP NHẬT HÃNG SẢN XUẤT" : dm.getHangSanXuat().toUpperCase(),
+                34));
         lblType.setFont(new Font("Segoe UI", Font.BOLD, 10));
         lblType.setForeground(TEXT_MUTED);
         lblType.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        String meta = (dm.getNamSanXuat() != null ? dm.getNamSanXuat() : "N/A")
+                + "  •  "
+                + (dm.getCongSuatKw() != null ? dm.getCongSuatKw() + " kW" : "Chưa rõ công suất");
+        JLabel lblMeta = new JLabel(meta);
+        lblMeta.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblMeta.setForeground(TEXT_MUTED);
+        lblMeta.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel lblStatus = new JLabel(dm.getTrangThai() == null ? "Đang hoạt động" : dm.getTrangThai()) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(resolveStatusBg(getText()));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblStatus.setForeground(resolveStatusFg(lblStatus.getText()));
+        lblStatus.setBorder(new EmptyBorder(4, 10, 4, 10));
+        lblStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         infoBlock.add(lblType);
-        infoBlock.add(Box.createVerticalStrut(6));
+        infoBlock.add(Box.createVerticalStrut(4));
         infoBlock.add(lblName);
+        infoBlock.add(Box.createVerticalStrut(4));
+        infoBlock.add(lblMeta);
+        infoBlock.add(Box.createVerticalStrut(6));
+        infoBlock.add(lblStatus);
 
         content.add(top, BorderLayout.NORTH);
         content.add(infoBlock, BorderLayout.CENTER);
@@ -474,18 +508,47 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
     //  ACTIONS
     // ====================================================================
 
-    private void updateTenDauMay(DauMay dm) {
-        String newName = JOptionPane.showInputDialog(this, 
-                "Nhập tên đầu máy mới (Mã: " + dm.getMaDauMay() + "):",
-                dm.getTenDauMay());
-        if (newName != null && !newName.trim().isEmpty()) {
-            dm.setTenDauMay(newName.trim());
-            if (daoDauMay.update(dm)) {
+    private void openEditDauMayDialog(DauMay dm) {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        DauMay editable = new DauMay(
+                dm.getMaDauMay(),
+                dm.getTenDauMay(),
+                dm.getHangSanXuat(),
+                dm.getNamSanXuat(),
+                dm.getCongSuatKw(),
+                dm.getTrangThai(),
+                dm.getMoTa()
+        );
+
+        SuaDauMayDialog dialog = new SuaDauMayDialog(owner, editable, updated -> {
+            boolean ok = daoDauMay.update(updated);
+            if (ok) {
                 loadData();
             } else {
-                JOptionPane.showMessageDialog(this, "Không thể cập nhật tên đầu máy!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this,
+                        "Không thể cập nhật đầu máy. Vui lòng kiểm tra schema dữ liệu.",
+                        "Cập nhật thất bại", JOptionPane.ERROR_MESSAGE);
             }
-        }
+        });
+        dialog.setVisible(true);
+    }
+
+    private boolean safeContains(String src, String keyword) {
+        return src != null && src.toLowerCase().contains(keyword);
+    }
+
+    private Color resolveStatusBg(String status) {
+        String normalized = status == null ? "" : status.trim().toLowerCase();
+        if (normalized.contains("bảo trì")) return new Color(0xFE, 0xF3, 0xC7);
+        if (normalized.contains("ngừng")) return new Color(0xFE, 0xE2, 0xE2);
+        return new Color(0xDC, 0xFA, 0xE6);
+    }
+
+    private Color resolveStatusFg(String status) {
+        String normalized = status == null ? "" : status.trim().toLowerCase();
+        if (normalized.contains("bảo trì")) return new Color(0x92, 0x60, 0x10);
+        if (normalized.contains("ngừng")) return new Color(0xB9, 0x1C, 0x1C);
+        return new Color(0x16, 0x6B, 0x3A);
     }
 
     // ====================================================================

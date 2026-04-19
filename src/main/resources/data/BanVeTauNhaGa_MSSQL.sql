@@ -67,7 +67,13 @@ CREATE TABLE Ga (
 -- 4. DauMay
 CREATE TABLE DauMay (
     maDauMay VARCHAR(20) PRIMARY KEY,
-    tenDauMay NVARCHAR(100) NOT NULL
+    tenDauMay NVARCHAR(100) NOT NULL,
+    hangSanXuat NVARCHAR(100) NULL,
+    namSanXuat INT NULL CHECK (namSanXuat BETWEEN 1950 AND 2100),
+    congSuatKw INT NULL CHECK (congSuatKw > 0),
+    trangThai NVARCHAR(30) NOT NULL DEFAULT N'Đang hoạt động'
+        CHECK (trangThai IN (N'Đang hoạt động', N'Bảo trì', N'Ngừng khai thác')),
+    moTa NVARCHAR(255) NULL
 );
 
 -- 5. ToaTau
@@ -344,22 +350,33 @@ INSERT INTO Ga VALUES ('GA-017', N'Ga Biên Hòa',              N'1 Hà Huy Giá
 -- Nguon: Tong cong ty Duong sat Viet Nam (VNR)
 -- D19E: diesel-dien Dong Phong DF7G (Trung Quoc), 60 don vi (901-960), nhap 2006-2014
 --        cong suat 1500kW, toc do toi da 100km/h, su dung tren tuyen Bac-Nam chinh
-INSERT INTO DauMay VALUES ('DM-001', N'Đầu máy D19E-901');
-INSERT INTO DauMay VALUES ('DM-002', N'Đầu máy D19E-902');
-INSERT INTO DauMay VALUES ('DM-003', N'Đầu máy D19E-903');
-INSERT INTO DauMay VALUES ('DM-004', N'Đầu máy D19E-904');
-INSERT INTO DauMay VALUES ('DM-005', N'Đầu máy D19E-905');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-001', N'Đầu máy D19E-901', N'Dongfang (Trung Quốc)', 2007, 1500, N'Đang hoạt động', N'Đầu kéo chính tuyến Bắc - Nam, vận hành ổn định.');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-002', N'Đầu máy D19E-902', N'Dongfang (Trung Quốc)', 2008, 1500, N'Đang hoạt động', N'Đầu kéo chính cho tàu khách nhanh.');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-003', N'Đầu máy D19E-903', N'Dongfang (Trung Quốc)', 2009, 1500, N'Đang hoạt động', N'Vận hành trên hành trình dài liên tỉnh.');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-004', N'Đầu máy D19E-904', N'Dongfang (Trung Quốc)', 2010, 1500, N'Bảo trì', N'Đang bảo trì định kỳ hệ thống truyền động.');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-005', N'Đầu máy D19E-905', N'Dongfang (Trung Quốc)', 2011, 1500, N'Đang hoạt động', N'Đầu kéo dự phòng cho các chuyến tăng cường.');
 -- D14E: diesel-dien EMD (My), 7 don vi (001-007), nhap 1997
 --        cong suat 1490kW, su dung tuyen chinh Bac-Nam
-INSERT INTO DauMay VALUES ('DM-006', N'Đầu máy D14E-001');
-INSERT INTO DauMay VALUES ('DM-007', N'Đầu máy D14E-002');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-006', N'Đầu máy D14E-001', N'EMD (Mỹ)', 1997, 1490, N'Đang hoạt động', N'Đầu máy diesel điện thế hệ cũ, hiệu suất ổn định.');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-007', N'Đầu máy D14E-002', N'EMD (Mỹ)', 1997, 1490, N'Đang hoạt động', N'Thường khai thác trên tuyến đường dài nhiều chặng.');
 -- D13E: diesel-thuy luc Mitsubishi/Toshiba (Nhat), 68 don vi, nhap 1992-1996
 --        cong suat 900kW, toc do toi da 90km/h, su dung tuyen chinh va nhanh
-INSERT INTO DauMay VALUES ('DM-008', N'Đầu máy D13E-006');
-INSERT INTO DauMay VALUES ('DM-009', N'Đầu máy D13E-012');
-INSERT INTO DauMay VALUES ('DM-010', N'Đầu máy D13E-018');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-008', N'Đầu máy D13E-006', N'Mitsubishi/Toshiba (Nhật Bản)', 1993, 900, N'Đang hoạt động', N'Phục vụ tuyến ngắn và trung bình, tiết kiệm nhiên liệu.');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-009', N'Đầu máy D13E-012', N'Mitsubishi/Toshiba (Nhật Bản)', 1994, 900, N'Đang hoạt động', N'Đầu kéo linh hoạt cho nhiều loại đoàn tàu.');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-010', N'Đầu máy D13E-018', N'Mitsubishi/Toshiba (Nhật Bản)', 1995, 900, N'Ngừng khai thác', N'Tạm ngừng khai thác để chờ nâng cấp lớn.');
 -- D12E: diesel Krupp (Duc), 25 don vi, nhap 1988, hien dung tuyen nhanh va hang hoa
-INSERT INTO DauMay VALUES ('DM-011', N'Đầu máy D12E-001');
+INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, trangThai, moTa) VALUES
+('DM-011', N'Đầu máy D12E-001', N'Krupp (Đức)', 1988, 1200, N'Đang hoạt động', N'Đầu máy lâu năm, thường dùng cho tàu hàng và tuyến phụ.');
 
 -- ==================== 5. ToaTau ====================
 -- 3 mau toa chuan: moi loai 1 toa, so ghe theo quy dinh
