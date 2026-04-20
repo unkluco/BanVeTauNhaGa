@@ -13,6 +13,8 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -32,7 +34,7 @@ public class BanVeStep6Module extends JPanel implements AppModule {
     private final List<Ghe>             ghes;
     private final Map<LoaiGhe, Double>  priceMap;
     private final List<KhachHang>       khachHangs;
-    private final ChiTietKhuyenMai      chiTietKM;
+    private final Map<String, List<ChiTietKhuyenMai>> chiTietKMsBySeat;
 
     private static final NumberFormat      VND_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
     private static final DateTimeFormatter DT_FMT  = DateTimeFormatter.ofPattern("HH:mm  dd/MM/yyyy");
@@ -59,13 +61,15 @@ public class BanVeStep6Module extends JPanel implements AppModule {
 
     public BanVeStep6Module(Lich lich, ToaTau toa, List<Ghe> ghes,
                             Map<LoaiGhe, Double> priceMap, List<KhachHang> khachHangs,
-                            ChiTietKhuyenMai chiTietKM) {
+                            Map<String, List<ChiTietKhuyenMai>> chiTietKMsBySeat) {
         this.lich       = lich;
         this.toa        = toa;
         this.ghes       = ghes;
         this.priceMap   = priceMap;
         this.khachHangs = khachHangs;
-        this.chiTietKM  = chiTietKM;
+        this.chiTietKMsBySeat = (chiTietKMsBySeat == null)
+            ? java.util.Collections.emptyMap()
+            : chiTietKMsBySeat;
         setLayout(new BorderLayout());
         setBackground(SURFACE);
         buildUI();
@@ -143,15 +147,29 @@ public class BanVeStep6Module extends JPanel implements AppModule {
     private JPanel buildSeatsCard() {
         JPanel card = card("Chi tiết vé");
 
-        // Tính tổng giá gốc theo từng ghế (ghế có thể thuộc nhiều loại khác nhau)
+        // Tính tổng giá gốc + tổng sau giảm theo từng ghế (khuyến mãi áp theo chi tiết hóa đơn)
         double total = 0.0;
+        double finalTotal = 0.0;
         boolean mixed = false;
         LoaiGhe firstLoai = (!ghes.isEmpty() && ghes.get(0).getToaTau() != null)
             ? ghes.get(0).getToaTau().getLoaiGhe() : null;
+        Map<String, PromoUsage> promoUsageMap = new LinkedHashMap<>();
+
         for (Ghe g : ghes) {
             LoaiGhe l = g.getToaTau() != null ? g.getToaTau().getLoaiGhe() : null;
             if (l != firstLoai) mixed = true;
-            total += l != null ? priceMap.getOrDefault(l, 0.0) : 0.0;
+            double base = unitPriceFor(g);
+            total += base;
+
+            double seatFinal = base;
+            List<ChiTietKhuyenMai> seatPromotions = selectedPromotionsForSeat(g);
+            for (ChiTietKhuyenMai km : seatPromotions) {
+                seatFinal *= (1.0 - clampDiscount(km.getPhanTramGiam()));
+                String id = promoId(km);
+                PromoUsage usage = promoUsageMap.computeIfAbsent(id, x -> new PromoUsage(km));
+                usage.seatCount++;
+            }
+            finalTotal += seatFinal;
         }
 
         if (!mixed) {
@@ -190,16 +208,21 @@ public class BanVeStep6Module extends JPanel implements AppModule {
         card.add(sep);
         card.add(Box.createVerticalStrut(8));
 
-        if (chiTietKM != null) {
-            double discount    = chiTietKM.getPhanTramGiam();          // đã là 0–1 (vd: 0.20)
-            double discountAmt = total * discount;
-            double finalTotal  = total - discountAmt;
+        if (!promoUsageMap.isEmpty()) {
+            double discountAmt = total - finalTotal;
             Color  ORANGE      = new Color(0xE6, 0x52, 0x00);
-            String promoLabel  = chiTietKM.getTenChiTiet() != null && !chiTietKM.getTenChiTiet().isBlank()
-                ? chiTietKM.getTenChiTiet() : "Khuyến mãi";
             addInfoRow(card, "Tạm tính:",   fmt(total), ON_SURFACE);
-            addInfoRow(card, "Khuyến mãi:", promoLabel + "  (−" + (int)(chiTietKM.getPhanTramGiam() * 100) + "%)", ORANGE);
-            addInfoRow(card, "Giảm:",       "−" + fmt(discountAmt), ORANGE);
+            for (PromoUsage usage : promoUsageMap.values()) {
+                ChiTietKhuyenMai km = usage.promo;
+                String promoLabel = promoNameFor(km);
+                int pct = (int) Math.round(clampDiscount(km.getPhanTramGiam()) * 100);
+                String usageLabel = "áp dụng " + usage.seatCount + "/" + ghes.size() + " ghế";
+                Color usageColor = usage.seatCount > 0 ? ORANGE : ON_SURF_VAR;
+                addInfoRow(card, "Khuyến mãi:",
+                    promoLabel + "  (−" + pct + "%, " + usageLabel + ")",
+                    usageColor);
+            }
+            addInfoRow(card, "Giảm:",       "−" + fmt(discountAmt), discountAmt > 0.0 ? ORANGE : ON_SURF_VAR);
             addInfoRow(card, "Tổng tiền:",  fmt(finalTotal), AMOUNT_COLOR, true);
         } else {
             addInfoRow(card, "Tổng tiền:", fmt(total), AMOUNT_COLOR, true);
@@ -322,6 +345,68 @@ public class BanVeStep6Module extends JPanel implements AppModule {
 
     private String fmt(double amount) {
         return VND_FMT.format((long) amount) + " ₫";
+    }
+
+    private double unitPriceFor(Ghe g) {
+        if (g == null || g.getToaTau() == null || g.getToaTau().getLoaiGhe() == null) return 0.0;
+        return priceMap.getOrDefault(g.getToaTau().getLoaiGhe(), 0.0);
+    }
+
+    private String promoNameFor(ChiTietKhuyenMai km) {
+        if (km == null) return "Khuyến mãi";
+        if (km.getTenChiTiet() != null && !km.getTenChiTiet().isBlank()) return km.getTenChiTiet();
+        if (km.getKhuyenMai() != null && km.getKhuyenMai().getTenKhuyenMai() != null
+                && !km.getKhuyenMai().getTenKhuyenMai().isBlank()) {
+            return km.getKhuyenMai().getTenKhuyenMai();
+        }
+        return "Khuyến mãi";
+    }
+
+    private List<ChiTietKhuyenMai> selectedPromotionsForSeat(Ghe ghe) {
+        List<ChiTietKhuyenMai> applicable = new ArrayList<>();
+        if (ghe == null || lich == null || lich.getTuyen() == null) return applicable;
+        List<ChiTietKhuyenMai> selected = chiTietKMsBySeat.getOrDefault(seatKey(ghe), java.util.Collections.emptyList());
+        if (selected.isEmpty()) return applicable;
+        String maTuyen = lich.getTuyen().getMaTuyen();
+        LoaiGhe loai = ghe.getToaTau() != null ? ghe.getToaTau().getLoaiGhe() : null;
+
+        for (ChiTietKhuyenMai km : selected) {
+            if (km == null) continue;
+            boolean tuyenOk = km.getTuyen() == null
+                || (km.getTuyen().getMaTuyen() != null && km.getTuyen().getMaTuyen().equals(maTuyen));
+            boolean loaiOk = km.getLoaiGhe() == null || km.getLoaiGhe() == loai;
+            if (tuyenOk && loaiOk) applicable.add(km);
+        }
+        return applicable;
+    }
+
+    private String seatKey(Ghe ghe) {
+        if (ghe == null) return "";
+        if (ghe.getMaGhe() != null && !ghe.getMaGhe().isBlank()) return ghe.getMaGhe();
+        String toa = (ghe.getToaTau() != null && ghe.getToaTau().getMaToaTau() != null)
+            ? ghe.getToaTau().getMaToaTau() : "TOA";
+        return toa + "-SEAT-" + ghe.getSoGhe();
+    }
+
+    private String promoId(ChiTietKhuyenMai km) {
+        if (km == null) return "";
+        if (km.getMaChiTietKM() != null && !km.getMaChiTietKM().isBlank()) return km.getMaChiTietKM();
+        return String.valueOf(System.identityHashCode(km));
+    }
+
+    private double clampDiscount(double discount) {
+        if (Double.isNaN(discount)) return 0.0;
+        return Math.max(0.0, Math.min(1.0, discount));
+    }
+
+    private static class PromoUsage {
+        private final ChiTietKhuyenMai promo;
+        private int seatCount;
+
+        private PromoUsage(ChiTietKhuyenMai promo) {
+            this.promo = promo;
+            this.seatCount = 0;
+        }
     }
 
     // =========================================================================

@@ -3,6 +3,7 @@ package com.modules;
 import com.dao.DAO_ChiTietKhuyenMai;
 import com.dao.DAO_KhuyenMai;
 import com.entity.ChiTietKhuyenMai;
+import com.entity.Ghe;
 import com.entity.KhuyenMai;
 import com.entity.Tuyen;
 import com.enums.LoaiGhe;
@@ -13,29 +14,35 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
- * Bước 5b — Chọn khuyến mãi.
- * Lọc các ChiTietKhuyenMai đang áp dụng phù hợp với tuyến + loại ghế đã chọn.
+ * Bước 5b — Chọn khuyến mãi theo từng ghế.
+ * Cột trái: danh sách ghế đã chọn.
+ * Cột phải: khuyến mãi khả dụng cho ghế đang chọn (đã chọn/chưa chọn).
  * Output:
- *   - ChiTietKhuyenMai (áp dụng KM)
- *   - "SKIP"           (không áp dụng)
- *   - null             (quay lại)
+ *   - Map<String, List<ChiTietKhuyenMai>>: maGhe -> danh sách KM đã tick cho ghế đó
+ *   - null: quay lại
  */
 public class BanVeStep5bModule extends JPanel implements AppModule {
 
     private Consumer<Object> callback;
 
-    private final Tuyen   tuyen;
-    private final LoaiGhe loaiGhe;
-    private final double  baseTotal;
+    private final Tuyen tuyen;
+    private final List<Ghe> ghes;
+    private final Map<LoaiGhe, Double> priceMap;
 
-    private final DAO_KhuyenMai       daoKM    = new DAO_KhuyenMai();
+    private final DAO_KhuyenMai daoKM = new DAO_KhuyenMai();
     private final DAO_ChiTietKhuyenMai daoCTKM = new DAO_ChiTietKhuyenMai();
 
     // Design tokens
@@ -51,70 +58,90 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
     private static final Color PROMO_FG      = new Color(0xE6, 0x52, 0x00);
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final NumberFormat VND_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
 
+    // Promotions valid by route/time
     private final List<ChiTietKhuyenMai> validPromos = new ArrayList<>();
-    private final ButtonGroup            bg           = new ButtonGroup();
-    private JRadioButton                 rbNone;
-    private final List<JRadioButton>     rbPromos     = new ArrayList<>();
+    // Promotions allowed for each seat
+    private final Map<String, List<ChiTietKhuyenMai>> promosBySeatKey = new LinkedHashMap<>();
+    // Selected promotions for each seat (store by maChiTietKM for stable toggle state)
+    private final Map<String, Set<String>> selectedPromoIdsBySeat = new LinkedHashMap<>();
+    // Keep first seen promo by id for output mapping
+    private final Map<String, ChiTietKhuyenMai> promoById = new LinkedHashMap<>();
+
+    private Ghe selectedSeat;
+    private JList<Ghe> seatList;
+    private JPanel promoListPanel;
+    private JLabel promoPanelTitle;
+    private JLabel promoPanelHint;
 
     private JButton btnSubmit, btnCancel;
-    private JPanel  btnPanel;
+    private JPanel btnPanel;
 
-    // =========================================================================
-    //  CONSTRUCTOR
-    // =========================================================================
-
-    public BanVeStep5bModule(Tuyen tuyen, LoaiGhe loaiGhe, double baseTotal) {
-        this.tuyen      = tuyen;
-        this.loaiGhe    = loaiGhe;
-        this.baseTotal  = baseTotal;
+    public BanVeStep5bModule(Tuyen tuyen, List<Ghe> ghes, Map<LoaiGhe, Double> priceMap) {
+        this.tuyen = tuyen;
+        this.ghes = (ghes == null) ? Collections.emptyList() : new ArrayList<>(ghes);
+        this.priceMap = (priceMap == null) ? Collections.emptyMap() : priceMap;
         setLayout(new BorderLayout());
         setBackground(SURFACE);
         loadPromos();
         buildUI();
     }
 
-    // =========================================================================
-    //  LOAD DATA
-    // =========================================================================
-
     private void loadPromos() {
-        KhuyenMai km = daoKM.getKhuyenMaiHienHanh();
-        if (km == null) return;
+        validPromos.clear();
+        promoById.clear();
 
         String maTuyen = (tuyen != null) ? tuyen.getMaTuyen() : null;
+        LocalDateTime now = LocalDateTime.now();
 
-        for (ChiTietKhuyenMai ctg : daoCTKM.findByKhuyenMai(km.getMaKhuyenMai())) {
-            boolean tuyenOk = ctg.getTuyen() == null
-                || (maTuyen != null && ctg.getTuyen().getMaTuyen().equals(maTuyen));
-            boolean loaiOk  = ctg.getLoaiGhe() == null
-                || ctg.getLoaiGhe() == loaiGhe;
-            if (tuyenOk && loaiOk) validPromos.add(ctg);
+        for (KhuyenMai km : daoKM.getAll()) {
+            if (km == null || !km.isTrangThai()) continue;
+            if (km.getThoiGianBatDau() != null && now.isBefore(km.getThoiGianBatDau())) continue;
+            if (km.getThoiGianKetThuc() != null && now.isAfter(km.getThoiGianKetThuc())) continue;
+
+            for (ChiTietKhuyenMai ctg : daoCTKM.findByKhuyenMai(km.getMaKhuyenMai())) {
+                if (ctg == null) continue;
+                boolean tuyenOk = ctg.getTuyen() == null
+                    || (maTuyen != null && ctg.getTuyen().getMaTuyen() != null
+                    && ctg.getTuyen().getMaTuyen().equals(maTuyen));
+                if (!tuyenOk) continue;
+
+                String kmId = promoId(ctg);
+                if (!promoById.containsKey(kmId)) {
+                    promoById.put(kmId, ctg);
+                    validPromos.add(ctg);
+                }
+            }
+        }
+
+        promosBySeatKey.clear();
+        selectedPromoIdsBySeat.clear();
+        for (Ghe ghe : ghes) {
+            String seatKey = seatKey(ghe);
+            LoaiGhe seatType = (ghe != null && ghe.getToaTau() != null) ? ghe.getToaTau().getLoaiGhe() : null;
+            List<ChiTietKhuyenMai> seatPromos = new ArrayList<>();
+            for (ChiTietKhuyenMai promo : validPromos) {
+                if (promo.getLoaiGhe() == null || promo.getLoaiGhe() == seatType) {
+                    seatPromos.add(promo);
+                }
+            }
+            promosBySeatKey.put(seatKey, seatPromos);
+            selectedPromoIdsBySeat.put(seatKey, new LinkedHashSet<>());
         }
     }
-
-    // =========================================================================
-    //  BUILD UI
-    // =========================================================================
 
     private void buildUI() {
         add(buildHeaderBar(), BorderLayout.NORTH);
 
-        JPanel center = new JPanel();
-        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
-        center.setBackground(SURFACE);
-        center.setBorder(new EmptyBorder(24, 80, 24, 80));
+        JPanel body = new JPanel(new BorderLayout(16, 0));
+        body.setBackground(SURFACE);
+        body.setBorder(new EmptyBorder(20, 24, 20, 24));
 
-        if (validPromos.isEmpty()) {
-            center.add(buildNoPromoCard());
-        } else {
-            center.add(buildPromoList());
-        }
+        body.add(buildSeatPanel(), BorderLayout.WEST);
+        body.add(buildPromoPanel(), BorderLayout.CENTER);
 
-        JScrollPane scroll = new JScrollPane(center);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.getViewport().setBackground(SURFACE);
-        add(scroll, BorderLayout.CENTER);
+        add(body, BorderLayout.CENTER);
 
         btnSubmit = new JButton("Tiếp theo →");
         styleBtn(btnSubmit, true);
@@ -131,129 +158,204 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
         btnPanel.add(btnSubmit);
         btnPanel.setVisible(false);
         add(btnPanel, BorderLayout.SOUTH);
+
+        if (!ghes.isEmpty()) {
+            seatList.setSelectedIndex(0);
+        } else {
+            refreshPromoPanel();
+        }
     }
 
     private JPanel buildHeaderBar() {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 12));
         bar.setBackground(PRIMARY_LIGHT);
         bar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE));
-        JLabel lbl = new JLabel("Chọn khuyến mãi");
+        JLabel lbl = new JLabel("Chọn khuyến mãi theo từng vé");
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lbl.setForeground(PRIMARY);
         bar.add(lbl);
         return bar;
     }
 
-    private JPanel buildNoPromoCard() {
-        JPanel card = new JPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(CARD_BG);
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.setBorder(BorderFactory.createCompoundBorder(
+    private JPanel buildSeatPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.setBackground(SURFACE);
+        panel.setPreferredSize(new Dimension(320, 10));
+        panel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(OUTLINE, 1),
-            new EmptyBorder(24, 32, 24, 32)
+            new EmptyBorder(12, 12, 12, 12)
         ));
 
-        JLabel icon = new JLabel("Hiện không có chương trình khuyến mãi phù hợp với chuyến này.");
-        icon.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        icon.setForeground(ON_SURF_VAR);
-        icon.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(icon);
+        JLabel title = new JLabel("Ghế đã chọn (" + ghes.size() + ")");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        title.setForeground(ON_SURFACE);
+        panel.add(title, BorderLayout.NORTH);
 
-        JLabel hint = new JLabel("Nhấn Tiếp theo để tiếp tục.");
-        hint.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-        hint.setForeground(ON_SURF_VAR);
-        hint.setAlignmentX(Component.LEFT_ALIGNMENT);
-        hint.setBorder(new EmptyBorder(6, 0, 0, 0));
-        card.add(hint);
+        DefaultListModel<Ghe> model = new DefaultListModel<>();
+        for (Ghe ghe : ghes) model.addElement(ghe);
 
-        return card;
+        seatList = new JList<>(model);
+        seatList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        seatList.setBackground(CARD_BG);
+        seatList.setFixedCellHeight(64);
+        seatList.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
+        seatList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> buildSeatCell(value, isSelected));
+        seatList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                selectedSeat = seatList.getSelectedValue();
+                refreshPromoPanel();
+            }
+        });
+
+        JScrollPane seatScroll = new JScrollPane(seatList);
+        seatScroll.setBorder(BorderFactory.createEmptyBorder());
+        seatScroll.getViewport().setBackground(CARD_BG);
+        panel.add(seatScroll, BorderLayout.CENTER);
+        return panel;
     }
 
-    private JPanel buildPromoList() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(SURFACE);
-        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    private Component buildSeatCell(Ghe ghe, boolean selected) {
+        JPanel cell = new JPanel(new BorderLayout());
+        cell.setBorder(new EmptyBorder(8, 10, 8, 10));
+        cell.setBackground(selected ? PRIMARY_LIGHT : CARD_BG);
 
-        JLabel title = new JLabel("Chọn một khuyến mãi áp dụng:");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        title.setForeground(ON_SURFACE);
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        title.setBorder(new EmptyBorder(0, 0, 12, 0));
-        panel.add(title);
+        JLabel lblTitle = new JLabel(seatLabel(ghe));
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTitle.setForeground(selected ? PRIMARY : ON_SURFACE);
 
-        // Option: không áp dụng
-        rbNone = new JRadioButton("Không áp dụng khuyến mãi");
-        rbNone.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        rbNone.setBackground(CARD_BG);
-        rbNone.setFocusPainted(false);
-        rbNone.setSelected(true);
-        bg.add(rbNone);
-
-        JPanel noneCard = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 12));
-        noneCard.setBackground(CARD_BG);
-        noneCard.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
-        noneCard.setAlignmentX(Component.LEFT_ALIGNMENT);
-        noneCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
-        noneCard.add(rbNone);
-        noneCard.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) { rbNone.setSelected(true); }
-        });
-        panel.add(noneCard);
-
-        // Các option khuyến mãi
-        for (int i = 0; i < validPromos.size(); i++) {
-            JRadioButton rb = new JRadioButton();
-            rb.setBackground(PROMO_BG);
-            rb.setFocusPainted(false);
-            bg.add(rb);
-            rbPromos.add(rb);
-
-            panel.add(Box.createVerticalStrut(8));
-            panel.add(buildPromoCard(validPromos.get(i), rb));
+        String type = (ghe != null && ghe.getToaTau() != null && ghe.getToaTau().getLoaiGhe() != null)
+            ? ghe.getToaTau().getLoaiGhe().toString() : "Không rõ loại";
+        double listPrice = unitPriceFor(ghe);
+        double discountedPrice = finalPriceForSeat(ghe);
+        String priceMeta = type + "  •  " + fmt(listPrice);
+        if (discountedPrice < listPrice - 0.5) {
+            priceMeta += "  →  Sau giảm " + fmt(discountedPrice);
         }
+        JLabel lblMeta = new JLabel(priceMeta);
+        lblMeta.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblMeta.setForeground(ON_SURF_VAR);
+
+        cell.add(lblTitle, BorderLayout.NORTH);
+        cell.add(lblMeta, BorderLayout.SOUTH);
+        return cell;
+    }
+
+    private JPanel buildPromoPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setBackground(SURFACE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(OUTLINE, 1),
+            new EmptyBorder(12, 14, 12, 14)
+        ));
+
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setBackground(SURFACE);
+
+        promoPanelTitle = new JLabel("Khuyến mãi cho từng ghế");
+        promoPanelTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        promoPanelTitle.setForeground(ON_SURFACE);
+        promoPanelTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        top.add(promoPanelTitle);
+        top.add(Box.createVerticalStrut(4));
+
+        promoPanelHint = new JLabel("Chọn ghế bên trái để tick khuyến mãi tương ứng.");
+        promoPanelHint.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        promoPanelHint.setForeground(ON_SURF_VAR);
+        promoPanelHint.setAlignmentX(Component.LEFT_ALIGNMENT);
+        top.add(promoPanelHint);
+
+        panel.add(top, BorderLayout.NORTH);
+
+        promoListPanel = new JPanel();
+        promoListPanel.setLayout(new BoxLayout(promoListPanel, BoxLayout.Y_AXIS));
+        promoListPanel.setBackground(SURFACE);
+        promoListPanel.setBorder(new EmptyBorder(6, 2, 6, 2));
+
+        JScrollPane promoScroll = new JScrollPane(promoListPanel);
+        promoScroll.setBorder(BorderFactory.createEmptyBorder());
+        promoScroll.getViewport().setBackground(SURFACE);
+        panel.add(promoScroll, BorderLayout.CENTER);
 
         return panel;
     }
 
-    private JPanel buildPromoCard(ChiTietKhuyenMai ctg, JRadioButton rb) {
+    private void refreshPromoPanel() {
+        promoListPanel.removeAll();
+
+        if (selectedSeat == null) {
+            promoPanelTitle.setText("Khuyến mãi theo ghế");
+            promoPanelHint.setText("Chưa có ghế nào được chọn.");
+            promoListPanel.add(emptyState("Danh sách ghế đang trống."));
+            repaintPromoPanel();
+            return;
+        }
+
+        String seatKey = seatKey(selectedSeat);
+        String seatTitle = seatLabel(selectedSeat);
+        List<ChiTietKhuyenMai> seatPromos = promosBySeatKey.getOrDefault(seatKey, Collections.emptyList());
+        Set<String> selectedIds = selectedPromoIdsBySeat.computeIfAbsent(seatKey, k -> new LinkedHashSet<>());
+
+        promoPanelTitle.setText("Khuyến mãi cho " + seatTitle);
+        promoPanelHint.setText("Tick để áp dụng cho vé này. Bỏ tick = không áp dụng.");
+
+        if (seatPromos.isEmpty()) {
+            promoListPanel.add(emptyState("Ghế này hiện không có khuyến mãi phù hợp."));
+            repaintPromoPanel();
+            return;
+        }
+
+        for (ChiTietKhuyenMai promo : seatPromos) {
+            promoListPanel.add(buildPromoCard(promo, selectedIds));
+            promoListPanel.add(Box.createVerticalStrut(8));
+        }
+
+        repaintPromoPanel();
+    }
+
+    private JPanel buildPromoCard(ChiTietKhuyenMai promo, Set<String> selectedIds) {
+        String id = promoId(promo);
+        JCheckBox cb = new JCheckBox();
+        cb.setBackground(PROMO_BG);
+        cb.setFocusPainted(false);
+        cb.setSelected(selectedIds.contains(id));
+        cb.addActionListener(e -> {
+            if (cb.isSelected()) selectedIds.add(id);
+            else selectedIds.remove(id);
+            if (seatList != null) seatList.repaint();
+        });
+
         JPanel card = new JPanel(new BorderLayout(14, 0));
         card.setBackground(PROMO_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(PROMO_BORDER, 1),
-            new EmptyBorder(12, 16, 12, 16)
+            new EmptyBorder(10, 14, 10, 14)
         ));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
-        card.add(rb, BorderLayout.WEST);
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 128));
+        card.add(cb, BorderLayout.WEST);
 
         JPanel info = new JPanel();
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
         info.setBackground(PROMO_BG);
 
-        String name = ctg.getTenChiTiet() != null && !ctg.getTenChiTiet().isBlank()
-            ? ctg.getTenChiTiet()
-            : (ctg.getKhuyenMai() != null ? ctg.getKhuyenMai().getTenKhuyenMai() : "Khuyến mãi");
-
-        int pct = (int) Math.round(ctg.getPhanTramGiam() * 100); // 0.20 → 20
-        JLabel lblName = new JLabel(name + "  —  Giảm " + pct + "%");
+        int pct = (int) Math.round(clampDiscount(promo.getPhanTramGiam()) * 100.0);
+        JLabel lblName = new JLabel(promoNameFor(promo) + "  —  Giảm " + pct + "%");
         lblName.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblName.setForeground(PROMO_FG);
         info.add(lblName);
 
-        // Tiết kiệm bao nhiêu tiền (nếu biết tổng tiền gốc)
-        if (baseTotal > 0) {
-            double saving = baseTotal * ctg.getPhanTramGiam();
-            NumberFormat nf = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
-            JLabel lblSaving = new JLabel("Tiết kiệm: −" + nf.format((long) saving) + " VND");
-            lblSaving.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        if (selectedSeat != null) {
+            double seatBasePrice = unitPriceFor(selectedSeat);
+            double saving = seatBasePrice * clampDiscount(promo.getPhanTramGiam());
+            JLabel lblSaving = new JLabel("Tiết kiệm cho vé này: −" + VND_FMT.format((long) saving) + " ₫");
+            lblSaving.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             lblSaving.setForeground(PROMO_FG);
             info.add(lblSaving);
         }
 
-        if (ctg.getKhuyenMai() != null) {
-            KhuyenMai km = ctg.getKhuyenMai();
+        if (promo.getKhuyenMai() != null) {
+            KhuyenMai km = promo.getKhuyenMai();
             if (km.getThoiGianBatDau() != null && km.getThoiGianKetThuc() != null) {
                 JLabel lblPeriod = new JLabel("Áp dụng: "
                     + km.getThoiGianBatDau().format(DT_FMT)
@@ -264,47 +366,117 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
             }
         }
 
-        String scope = "Áp dụng cho: "
-            + (ctg.getTuyen()   != null ? ctg.getTuyen().getMaTuyen()   : "Tất cả tuyến")
-            + "  ·  "
-            + (ctg.getLoaiGhe() != null ? ctg.getLoaiGhe().toString()   : "Tất cả loại ghế");
+        String scope = "Phạm vi: "
+            + (promo.getTuyen() != null ? promo.getTuyen().getMaTuyen() : "Tất cả tuyến")
+            + "  •  "
+            + (promo.getLoaiGhe() != null ? promo.getLoaiGhe().toString() : "Tất cả loại ghế");
         JLabel lblScope = new JLabel(scope);
         lblScope.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         lblScope.setForeground(ON_SURF_VAR);
         info.add(lblScope);
 
         card.add(info, BorderLayout.CENTER);
-
-        // Click card = chọn radio
         card.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) { rb.setSelected(true); }
+            @Override public void mouseClicked(MouseEvent e) { cb.doClick(); }
         });
-
         return card;
     }
 
-    // =========================================================================
-    //  EXECUTE
-    // =========================================================================
+    private JPanel emptyState(String text) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(CARD_BG);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(OUTLINE, 1),
+            new EmptyBorder(18, 16, 18, 16)
+        ));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
 
-    private void execute() {
-        if (rbNone != null && rbNone.isSelected()) {
-            if (callback != null) callback.accept("SKIP");
-            return;
-        }
-        for (int i = 0; i < rbPromos.size(); i++) {
-            if (rbPromos.get(i).isSelected()) {
-                if (callback != null) callback.accept(validPromos.get(i));
-                return;
-            }
-        }
-        // Mặc định: không áp dụng
-        if (callback != null) callback.accept("SKIP");
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lbl.setForeground(ON_SURF_VAR);
+        panel.add(lbl, BorderLayout.CENTER);
+        return panel;
     }
 
-    // =========================================================================
-    //  HELPERS
-    // =========================================================================
+    private void repaintPromoPanel() {
+        promoListPanel.revalidate();
+        promoListPanel.repaint();
+    }
+
+    private void execute() {
+        Map<String, List<ChiTietKhuyenMai>> result = new LinkedHashMap<>();
+        for (Ghe ghe : ghes) {
+            String seatKey = seatKey(ghe);
+            List<ChiTietKhuyenMai> available = promosBySeatKey.getOrDefault(seatKey, Collections.emptyList());
+            Set<String> selectedIds = selectedPromoIdsBySeat.getOrDefault(seatKey, Collections.emptySet());
+            List<ChiTietKhuyenMai> chosen = new ArrayList<>();
+            for (ChiTietKhuyenMai promo : available) {
+                String id = promoId(promo);
+                if (selectedIds.contains(id)) chosen.add(promoById.getOrDefault(id, promo));
+            }
+            result.put(seatKey, chosen);
+        }
+        if (callback != null) callback.accept(result);
+    }
+
+    private String promoNameFor(ChiTietKhuyenMai km) {
+        if (km == null) return "Khuyến mãi";
+        if (km.getTenChiTiet() != null && !km.getTenChiTiet().isBlank()) return km.getTenChiTiet();
+        if (km.getKhuyenMai() != null && km.getKhuyenMai().getTenKhuyenMai() != null
+            && !km.getKhuyenMai().getTenKhuyenMai().isBlank()) return km.getKhuyenMai().getTenKhuyenMai();
+        return "Khuyến mãi";
+    }
+
+    private double clampDiscount(double discount) {
+        if (Double.isNaN(discount)) return 0.0;
+        return Math.max(0.0, Math.min(1.0, discount));
+    }
+
+    private double unitPriceFor(Ghe ghe) {
+        if (ghe == null || ghe.getToaTau() == null || ghe.getToaTau().getLoaiGhe() == null) return 0.0;
+        return priceMap.getOrDefault(ghe.getToaTau().getLoaiGhe(), 0.0);
+    }
+
+    private double finalPriceForSeat(Ghe ghe) {
+        double base = unitPriceFor(ghe);
+        String seatKey = seatKey(ghe);
+        Set<String> selectedIds = selectedPromoIdsBySeat.getOrDefault(seatKey, Collections.emptySet());
+        if (selectedIds.isEmpty()) return base;
+
+        List<ChiTietKhuyenMai> availablePromos = promosBySeatKey.getOrDefault(seatKey, Collections.emptyList());
+        double finalPrice = base;
+        for (ChiTietKhuyenMai promo : availablePromos) {
+            if (promo == null) continue;
+            if (!selectedIds.contains(promoId(promo))) continue;
+            finalPrice *= (1.0 - clampDiscount(promo.getPhanTramGiam()));
+        }
+        return finalPrice;
+    }
+
+    private String seatLabel(Ghe ghe) {
+        if (ghe == null) return "Ghế ?";
+        String toa = (ghe.getToaTau() != null && ghe.getToaTau().getMaToaTau() != null)
+            ? ghe.getToaTau().getMaToaTau() : "Toa ?";
+        return toa + " - Ghế " + ghe.getSoGhe();
+    }
+
+    private String seatKey(Ghe ghe) {
+        if (ghe == null) return "";
+        if (ghe.getMaGhe() != null && !ghe.getMaGhe().isBlank()) return ghe.getMaGhe();
+        String toa = (ghe.getToaTau() != null && ghe.getToaTau().getMaToaTau() != null)
+            ? ghe.getToaTau().getMaToaTau() : "TOA";
+        return toa + "-SEAT-" + ghe.getSoGhe();
+    }
+
+    private String promoId(ChiTietKhuyenMai promo) {
+        if (promo == null) return "";
+        if (promo.getMaChiTietKM() != null && !promo.getMaChiTietKM().isBlank()) return promo.getMaChiTietKM();
+        return String.valueOf(System.identityHashCode(promo));
+    }
+
+    private String fmt(double amount) {
+        return VND_FMT.format((long) amount) + " ₫";
+    }
 
     private void styleBtn(JButton btn, boolean primary) {
         btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -312,18 +484,18 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setBorder(new EmptyBorder(10, 24, 10, 24));
         if (primary) {
-            btn.setBackground(PRIMARY); btn.setForeground(Color.WHITE); btn.setOpaque(true);
+            btn.setBackground(PRIMARY);
+            btn.setForeground(Color.WHITE);
+            btn.setOpaque(true);
         } else {
-            btn.setBackground(CARD_BG); btn.setForeground(ON_SURF_VAR); btn.setOpaque(true);
+            btn.setBackground(CARD_BG);
+            btn.setForeground(ON_SURF_VAR);
+            btn.setOpaque(true);
         }
     }
 
-    // =========================================================================
-    //  AppModule
-    // =========================================================================
-
     @Override public String getTitle() { return "Bước 5b – Khuyến mãi"; }
-    @Override public JPanel getView()  { return this; }
+    @Override public JPanel getView() { return this; }
 
     @Override
     public void setOnResult(Consumer<Object> cb) {
@@ -336,6 +508,8 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
 
     @Override
     public void reset() {
-        if (rbNone != null) rbNone.setSelected(true);
+        for (Set<String> selected : selectedPromoIdsBySeat.values()) selected.clear();
+        if (seatList != null && seatList.getModel().getSize() > 0) seatList.setSelectedIndex(0);
+        refreshPromoPanel();
     }
 }
