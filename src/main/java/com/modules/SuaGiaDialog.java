@@ -236,9 +236,7 @@ public class SuaGiaDialog extends JDialog {
             List<Gia> conflicts = new DAO_Gia().findOverlappingActive(gia.getMaGia(), batDau, ketThuc);
             if (!conflicts.isEmpty()) {
                 String ids = conflicts.stream().map(Gia::getMaGia).collect(Collectors.joining(", "));
-                JOptionPane.showMessageDialog(this,
-                    "Không thể kích hoạt kỳ giá này vì trùng khoảng thời gian với:\n" + ids,
-                    "Trùng kỳ giá", JOptionPane.WARNING_MESSAGE);
+                showOverlapWarningDialog(ids);
                 return;
             }
         }
@@ -457,5 +455,105 @@ public class SuaGiaDialog extends JDialog {
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setPreferredSize(new Dimension(100, 40));
         return btn;
+    }
+
+    private void showOverlapWarningDialog(String conflictIds) {
+        JDialog dialog = new JDialog(this, "Trùng kỳ giá", ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true);
+        dialog.setResizable(false);
+        dialog.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        dialog.setBackground(new Color(0, 0, 0, 0));
+
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(CARD_BG);
+        root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(HEADER_BG);
+        header.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
+                new EmptyBorder(16, 20, 14, 20)
+        ));
+
+        JLabel lblTitle = new JLabel("Trùng kỳ giá");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        lblTitle.setForeground(ERROR);
+        header.add(lblTitle, BorderLayout.WEST);
+
+        JPanel body = new JPanel(new BorderLayout(14, 0));
+        body.setBackground(CARD_BG);
+        body.setBorder(new EmptyBorder(18, 20, 16, 20));
+
+        JLabel icon = new JLabel();
+        ImageIcon warnIco = loadScaledIcon("bieuTuongCanhBao.png", 36);
+        if (warnIco != null) {
+            icon.setIcon(warnIco);
+        } else {
+            icon.setText("!");
+            icon.setFont(new Font("Segoe UI", Font.BOLD, 24));
+            icon.setForeground(ERROR);
+        }
+        icon.setVerticalAlignment(SwingConstants.TOP);
+
+        JPanel textCol = new JPanel();
+        textCol.setLayout(new BoxLayout(textCol, BoxLayout.Y_AXIS));
+        textCol.setOpaque(false);
+
+        JLabel lblMsg = new JLabel("Không thể kích hoạt kỳ giá này vì trùng khoảng thời gian với:");
+        lblMsg.setFont(FONT_INPUT);
+        lblMsg.setForeground(ON_SURFACE);
+        lblMsg.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel lblIds = new JLabel(conflictIds);
+        lblIds.setFont(new Font("Consolas", Font.BOLD, 14));
+        lblIds.setForeground(new Color(0x8B, 0x1E, 0x1E));
+        lblIds.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        textCol.add(lblMsg);
+        textCol.add(Box.createVerticalStrut(8));
+        textCol.add(lblIds);
+
+        body.add(icon, BorderLayout.WEST);
+        body.add(textCol, BorderLayout.CENTER);
+
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        footer.setBackground(FOOTER_BG);
+        footer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE),
+                new EmptyBorder(12, 20, 12, 20)
+        ));
+
+        JButton btnOk = createPrimaryButton("OK");
+        btnOk.setPreferredSize(new Dimension(96, 38));
+        btnOk.addActionListener(e -> dialog.dispose());
+        footer.add(btnOk);
+
+        root.add(header, BorderLayout.NORTH);
+        root.add(body, BorderLayout.CENTER);
+        root.add(footer, BorderLayout.SOUTH);
+
+        dialog.setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
+        dialog.pack();
+        dialog.setMinimumSize(new Dimension(560, dialog.getPreferredSize().height));
+        dialog.setLocationRelativeTo(this);
+        dialog.getRootPane().setDefaultButton(btnOk);
+        dialog.getRootPane().registerKeyboardAction(
+                e -> dialog.dispose(),
+                KeyStroke.getKeyStroke("ESCAPE"),
+                JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
+        dialog.setVisible(true);
+    }
+
+    private ImageIcon loadScaledIcon(String name, int size) {
+        try {
+            java.net.URL url = getClass().getResource("/icons/" + name);
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage()
+                        .getScaledInstance(size, size, Image.SCALE_SMOOTH);
+                return new ImageIcon(img);
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 }

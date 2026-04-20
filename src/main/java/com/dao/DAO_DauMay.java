@@ -50,6 +50,24 @@ public class DAO_DauMay {
         return null;
     }
 
+    public String generateNextMaDauMay() {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return "DM-001";
+
+        String sql = "SELECT MAX(CAST(SUBSTRING(maDauMay, 4, LEN(maDauMay)-3) AS INT)) " +
+                     "FROM DauMay WHERE maDauMay LIKE 'DM-%'";
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                int maxNum = rs.getInt(1);
+                return String.format("DM-%03d", maxNum + 1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi sinh mã đầu máy: " + e.getMessage());
+        }
+        return "DM-001";
+    }
+
     public boolean insert(DauMay dm) {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
@@ -112,6 +130,36 @@ public class DAO_DauMay {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi cập nhật đầu máy: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public int countDoanTauReferences(String maDauMay) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || maDauMay == null || maDauMay.isBlank()) return 0;
+
+        String sql = "SELECT COUNT(*) FROM DoanTau WHERE maDauMay = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maDauMay);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi kiểm tra tham chiếu đoàn tàu: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public boolean delete(String maDauMay) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || maDauMay == null || maDauMay.isBlank()) return false;
+
+        String sql = "DELETE FROM DauMay WHERE maDauMay = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maDauMay);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi xóa đầu máy: " + e.getMessage());
         }
         return false;
     }

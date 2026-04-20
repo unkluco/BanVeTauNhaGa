@@ -114,6 +114,16 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         left.add(lblDesc);
 
         hdr.add(left, BorderLayout.CENTER);
+
+        JButton btnAddNew = createPrimaryButton("+ Thêm đầu máy");
+        btnAddNew.setPreferredSize(new Dimension(180, 44));
+        btnAddNew.addActionListener(e -> openCreateDauMayDialog());
+
+        JPanel rightBox = new JPanel(new GridBagLayout());
+        rightBox.setOpaque(false);
+        rightBox.add(btnAddNew);
+        hdr.add(rightBox, BorderLayout.EAST);
+
         return hdr;
     }
 
@@ -403,32 +413,18 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         topLeft.add(iconLabel);
         topLeft.add(lblCode);
 
-        // Edit button
-        JButton btnEdit = new JButton() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isRollover() || getModel().isPressed()) {
-                    g2.setColor(PRIMARY_LIGHT);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                }
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        ImageIcon iEdit = loadScaledIcon("nutSua.png", 16);
-        if (iEdit != null) btnEdit.setIcon(iEdit);
-        btnEdit.setPreferredSize(new Dimension(28, 28));
-        btnEdit.setContentAreaFilled(false);
-        btnEdit.setBorderPainted(false);
-        btnEdit.setFocusPainted(false);
-        btnEdit.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnEdit.setToolTipText("Sửa chi tiết");
+        JButton btnEdit = createCardActionButton("nutSua.png", "Sửa chi tiết", PRIMARY_LIGHT);
         btnEdit.addActionListener(e -> openEditDauMayDialog(dm));
+        JButton btnDelete = createCardActionButton("nutXoa.png", "Xóa đầu máy", new Color(0xFE, 0xE2, 0xE2));
+        btnDelete.addActionListener(e -> openDeleteDauMayDialog(dm));
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        actions.setOpaque(false);
+        actions.add(btnEdit);
+        actions.add(btnDelete);
 
         top.add(topLeft, BorderLayout.WEST);
-        top.add(btnEdit, BorderLayout.EAST);
+        top.add(actions, BorderLayout.EAST);
 
         // Body
         JPanel infoBlock = new JPanel();
@@ -533,6 +529,56 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         dialog.setVisible(true);
     }
 
+    private void openCreateDauMayDialog() {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        String maDauMay = daoDauMay.generateNextMaDauMay();
+
+        SuaDauMayDialog dialog = new SuaDauMayDialog(owner, maDauMay, created -> {
+            boolean ok = daoDauMay.insert(created);
+            if (ok) {
+                loadData();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Không thể thêm đầu máy mới. Vui lòng kiểm tra dữ liệu nhập.",
+                        "Tạo đầu máy thất bại", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        dialog.setVisible(true);
+    }
+
+    private void openDeleteDauMayDialog(DauMay dm) {
+        if (dm == null || dm.getMaDauMay() == null || dm.getMaDauMay().isBlank()) return;
+
+        int refCount = daoDauMay.countDoanTauReferences(dm.getMaDauMay());
+        if (refCount > 0) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể xóa đầu máy " + dm.getMaDauMay()
+                            + " vì đang được gán cho " + refCount + " đoàn tàu.",
+                    "Không thể xóa",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int confirmed = JOptionPane.showConfirmDialog(
+                this,
+                "Xóa đầu máy " + dm.getMaDauMay() + " - " + dm.getTenDauMay() + "?",
+                "Xác nhận xóa",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+        if (confirmed != JOptionPane.YES_OPTION) return;
+
+        boolean ok = daoDauMay.delete(dm.getMaDauMay());
+        if (ok) {
+            loadData();
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Xóa đầu máy thất bại. Vui lòng thử lại.",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private boolean safeContains(String src, String keyword) {
         return src != null && src.toLowerCase().contains(keyword);
     }
@@ -620,6 +666,54 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setMargin(new Insets(0, 0, 0, 0));
         btn.setPreferredSize(new Dimension(36, 36));
+        return btn;
+    }
+
+    private JButton createCardActionButton(String iconFile, String toolTip, Color hoverBg) {
+        JButton btn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isRollover() || getModel().isPressed()) {
+                    g2.setColor(hoverBg);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                }
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        ImageIcon icon = loadScaledIcon(iconFile, 16);
+        if (icon != null) btn.setIcon(icon);
+        btn.setPreferredSize(new Dimension(28, 28));
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setToolTipText(toolTip);
+        return btn;
+    }
+
+    private JButton createPrimaryButton(String text) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isPressed()) g2.setColor(PRIMARY_HOVER);
+                else if (getModel().isRollover()) g2.setColor(PRIMARY.brighter());
+                else g2.setColor(PRIMARY);
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(FONT_BOLD);
+        btn.setForeground(Color.WHITE);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
     }
 

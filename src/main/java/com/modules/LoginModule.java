@@ -3,6 +3,7 @@ package com.modules;
 import com.connectDB.ConnectDB;
 import com.dao.DAO_NhanVien;
 import com.entity.NhanVien;
+import com.enums.TrangThaiNhanVien;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -356,6 +357,12 @@ public class LoginModule extends JPanel implements AppModule {
                 try {
                     NhanVien nv = get();
                     if (nv != null) {
+                        if (nv.getTrangThai() == TrangThaiNhanVien.DA_NGHI) {
+                            lblError.setText("Nhân viên đã nghỉ việc, không được phép đăng nhập.");
+                            txtPassword.setText("");
+                            txtPassword.requestFocusInWindow();
+                            return;
+                        }
                         if (callback != null) callback.accept(nv);
                     } else {
                         lblError.setText("Sai mã nhân viên hoặc mật khẩu. Vui lòng thử lại.");

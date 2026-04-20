@@ -14,6 +14,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -125,6 +126,15 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         left.add(lblDesc);
 
         hdr.add(left, BorderLayout.WEST);
+        
+        JButton btnAddNew = createPrimaryButton("+ Thêm toa");
+        btnAddNew.setPreferredSize(new Dimension(155, 44));
+        btnAddNew.addActionListener(e -> openCreateToaDialog());
+
+        JPanel rightBox = new JPanel(new GridBagLayout());
+        rightBox.setOpaque(false);
+        rightBox.add(btnAddNew);
+        hdr.add(rightBox, BorderLayout.EAST);
 
         return hdr;
     }
@@ -400,6 +410,67 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         dlg.setVisible(true);
     }
 
+    private void openCreateToaDialog() {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        String maToaTau = daoToa.generateNextMaToaTau();
+
+        ThemToaDialog dlg = new ThemToaDialog(owner, maToaTau, created -> {
+            boolean ok = daoToa.insertWithAutoSeats(created);
+            if (ok) {
+                loadData();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Không thể tạo toa mới. Vui lòng kiểm tra dữ liệu đầu vào.",
+                        "Tạo toa thất bại",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        dlg.setVisible(true);
+    }
+
+    private void openDeleteToaDialog(ToaTau toa) {
+        if (toa == null || toa.getMaToaTau() == null || toa.getMaToaTau().isBlank()) return;
+
+        int doanTauRefs = daoToa.countDoanTauReferences(toa.getMaToaTau());
+        if (doanTauRefs > 0) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể xóa toa " + toa.getMaToaTau()
+                            + " vì đang được gán cho " + doanTauRefs + " đoàn tàu.",
+                    "Không thể xóa",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int seatUsageRefs = daoToa.countSeatUsageReferences(toa.getMaToaTau());
+        if (seatUsageRefs > 0) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể xóa toa " + toa.getMaToaTau()
+                            + " vì đã phát sinh dữ liệu vé/giữ chỗ (" + seatUsageRefs + " bản ghi).",
+                    "Không thể xóa",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int confirmed = JOptionPane.showConfirmDialog(
+                this,
+                "Xóa toa " + toa.getMaToaTau() + " (" + toa.getLoaiGhe() + ")?",
+                "Xác nhận xóa",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+        if (confirmed != JOptionPane.YES_OPTION) return;
+
+        boolean ok = daoToa.deleteWithSeats(toa.getMaToaTau());
+        if (ok) {
+            loadData();
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Xóa toa thất bại. Vui lòng thử lại.",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     // ====================================================================
     //  CARD BUILDER
     // ====================================================================
@@ -480,14 +551,18 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         lblCode.setFont(new Font("Consolas", Font.BOLD, 16));
         lblCode.setForeground(TEXT_MAIN);
 
-        // Info Icon instead of button since clicking card opens detail
-        JLabel lblAction = new JLabel();
-        ImageIcon infoIco = loadScaledIcon("nutXem.png", 18);
-        if (infoIco == null) infoIco = loadScaledIcon("nutTimKiem.png", 16);
-        if (infoIco != null) lblAction.setIcon(infoIco);
+        JButton btnView = createCardActionButton("nutTimKiem.png", "Xem chi tiết", PRIMARY_LIGHT);
+        btnView.addActionListener(e -> openChiTiet(toa));
+        JButton btnDelete = createCardActionButton("nutXoa.png", "Xóa toa", new Color(0xFE, 0xE2, 0xE2));
+        btnDelete.addActionListener(e -> openDeleteToaDialog(toa));
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        actions.setOpaque(false);
+        actions.add(btnView);
+        actions.add(btnDelete);
 
         top.add(lblCode, BorderLayout.WEST);
-        top.add(lblAction, BorderLayout.EAST);
+        top.add(actions, BorderLayout.EAST);
 
         content.add(top, BorderLayout.NORTH);
 
@@ -603,6 +678,54 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setMargin(new Insets(0, 0, 0, 0));
         btn.setPreferredSize(new Dimension(36, 36));
+        return btn;
+    }
+
+    private JButton createCardActionButton(String iconFile, String toolTip, Color hoverBg) {
+        JButton btn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isRollover() || getModel().isPressed()) {
+                    g2.setColor(hoverBg);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                }
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        ImageIcon icon = loadScaledIcon(iconFile, 16);
+        if (icon != null) btn.setIcon(icon);
+        btn.setPreferredSize(new Dimension(28, 28));
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setToolTipText(toolTip);
+        return btn;
+    }
+
+    private JButton createPrimaryButton(String text) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isPressed()) g2.setColor(PRIMARY.darker());
+                else if (getModel().isRollover()) g2.setColor(PRIMARY.brighter());
+                else g2.setColor(PRIMARY);
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(FONT_BOLD);
+        btn.setForeground(Color.WHITE);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
     }
 

@@ -29,6 +29,8 @@ public class SuaDauMayDialog extends JDialog {
     private static final Font FONT_ERR   = new Font("Segoe UI", Font.PLAIN, 11);
 
     private final DauMay source;
+    private final boolean createMode;
+    private final String generatedMaDauMay;
     private final Consumer<DauMay> onSaved;
 
     private JTextField txtMaDauMay;
@@ -44,8 +46,19 @@ public class SuaDauMayDialog extends JDialog {
     private JLabel lblErrCongSuat;
 
     public SuaDauMayDialog(Window owner, DauMay dauMay, Consumer<DauMay> onSaved) {
-        super(owner, "Sửa đầu máy", ModalityType.APPLICATION_MODAL);
+        this(owner, dauMay, null, false, onSaved);
+    }
+
+    public SuaDauMayDialog(Window owner, String maDauMay, Consumer<DauMay> onSaved) {
+        this(owner, null, maDauMay, true, onSaved);
+    }
+
+    private SuaDauMayDialog(Window owner, DauMay dauMay, String maDauMay,
+                            boolean createMode, Consumer<DauMay> onSaved) {
+        super(owner, createMode ? "Thêm đầu máy" : "Sửa đầu máy", ModalityType.APPLICATION_MODAL);
         this.source = dauMay;
+        this.createMode = createMode;
+        this.generatedMaDauMay = maDauMay;
         this.onSaved = onSaved;
 
         setUndecorated(true);
@@ -98,11 +111,13 @@ public class SuaDauMayDialog extends JDialog {
         textPart.setLayout(new BoxLayout(textPart, BoxLayout.Y_AXIS));
         textPart.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Chỉnh sửa đầu máy");
+        JLabel lblTitle = new JLabel(createMode ? "Thêm đầu máy mới" : "Chỉnh sửa đầu máy");
         lblTitle.setFont(FONT_TITLE);
         lblTitle.setForeground(PRIMARY);
 
-        JLabel lblDesc = new JLabel("Cập nhật thông số kỹ thuật và trạng thái vận hành.");
+        JLabel lblDesc = new JLabel(createMode
+                ? "Tạo đầu máy mới và cấu hình thông số kỹ thuật ban đầu."
+                : "Cập nhật thông số kỹ thuật và trạng thái vận hành.");
         lblDesc.setFont(FONT_DESC);
         lblDesc.setForeground(ON_SURF_VAR);
 
@@ -125,10 +140,13 @@ public class SuaDauMayDialog extends JDialog {
         row1.setOpaque(false);
         row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        txtMaDauMay = createReadonlyField(source.getMaDauMay());
+        String maDauMay = createMode
+                ? (generatedMaDauMay == null ? "" : generatedMaDauMay)
+                : valueOf(source == null ? null : source.getMaDauMay());
+        txtMaDauMay = createReadonlyField(maDauMay);
         row1.add(buildFieldGroup("Mã đầu máy", txtMaDauMay, "* Không thể thay đổi", false, null));
 
-        txtTenDauMay = createInputField(source.getTenDauMay());
+        txtTenDauMay = createInputField(valueOf(source == null ? null : source.getTenDauMay()));
         lblErrTen = createErrorLabel();
         row1.add(buildFieldGroup("Tên đầu máy", txtTenDauMay, null, true, lblErrTen));
 
@@ -139,14 +157,16 @@ public class SuaDauMayDialog extends JDialog {
         row2.setOpaque(false);
         row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        txtHangSanXuat = createInputField(source.getHangSanXuat());
+        txtHangSanXuat = createInputField(valueOf(source == null ? null : source.getHangSanXuat()));
         row2.add(buildFieldGroup("Hãng sản xuất", txtHangSanXuat, null, false, null));
 
-        txtNamSanXuat = createInputField(source.getNamSanXuat() == null ? "" : String.valueOf(source.getNamSanXuat()));
+        txtNamSanXuat = createInputField(source == null || source.getNamSanXuat() == null
+                ? "" : String.valueOf(source.getNamSanXuat()));
         lblErrNam = createErrorLabel();
         row2.add(buildFieldGroup("Năm sản xuất", txtNamSanXuat, null, false, lblErrNam));
 
-        txtCongSuat = createInputField(source.getCongSuatKw() == null ? "" : String.valueOf(source.getCongSuatKw()));
+        txtCongSuat = createInputField(source == null || source.getCongSuatKw() == null
+                ? "" : String.valueOf(source.getCongSuatKw()));
         lblErrCongSuat = createErrorLabel();
         row2.add(buildFieldGroup("Công suất (kW)", txtCongSuat, null, false, lblErrCongSuat));
 
@@ -162,7 +182,7 @@ public class SuaDauMayDialog extends JDialog {
         cboTrangThai.setBackground(CARD_BG);
         cboTrangThai.setPreferredSize(new Dimension(0, 36));
         cboTrangThai.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        String status = source.getTrangThai();
+        String status = source == null ? null : source.getTrangThai();
         if (status != null && !status.isBlank()) cboTrangThai.setSelectedItem(status);
         row3.add(buildFieldGroup("Trạng thái", cboTrangThai, null, false, null));
 
@@ -173,7 +193,7 @@ public class SuaDauMayDialog extends JDialog {
         row4.setOpaque(false);
         row4.setMaximumSize(new Dimension(Integer.MAX_VALUE, 128));
 
-        txtMoTa = new JTextArea(source.getMoTa() == null ? "" : source.getMoTa(), 4, 30);
+        txtMoTa = new JTextArea(source == null || source.getMoTa() == null ? "" : source.getMoTa(), 4, 30);
         txtMoTa.setLineWrap(true);
         txtMoTa.setWrapStyleWord(true);
         txtMoTa.setFont(FONT_INPUT);
@@ -205,11 +225,13 @@ public class SuaDauMayDialog extends JDialog {
         }
         btnCancel.addActionListener(e -> dispose());
 
-        JButton btnSave = createPrimaryButton("Lưu thay đổi");
-        ImageIcon icoLuu = loadScaledIcon("nutLuu.png", 15);
-        if (icoLuu != null) {
-            btnSave.setIcon(icoLuu);
-            btnSave.setIconTextGap(8);
+        JButton btnSave = createPrimaryButton(createMode ? "Tạo đầu máy" : "Lưu thay đổi");
+        if (!createMode) {
+            ImageIcon icoLuu = loadScaledIcon("nutLuu.png", 15);
+            if (icoLuu != null) {
+                btnSave.setIcon(icoLuu);
+                btnSave.setIconTextGap(8);
+            }
         }
         btnSave.addActionListener(e -> saveAndClose());
         getRootPane().setDefaultButton(btnSave);
@@ -393,6 +415,10 @@ public class SuaDauMayDialog extends JDialog {
         if (text == null) return null;
         String trimmed = text.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String valueOf(String text) {
+        return text == null ? "" : text;
     }
 
     private Integer parseIntegerOrNull(String text) {
