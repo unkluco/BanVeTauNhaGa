@@ -27,6 +27,8 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     private static final Color OUTLINE       = new Color(222, 226, 230);
     private static final Color DANGER        = new Color(220, 53, 69);
     private static final Color DANGER_LIGHT  = new Color(254, 226, 226);
+    private static final Color WARN_BG       = new Color(0xFF, 0xF3, 0xCD);
+    private static final Color WARN_FG       = new Color(0x92, 0x60, 0x10);
 
     private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 26);
     private static final Font FONT_DESC   = new Font("Segoe UI", Font.PLAIN, 14);
@@ -366,6 +368,9 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     // ====================================================================
 
     private JPanel buildTicketCard(Tuyen tuyen) {
+        final boolean isActive = tuyen.isHoatDong();
+        final Color stripColor = isActive ? PRIMARY : WARN_FG;
+
         JPanel card = new JPanel(new BorderLayout()) {
             boolean isHovered = false;
             {
@@ -378,28 +383,28 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
+
                 int w = getWidth();
                 int h = getHeight();
-                
+
                 // Shadow
                 g2.setColor(new Color(0, 0, 0, isHovered ? 15 : 8));
                 g2.fillRoundRect(3, 4, w - 6, h - 5, 20, 20);
-                
+
                 // Card Background
-                g2.setColor(CARD_BG);
+                g2.setColor(isActive ? CARD_BG : new Color(0xFF, 0xFD, 0xF5));
                 g2.fillRoundRect(2, 0, w - 6, h - 6, 20, 20);
-                
+
                 // Border
-                g2.setColor(isHovered ? PRIMARY.brighter() : OUTLINE);
+                g2.setColor(isHovered ? stripColor.brighter() : OUTLINE);
                 g2.setStroke(new BasicStroke(1.2f));
                 g2.drawRoundRect(2, 0, w - 6, h - 6, 20, 20);
-                
-                // Left accent strip (like a real ticket brand)
+
+                // Left accent strip
                 g2.clip(new RoundRectangle2D.Float(2, 0, w - 6, h - 6, 20, 20));
-                g2.setColor(PRIMARY);
+                g2.setColor(stripColor);
                 g2.fillRect(2, 0, 8, h);
-                
+
                 g2.dispose();
             }
         };
@@ -419,6 +424,9 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         gbc.weighty = 0;
         gbc.insets = new Insets(0, 0, 5, 0);
 
+        JPanel badgeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        badgeRow.setOpaque(false);
+
         JLabel lblCode = new JLabel(" #" + tuyen.getMaTuyen() + " ") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -432,7 +440,26 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         lblCode.setFont(new Font("Consolas", Font.BOLD, 13));
         lblCode.setForeground(PRIMARY);
         lblCode.setBorder(new EmptyBorder(4, 6, 4, 6));
-        content.add(lblCode, gbc);
+        badgeRow.add(lblCode);
+
+        if (!isActive) {
+            JLabel lblInactive = new JLabel(" Ngưng hoạt động ") {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(WARN_BG);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            lblInactive.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            lblInactive.setForeground(WARN_FG);
+            lblInactive.setBorder(new EmptyBorder(4, 6, 4, 6));
+            badgeRow.add(lblInactive);
+        }
+
+        content.add(badgeRow, gbc);
 
         // ── Row 1: Stations & Track
         gbc.gridy = 1; gbc.gridwidth = 1;
@@ -467,14 +494,15 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         btnEdit.setToolTipText("Chỉnh sửa tuyến");
         btnEdit.addActionListener(e -> openEditDialog(tuyen));
 
-        JButton btnDel = buildIconButton("nutXoa.png", DANGER_LIGHT, DANGER);
-        btnDel.setToolTipText("Xóa tuyến");
-        btnDel.addActionListener(e -> confirmDelete(tuyen));
+        JButton btnToggle = buildIconButton(isActive ? "nutXoa.png" : "nutSua.png",
+                isActive ? DANGER_LIGHT : WARN_BG, isActive ? DANGER : WARN_FG);
+        btnToggle.setToolTipText(isActive ? "Ngưng hoạt động" : "Kích hoạt lại");
+        btnToggle.addActionListener(e -> toggleHoatDong(tuyen));
 
         actions.add(Box.createVerticalGlue());
         actions.add(btnEdit);
         actions.add(Box.createVerticalStrut(15));
-        actions.add(btnDel);
+        actions.add(btnToggle);
         actions.add(Box.createVerticalGlue());
 
         card.add(actions, BorderLayout.EAST);
@@ -711,22 +739,18 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         dlg.setVisible(true);
     }
 
-    private void confirmDelete(Tuyen tuyen) {
-        int choice = JOptionPane.showConfirmDialog(
-                this,
-                "Bạn có chắc chắn muốn xóa tuyến " + tuyen.getMaTuyen() + "?",
-                "Xác nhận xóa",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
-
-        if (choice == JOptionPane.YES_OPTION) {
-            boolean ok = daoTuyen.delete(tuyen.getMaTuyen());
-            if (ok) {
-                loadData();
-            } else {
-                JOptionPane.showMessageDialog(this, "Không thể xóa tuyến này.", "Lỗi lệnh", JOptionPane.ERROR_MESSAGE);
-            }
-        }
+    private void toggleHoatDong(Tuyen tuyen) {
+        boolean current = tuyen.isHoatDong();
+        String msg = current
+                ? "Ngưng hoạt động tuyến " + tuyen.getMaTuyen() + "?\nTuyến sẽ không hiển thị khi tìm kiếm và bán vé."
+                : "Kích hoạt lại tuyến " + tuyen.getMaTuyen() + "?";
+        String title = current ? "Xác nhận ngưng hoạt động" : "Xác nhận kích hoạt";
+        int choice = JOptionPane.showConfirmDialog(this, msg, title,
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (choice != JOptionPane.YES_OPTION) return;
+        boolean ok = daoTuyen.setHoatDong(tuyen.getMaTuyen(), !current);
+        if (ok) loadData();
+        else JOptionPane.showMessageDialog(this, "Không thể cập nhật trạng thái tuyến.", "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
 
     private ImageIcon loadScaledIcon(String fileName, int size) {

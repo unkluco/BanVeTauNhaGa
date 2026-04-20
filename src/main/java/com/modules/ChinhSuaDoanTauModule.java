@@ -22,7 +22,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
@@ -46,6 +48,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
     private static final Color C_CUNG   = new Color(0xFF, 0x8A, 0x65); 
     private static final Color C_MEM    = new Color(0x64, 0xB5, 0xF6); 
     private static final Color C_GIUONG = new Color(0x81, 0xC7, 0x84);
+    private static final String STOPPED_STATUS = "Ngừng hoạt động";
 
     private static final Font FONT_TITLE = new Font("Segoe UI", Font.BOLD, 26);
     private static final Font FONT_DESC  = new Font("Segoe UI", Font.PLAIN, 14);
@@ -512,11 +515,6 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
 
     // ── Dialog Chọn Toa Tàu ────────────────────────────────────────────────
     private void openAddWagonDialog(int insertIdx) {
-        if (allToaTau.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Không có toa tàu nào khả dụng trong hệ thống.");
-            return;
-        }
-
         Window parentWindow = SwingUtilities.getWindowAncestor(this);
         JDialog dialog = new JDialog(parentWindow, "Thêm Toa Tàu", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setUndecorated(true);
@@ -534,10 +532,15 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         cpan.add(txtSearch, BorderLayout.NORTH);
         
         DefaultListModel<ToaTau> model = new DefaultListModel<>();
-        for (ToaTau tt : allToaTau) {
-            // Optional: check if already in list to avoid duplicates
-            boolean inTrain = currentWagons.stream().anyMatch(w -> w.getMaToaTau().equals(tt.getMaToaTau()));
-            if(!inTrain) model.addElement(tt);
+        refillAddToaList(model, "");
+        if (model.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Không có toa nào khả dụng.\n" +
+                    "- Toa đã gắn trong đoàn tàu hiện tại sẽ không hiển thị.\n" +
+                    "- Toa ở trạng thái \"" + STOPPED_STATUS + "\" không thể thêm mới.",
+                    "Không có toa để thêm",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
         }
         
         JList<ToaTau> list = new JList<>(model);
@@ -558,13 +561,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
             void filter() {
                 String kw = txtSearch.getText().trim().toLowerCase();
                 if(kw.equals("tìm mã toa...")) kw = "";
-                model.clear();
-                for (ToaTau tt : allToaTau) {
-                    boolean inTrain = currentWagons.stream().anyMatch(w -> w.getMaToaTau().equals(tt.getMaToaTau()));
-                    if (!inTrain && tt.getMaToaTau().toLowerCase().contains(kw)) {
-                        model.addElement(tt);
-                    }
-                }
+                refillAddToaList(model, kw);
             }
             @Override public void insertUpdate(DocumentEvent e) { filter(); }
             @Override public void removeUpdate(DocumentEvent e) { filter(); }
@@ -614,19 +611,56 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
             }
 
             @Override protected void done() {
-                allToaTau = tList != null ? tList : new ArrayList<>();
+                String originalDauMayId = isEditMode && doanTau.getDauMay() != null
+                        ? doanTau.getDauMay().getMaDauMay() : null;
+                Set<String> originalToaIds = new HashSet<>();
+                if (isEditMode && detailList != null) {
+                    for (ChiTietDoanTau ct : detailList) {
+                        if (ct != null && ct.getToaTau() != null && ct.getToaTau().getMaToaTau() != null) {
+                            originalToaIds.add(ct.getToaTau().getMaToaTau());
+                        }
+                    }
+                }
+
+                allToaTau = new ArrayList<>();
+                if (tList != null) {
+                    for (ToaTau toa : tList) {
+                        if (toa == null) continue;
+                        boolean isStopped = isStoppedStatus(toa.getTrangThai());
+                        boolean keepExisting = originalToaIds.contains(toa.getMaToaTau());
+                        if (!isStopped || keepExisting) {
+                            allToaTau.add(toa);
+                        }
+                    }
+                }
+
                 cboDauMay.removeAllItems();
                 if (dList != null) {
-                    for (DauMay dm : dList) cboDauMay.addItem(dm);
+                    for (DauMay dm : dList) {
+                        if (dm == null) continue;
+                        boolean isStopped = isStoppedStatus(dm.getTrangThai());
+                        boolean keepExisting = originalDauMayId != null
+                                && originalDauMayId.equals(dm.getMaDauMay());
+                        if (!isStopped || keepExisting) {
+                            cboDauMay.addItem(dm);
+                        }
+                    }
                 }
 
                 if (isEditMode) {
+                    currentWagons.clear();
                     if (doanTau.getDauMay() != null) {
+                        boolean found = false;
                         for (int i = 0; i < cboDauMay.getItemCount(); i++) {
                             if (cboDauMay.getItemAt(i).getMaDauMay().equals(doanTau.getDauMay().getMaDauMay())) {
                                 cboDauMay.setSelectedIndex(i);
+                                found = true;
                                 break;
                             }
+                        }
+                        if (!found) {
+                            cboDauMay.addItem(doanTau.getDauMay());
+                            cboDauMay.setSelectedIndex(cboDauMay.getItemCount() - 1);
                         }
                     }
                     if (detailList != null) {
@@ -658,6 +692,14 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         Object sel = cboDauMay.getSelectedItem();
         if (!(sel instanceof DauMay dauMay)) {
             lblErrDauMay.setText("Chưa lắp đầu kéo");
+            lblErrDauMay.setVisible(true);
+            return;
+        }
+        String originalDauMayId = isEditMode && doanTau.getDauMay() != null
+                ? doanTau.getDauMay().getMaDauMay() : null;
+        if (isStoppedStatus(dauMay.getTrangThai())
+                && (originalDauMayId == null || !originalDauMayId.equals(dauMay.getMaDauMay()))) {
+            lblErrDauMay.setText("Đầu máy ngừng hoạt động không thể gán mới cho đoàn tàu.");
             lblErrDauMay.setVisible(true);
             return;
         }
@@ -724,6 +766,32 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
     // ── Utils ─────────────────────────────────────────────────────────────
     private String generateMaDoanTau() {
         return "DT-" + String.format("%05d", System.currentTimeMillis() % 100000L);
+    }
+
+    private void refillAddToaList(DefaultListModel<ToaTau> model, String keyword) {
+        String kw = keyword == null ? "" : keyword.trim().toLowerCase();
+        model.clear();
+        for (ToaTau tt : allToaTau) {
+            if (tt == null || isStoppedStatus(tt.getTrangThai())) continue;
+            boolean inTrain = currentWagons.stream()
+                    .anyMatch(w -> w != null && tt.getMaToaTau().equals(w.getMaToaTau()));
+            if (inTrain) continue;
+            String haystack = tt.getMaToaTau().toLowerCase()
+                    + " "
+                    + (tt.getLoaiGhe() == null ? "" : tt.getLoaiGhe().toString().toLowerCase());
+            if (kw.isEmpty() || haystack.contains(kw)) {
+                model.addElement(tt);
+            }
+        }
+    }
+
+    private boolean isStoppedStatus(String status) {
+        if (status == null || status.isBlank()) return false;
+        String normalized = status.trim().toLowerCase();
+        return normalized.contains("ngừng")
+                || normalized.contains("ngung")
+                || normalized.contains("khai thác")
+                || normalized.contains("khai thac");
     }
 
     private JPanel buildFieldGroup(String label, JComponent input, String hint, boolean req, JLabel errLabel) {

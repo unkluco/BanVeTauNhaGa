@@ -60,6 +60,7 @@ public class SuaNhanVienDialog extends JDialog {
     private JLabel lblErrHoTen;
     private JLabel lblErrSoDienThoai;
     private JLabel lblErrCccd;
+    private JLabel lblErrEmail;
     private JLabel lblErrNgaySinh;
 
     private final NhanVien original;
@@ -189,7 +190,8 @@ public class SuaNhanVienDialog extends JDialog {
 
         txtEmail = createTextField();
         txtEmail.setText(original.getEmail() != null ? original.getEmail() : "");
-        row2.add(buildFieldGroup("Email", txtEmail, null, false, null));
+        lblErrEmail = createErrorLabel();
+        row2.add(buildFieldGroup("Email", txtEmail, null, false, lblErrEmail));
 
         form.add(row2);
         form.add(Box.createVerticalStrut(10));
@@ -362,7 +364,25 @@ public class SuaNhanVienDialog extends JDialog {
             showFieldError(txtCccd, lblErrCccd, "Số CCCD phải có đúng 12 chữ số");
             return;
         }
+        if (!email.isEmpty() && !email.matches("[\\w.+\\-]+@[\\w\\-]+(\\.[\\w\\-]+)*\\.[a-zA-Z]{2,}")) {
+            showFieldError(txtEmail, lblErrEmail, "Email không hợp lệ");
+            return;
+        }
 
+        // Kiểm tra trùng lặp (loại trừ chính mình)
+        DAO_NhanVien daoCheck = new DAO_NhanVien();
+        if (daoCheck.existsBySoDienThoai(sdt, original.getMaNV())) {
+            showFieldError(txtSoDienThoai, lblErrSoDienThoai, "Số điện thoại đã tồn tại trong hệ thống");
+            return;
+        }
+        if (daoCheck.existsByCccd(cccd, original.getMaNV())) {
+            showFieldError(txtCccd, lblErrCccd, "Số CCCD đã tồn tại trong hệ thống");
+            return;
+        }
+        if (!email.isEmpty() && daoCheck.existsByEmail(email, original.getMaNV())) {
+            showFieldError(txtEmail, lblErrEmail, "Email đã tồn tại trong hệ thống");
+            return;
+        }
 
         VaiTro vaiTro = switch (cboBoPhan.getSelectedIndex()) {
             case 0 -> VaiTro.BAN_VE;
@@ -436,8 +456,8 @@ public class SuaNhanVienDialog extends JDialog {
     }
 
     private void clearAllErrors() {
-        JLabel[] errs     = {lblErrHoTen, lblErrSoDienThoai, lblErrCccd, lblErrNgaySinh};
-        JComponent[] flds = {txtHoTen, txtSoDienThoai, txtCccd};
+        JLabel[] errs     = {lblErrHoTen, lblErrSoDienThoai, lblErrCccd, lblErrEmail, lblErrNgaySinh};
+        JComponent[] flds = {txtHoTen, txtSoDienThoai, txtCccd, txtEmail};
         for (JLabel err : errs) { err.setText(""); err.setVisible(false); }
         for (JComponent fld : flds) {
             fld.setBorder(BorderFactory.createCompoundBorder(

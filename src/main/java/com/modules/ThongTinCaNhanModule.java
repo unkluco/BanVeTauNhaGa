@@ -465,14 +465,15 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
     }
 
     private void handleChangePassword() {
-        String oldPass = new String(txtOldPass.getPassword());
-        String newPass = new String(txtNewPass.getPassword());
-        String confirm = new String(txtConfirmPass.getPassword());
+        String oldPass = new String(txtOldPass.getPassword()).trim();
+        String newPass = new String(txtNewPass.getPassword()).trim();
+        String confirm = new String(txtConfirmPass.getPassword()).trim();
 
         if (oldPass.isEmpty() || newPass.isEmpty() || confirm.isEmpty()) {
             showMessage("Vui lòng nhập đầy đủ thông tin.", ERROR_COLOR); return;
         }
-        if (!oldPass.equals(currentUser.getPassword())) {
+        // Xác thực trực tiếp với DB để tránh sai lệch dữ liệu do object currentUser cũ.
+        if (!daoNV.verifyPassword(currentUser.getMaNV(), oldPass)) {
             showMessage("Mật khẩu cũ không chính xác.", ERROR_COLOR); return;
         }
         if (!newPass.equals(confirm)) {
@@ -501,7 +502,18 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         String phone = txtPhone.getText().trim();
         String email = txtEmail.getText().trim();
         String address = txtAddress.getText().trim();
+
         if (phone.isEmpty()) { showMessage("SĐT không được trống.", ERROR_COLOR); return; }
+        if (!phone.matches("\\d{10,11}")) { showMessage("SĐT phải có 10–11 chữ số.", ERROR_COLOR); return; }
+        if (!email.isEmpty() && !email.matches("[\\w.+\\-]+@[\\w\\-]+(\\.[\\w\\-]+)*\\.[a-zA-Z]{2,}")) {
+            showMessage("Email không hợp lệ.", ERROR_COLOR); return;
+        }
+        if (daoNV.existsBySoDienThoai(phone, currentUser.getMaNV())) {
+            showMessage("Số điện thoại đã tồn tại trong hệ thống.", ERROR_COLOR); return;
+        }
+        if (!email.isEmpty() && daoNV.existsByEmail(email, currentUser.getMaNV())) {
+            showMessage("Email đã tồn tại trong hệ thống.", ERROR_COLOR); return;
+        }
 
         if (daoNV.updateContactInfo(currentUser.getMaNV(), phone, email, address)) {
             currentUser.setSoDienThoai(phone);

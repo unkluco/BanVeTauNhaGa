@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class QuanLyDauMayModule extends JPanel implements AppModule {
+    private static final String[] STATUS_OPTIONS = {
+            "Đang hoạt động", "Đang bảo trì", "Ngừng hoạt động"
+    };
 
     // ── Design tokens ────────────────────────────────────────────────────
     private static final Color PRIMARY       = new Color(13, 110, 253);
@@ -415,13 +418,13 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
 
         JButton btnEdit = createCardActionButton("nutSua.png", "Sửa chi tiết", PRIMARY_LIGHT);
         btnEdit.addActionListener(e -> openEditDauMayDialog(dm));
-        JButton btnDelete = createCardActionButton("nutXoa.png", "Xóa đầu máy", new Color(0xFE, 0xE2, 0xE2));
-        btnDelete.addActionListener(e -> openDeleteDauMayDialog(dm));
+        JButton btnStatus = createCardActionButton("nutSua.png", "Đổi trạng thái", PRIMARY_LIGHT);
+        btnStatus.addActionListener(e -> openChangeDauMayStatusDialog(dm));
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         actions.setOpaque(false);
         actions.add(btnEdit);
-        actions.add(btnDelete);
+        actions.add(btnStatus);
 
         top.add(topLeft, BorderLayout.WEST);
         top.add(actions, BorderLayout.EAST);
@@ -546,34 +549,37 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         dialog.setVisible(true);
     }
 
-    private void openDeleteDauMayDialog(DauMay dm) {
+    private void openChangeDauMayStatusDialog(DauMay dm) {
         if (dm == null || dm.getMaDauMay() == null || dm.getMaDauMay().isBlank()) return;
 
-        int refCount = daoDauMay.countDoanTauReferences(dm.getMaDauMay());
-        if (refCount > 0) {
-            JOptionPane.showMessageDialog(this,
-                    "Không thể xóa đầu máy " + dm.getMaDauMay()
-                            + " vì đang được gán cho " + refCount + " đoàn tàu.",
-                    "Không thể xóa",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+        JComboBox<String> cbo = new JComboBox<>(STATUS_OPTIONS);
+        cbo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbo.setSelectedItem(normalizeStatus(dm.getTrangThai()));
+
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.add(new JLabel("Cập nhật trạng thái cho " + dm.getMaDauMay() + ":"), BorderLayout.NORTH);
+        panel.add(cbo, BorderLayout.CENTER);
 
         int confirmed = JOptionPane.showConfirmDialog(
                 this,
-                "Xóa đầu máy " + dm.getMaDauMay() + " - " + dm.getTenDauMay() + "?",
-                "Xác nhận xóa",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE
+                panel,
+                "Đổi trạng thái đầu máy",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
         );
-        if (confirmed != JOptionPane.YES_OPTION) return;
+        if (confirmed != JOptionPane.OK_OPTION) return;
 
-        boolean ok = daoDauMay.delete(dm.getMaDauMay());
+        String newStatus = (String) cbo.getSelectedItem();
+        if (newStatus == null || normalizeStatus(dm.getTrangThai()).equals(newStatus)) {
+            return;
+        }
+
+        boolean ok = daoDauMay.updateTrangThai(dm.getMaDauMay(), newStatus);
         if (ok) {
             loadData();
         } else {
             JOptionPane.showMessageDialog(this,
-                    "Xóa đầu máy thất bại. Vui lòng thử lại.",
+                    "Không thể cập nhật trạng thái đầu máy.",
                     "Lỗi",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -581,6 +587,14 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
 
     private boolean safeContains(String src, String keyword) {
         return src != null && src.toLowerCase().contains(keyword);
+    }
+
+    private String normalizeStatus(String status) {
+        if (status == null || status.isBlank()) return STATUS_OPTIONS[0];
+        String normalized = status.trim().toLowerCase();
+        if (normalized.contains("ngừng") || normalized.contains("ngung")) return STATUS_OPTIONS[2];
+        if (normalized.contains("bảo trì") || normalized.contains("bao tri")) return STATUS_OPTIONS[1];
+        return STATUS_OPTIONS[0];
     }
 
     private Color resolveStatusBg(String status) {

@@ -37,7 +37,6 @@ public class BanVeStep7TienMatModule extends JPanel implements AppModule {
 
     private JTextField txReceived;
     private JLabel     lblChange;
-    private JLabel     lblChangePrefix;
     private JButton    btnSubmit, btnCancel;
     private JPanel     btnPanel;
 
@@ -66,83 +65,25 @@ public class BanVeStep7TienMatModule extends JPanel implements AppModule {
         header.add(hdr);
         add(header, BorderLayout.NORTH);
 
+        // Two-column layout: left = amount visual, right = input form
         JPanel center = new JPanel(new GridBagLayout());
         center.setBackground(SURFACE);
-
-        JPanel card = new JPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(OUTLINE, 1),
-            new EmptyBorder(36, 48, 36, 48)
-        ));
-
-        // -- Total amount display --
-        JLabel totalCaption = new JLabel("Số tiền cần thu");
-        totalCaption.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        totalCaption.setForeground(ON_SURF_VAR);
-        totalCaption.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel totalAmount = new JLabel(VND_FMT.format(total.longValue()) + " ₫");
-        totalAmount.setFont(new Font("Segoe UI", Font.BOLD, 42));
-        totalAmount.setForeground(AMOUNT_COLOR);
-        totalAmount.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        // -- Received amount input --
-        JLabel recvCaption = new JLabel("Khách đưa (₫)");
-        recvCaption.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        recvCaption.setForeground(ON_SURFACE);
-        recvCaption.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        txReceived = new JTextField();
-        txReceived.setFont(new Font("Segoe UI", Font.PLAIN, 20));
-        txReceived.setHorizontalAlignment(JTextField.RIGHT);
-        txReceived.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
-        txReceived.setAlignmentX(Component.LEFT_ALIGNMENT);
-        txReceived.setToolTipText("Nhập số tiền khách đưa");
-
-        // -- Change display --
-        JPanel changeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        changeRow.setBackground(CARD_BG);
-        changeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        lblChangePrefix = new JLabel("Tiền thối:");
-        lblChangePrefix.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblChangePrefix.setForeground(ON_SURFACE);
-
-        lblChange = new JLabel("—");
-        lblChange.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblChange.setForeground(ON_SURF_VAR);
-
-        changeRow.add(lblChangePrefix);
-        changeRow.add(lblChange);
-
-        // Auto-calc change on input
-        txReceived.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e)  { calcChange(); }
-            @Override public void removeUpdate(DocumentEvent e)  { calcChange(); }
-            @Override public void changedUpdate(DocumentEvent e) { calcChange(); }
-        });
-
-        card.add(totalCaption);
-        card.add(Box.createVerticalStrut(6));
-        card.add(totalAmount);
-        card.add(Box.createVerticalStrut(28));
-        card.add(recvCaption);
-        card.add(Box.createVerticalStrut(8));
-        card.add(txReceived);
-        card.add(Box.createVerticalStrut(16));
-        card.add(changeRow);
+        center.setBorder(new EmptyBorder(24, 40, 24, 40));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill    = GridBagConstraints.BOTH;
-        gbc.weightx = 0.5;
-        gbc.weighty = 0.7;
-        gbc.insets  = new Insets(24, 80, 24, 80);
-        center.add(card, gbc);
+        gbc.weighty = 1.0;
+        gbc.insets  = new Insets(0, 0, 0, 12);
+
+        gbc.weightx = 0.4;
+        center.add(buildAmountCard(), gbc);
+
+        gbc.insets  = new Insets(0, 0, 0, 0);
+        gbc.weightx = 0.6;
+        center.add(buildInputCard(), gbc);
+
         add(center, BorderLayout.CENTER);
 
-        // Buttons
         btnSubmit = new JButton("Xác nhận đã thu tiền");
         styleBtn(btnSubmit, true);
         btnSubmit.addActionListener(e -> execute());
@@ -158,6 +99,141 @@ public class BanVeStep7TienMatModule extends JPanel implements AppModule {
         btnPanel.add(btnSubmit);
         btnPanel.setVisible(false);
         add(btnPanel, BorderLayout.SOUTH);
+    }
+
+    private JPanel buildAmountCard() {
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(CARD_BG);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(OUTLINE, 1),
+            new EmptyBorder(20, 20, 20, 20)
+        ));
+
+        JLabel title = new JLabel("Số tiền cần thu");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        title.setForeground(ON_SURF_VAR);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel amountLbl = new JLabel(VND_FMT.format(total.longValue()) + " ₫");
+        amountLbl.setFont(new Font("Segoe UI", Font.BOLD, 34));
+        amountLbl.setForeground(AMOUNT_COLOR);
+        amountLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel hint = new JLabel("Nhận tiền mặt từ khách hàng");
+        hint.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        hint.setForeground(ON_SURF_VAR);
+        hint.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        card.add(Box.createVerticalGlue());
+        card.add(title);
+        card.add(Box.createVerticalStrut(12));
+        card.add(amountLbl);
+        card.add(Box.createVerticalStrut(10));
+        card.add(hint);
+        card.add(Box.createVerticalGlue());
+        return card;
+    }
+
+    private JPanel buildInputCard() {
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(CARD_BG);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(OUTLINE, 1),
+            new EmptyBorder(24, 28, 24, 28)
+        ));
+
+        JLabel title = new JLabel("Nhập tiền khách đưa");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        title.setForeground(ON_SURFACE);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.add(title);
+        card.add(Box.createVerticalStrut(20));
+
+        addInfoRow(card, "Số tiền cần thu:",
+            VND_FMT.format(total.longValue()) + " ₫", AMOUNT_COLOR, true);
+
+        JSeparator sep = new JSeparator();
+        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        sep.setForeground(OUTLINE);
+        card.add(sep);
+        card.add(Box.createVerticalStrut(14));
+
+        JLabel recvLabel = new JLabel("Khách đưa (₫):");
+        recvLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        recvLabel.setForeground(ON_SURF_VAR);
+        recvLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.add(recvLabel);
+        card.add(Box.createVerticalStrut(6));
+
+        txReceived = new JTextField();
+        txReceived.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        txReceived.setHorizontalAlignment(JTextField.RIGHT);
+        txReceived.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        txReceived.setAlignmentX(Component.LEFT_ALIGNMENT);
+        txReceived.setToolTipText("Nhập số tiền khách đưa");
+        txReceived.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(OUTLINE, 1),
+            new EmptyBorder(8, 12, 8, 12)
+        ));
+        card.add(txReceived);
+        card.add(Box.createVerticalStrut(14));
+
+        // Change row (same style as addInfoRow but with dynamic lblChange)
+        JPanel changeRow = new JPanel(new BorderLayout());
+        changeRow.setBackground(CARD_BG);
+        changeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        changeRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        JLabel changeLbl = new JLabel("Tiền thối:");
+        changeLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        changeLbl.setForeground(ON_SURF_VAR);
+        changeLbl.setPreferredSize(new Dimension(145, 24));
+        lblChange = new JLabel("—");
+        lblChange.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblChange.setForeground(ON_SURF_VAR);
+        changeRow.add(changeLbl, BorderLayout.WEST);
+        changeRow.add(lblChange,  BorderLayout.CENTER);
+        card.add(changeRow);
+        card.add(Box.createVerticalStrut(20));
+
+        JPanel warningBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
+        warningBox.setBackground(new Color(0xFF, 0xF8, 0xE1));
+        warningBox.setBorder(BorderFactory.createLineBorder(new Color(0xFF, 0xD5, 0x4F), 1));
+        warningBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        warningBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        JLabel warnLbl = new JLabel("Kiểm tra tiền trước khi xác nhận.");
+        warnLbl.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        warnLbl.setForeground(new Color(0x7B, 0x5D, 0x00));
+        warningBox.add(warnLbl);
+        card.add(warningBox);
+
+        txReceived.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e)  { calcChange(); }
+            @Override public void removeUpdate(DocumentEvent e)  { calcChange(); }
+            @Override public void changedUpdate(DocumentEvent e) { calcChange(); }
+        });
+
+        return card;
+    }
+
+    private void addInfoRow(JPanel card, String label, String value,
+                            Color valueColor, boolean bold) {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setBackground(CARD_BG);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        JLabel lLbl = new JLabel(label);
+        lLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lLbl.setForeground(ON_SURF_VAR);
+        lLbl.setPreferredSize(new Dimension(145, 24));
+        JLabel vLbl = new JLabel(value);
+        vLbl.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 13));
+        vLbl.setForeground(valueColor);
+        row.add(lLbl, BorderLayout.WEST);
+        row.add(vLbl, BorderLayout.CENTER);
+        card.add(row);
+        card.add(Box.createVerticalStrut(6));
     }
 
     // =========================================================================

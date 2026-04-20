@@ -143,6 +143,24 @@ public class DAO_NhanVien {
     }
 
     // ========================= ĐỔI MẬT KHẨU =========================
+    public boolean verifyPassword(String maNV, String password) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return false;
+
+        String sql = "SELECT 1 FROM NhanVien WHERE maNV = ? AND [password] = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            ps.setString(2, password);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi xác thực mật khẩu hiện tại: " + e.getMessage());
+        }
+        return false;
+    }
+
+    // ========================= ĐỔI MẬT KHẨU =========================
     public boolean updatePassword(String maNV, String newPassword) {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
@@ -154,6 +172,49 @@ public class DAO_NhanVien {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi đổi mật khẩu: " + e.getMessage());
+        }
+        return false;
+    }
+
+    // ========================= KIỂM TRA TRÙNG LẶP =========================
+    public boolean existsBySoDienThoai(String sdt, String excludeMaNV) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || sdt == null || sdt.isBlank()) return false;
+        String sql = "SELECT 1 FROM NhanVien WHERE soDienThoai = ? AND maNV <> ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, sdt);
+            ps.setString(2, excludeMaNV);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi kiểm tra trùng SĐT nhân viên: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean existsByCccd(String cccd, String excludeMaNV) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || cccd == null || cccd.isBlank()) return false;
+        String sql = "SELECT 1 FROM NhanVien WHERE cccd = ? AND maNV <> ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, cccd);
+            ps.setString(2, excludeMaNV);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi kiểm tra trùng CCCD nhân viên: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean existsByEmail(String email, String excludeMaNV) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || email == null || email.isBlank()) return false;
+        String sql = "SELECT 1 FROM NhanVien WHERE email = ? AND maNV <> ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, email);
+            ps.setString(2, excludeMaNV);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi kiểm tra trùng email nhân viên: " + e.getMessage());
         }
         return false;
     }

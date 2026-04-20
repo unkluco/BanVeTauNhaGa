@@ -8,6 +8,7 @@ public class Lich {
     private DoanTau doanTau;
     private LocalDateTime thoiGianBatDau;
     private String thoiGianChay;
+    private boolean hoatDong = true;
 
     public Lich() {
         super();
@@ -35,6 +36,8 @@ public class Lich {
     public void setThoiGianBatDau(LocalDateTime thoiGianBatDau) { this.thoiGianBatDau = thoiGianBatDau; }
     public String getThoiGianChay() { return thoiGianChay; }
     public void setThoiGianChay(String thoiGianChay) { this.thoiGianChay = thoiGianChay; }
+    public boolean isHoatDong() { return hoatDong; }
+    public void setHoatDong(boolean hoatDong) { this.hoatDong = hoatDong; }
 
     @Override
     public String toString() {

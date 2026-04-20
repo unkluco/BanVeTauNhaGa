@@ -79,7 +79,9 @@ CREATE TABLE DauMay (
 -- 5. ToaTau
 CREATE TABLE ToaTau (
     maToaTau VARCHAR(20) PRIMARY KEY,
-    loaiGhe VARCHAR(20) NOT NULL CHECK (loaiGhe IN ('GHE_CUNG', 'GHE_MEM', 'GIUONG_NAM'))
+    loaiGhe VARCHAR(20) NOT NULL CHECK (loaiGhe IN ('GHE_CUNG', 'GHE_MEM', 'GIUONG_NAM')),
+    trangThai NVARCHAR(30) NOT NULL DEFAULT N'Đang hoạt động'
+        CHECK (trangThai IN (N'Đang hoạt động', N'Bảo trì', N'Ngừng khai thác'))
 );
 
 -- 6. Gia
@@ -109,6 +111,7 @@ CREATE TABLE Tuyen (
     gaDi VARCHAR(20) NOT NULL,
     gaDen VARCHAR(20) NOT NULL,
     km INT NOT NULL DEFAULT 0,
+    hoatDong BIT NOT NULL DEFAULT 1,
     FOREIGN KEY (gaDi) REFERENCES Ga(maGa),
     FOREIGN KEY (gaDen) REFERENCES Ga(maGa),
     CHECK (gaDi != gaDen)
@@ -147,6 +150,7 @@ CREATE TABLE Lich (
     maDoanTau VARCHAR(20) NOT NULL,
     thoiGianBatDau DATETIME NOT NULL,
     thoiGianChay INT NOT NULL,
+    hoatDong BIT NOT NULL DEFAULT 1,
     FOREIGN KEY (maTuyen) REFERENCES Tuyen(maTuyen),
     FOREIGN KEY (maDoanTau) REFERENCES DoanTau(maDoanTau)
 );
@@ -383,56 +387,56 @@ INSERT INTO DauMay (maDauMay, tenDauMay, hangSanXuat, namSanXuat, congSuatKw, tr
 -- TOA-001: Giuong nam (3x10 = 30 giuong)
 -- TOA-002: Ghe mem    (4x12 = 48 ghe)
 -- TOA-003: Ghe cung   (4x12 = 48 ghe)
-INSERT INTO ToaTau VALUES ('TOA-001', 'GIUONG_NAM');
-INSERT INTO ToaTau VALUES ('TOA-002', 'GHE_MEM');
-INSERT INTO ToaTau VALUES ('TOA-003', 'GHE_CUNG');
+INSERT INTO ToaTau (maToaTau, loaiGhe) VALUES ('TOA-001', 'GIUONG_NAM');
+INSERT INTO ToaTau (maToaTau, loaiGhe) VALUES ('TOA-002', 'GHE_MEM');
+INSERT INTO ToaTau (maToaTau, loaiGhe) VALUES ('TOA-003', 'GHE_CUNG');
 
 -- ==================== 6. Tuyen ====================
 -- Ghi chu: Tuyen trong DB la tuyen dich vu (ga di - ga den), khong phai chi doan vat ly.
 -- TUY-001..010: Tuyen express giua cac ga chinh (giu nguyen de tuong thich du lieu mau)
-INSERT INTO Tuyen VALUES ('TUY-001', 'GA-001', 'GA-002', 319);   -- Ha Noi -> Vinh
-INSERT INTO Tuyen VALUES ('TUY-002', 'GA-002', 'GA-003', 368);   -- Vinh -> Hue
-INSERT INTO Tuyen VALUES ('TUY-003', 'GA-003', 'GA-004', 100);   -- Hue -> Da Nang
-INSERT INTO Tuyen VALUES ('TUY-004', 'GA-004', 'GA-005', 935);   -- Da Nang -> Sai Gon
-INSERT INTO Tuyen VALUES ('TUY-005', 'GA-005', 'GA-004', 935);   -- Sai Gon -> Da Nang
-INSERT INTO Tuyen VALUES ('TUY-006', 'GA-004', 'GA-003', 100);   -- Da Nang -> Hue
-INSERT INTO Tuyen VALUES ('TUY-007', 'GA-003', 'GA-002', 368);   -- Hue -> Vinh
-INSERT INTO Tuyen VALUES ('TUY-008', 'GA-002', 'GA-001', 319);   -- Vinh -> Ha Noi
-INSERT INTO Tuyen VALUES ('TUY-009', 'GA-001', 'GA-005', 1726);  -- Ha Noi -> Sai Gon (xuyen Viet)
-INSERT INTO Tuyen VALUES ('TUY-010', 'GA-005', 'GA-001', 1726);  -- Sai Gon -> Ha Noi (xuyen Viet)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-001', 'GA-001', 'GA-002', 319);   -- Ha Noi -> Vinh
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-002', 'GA-002', 'GA-003', 368);   -- Vinh -> Hue
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-003', 'GA-003', 'GA-004', 100);   -- Hue -> Da Nang
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-004', 'GA-004', 'GA-005', 935);   -- Da Nang -> Sai Gon
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-005', 'GA-005', 'GA-004', 935);   -- Sai Gon -> Da Nang
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-006', 'GA-004', 'GA-003', 100);   -- Da Nang -> Hue
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-007', 'GA-003', 'GA-002', 368);   -- Hue -> Vinh
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-008', 'GA-002', 'GA-001', 319);   -- Vinh -> Ha Noi
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-009', 'GA-001', 'GA-005', 1726);  -- Ha Noi -> Sai Gon (xuyen Viet)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-010', 'GA-005', 'GA-001', 1726);  -- Sai Gon -> Ha Noi (xuyen Viet)
 -- TUY-011..025: Doan trung gian Bac->Nam (theo thu tu dia ly)
-INSERT INTO Tuyen VALUES ('TUY-011', 'GA-001', 'GA-006', 87);    -- Ha Noi -> Nam Dinh     (~87 km)
-INSERT INTO Tuyen VALUES ('TUY-012', 'GA-006', 'GA-007', 30);    -- Nam Dinh -> Ninh Binh  (~30 km)
-INSERT INTO Tuyen VALUES ('TUY-013', 'GA-007', 'GA-008', 57);    -- Ninh Binh -> Thanh Hoa (~57 km)
-INSERT INTO Tuyen VALUES ('TUY-014', 'GA-008', 'GA-002', 73);    -- Thanh Hoa -> Vinh      (~73 km)
-INSERT INTO Tuyen VALUES ('TUY-015', 'GA-002', 'GA-009', 166);   -- Vinh -> Dong Hoi       (~166 km)
-INSERT INTO Tuyen VALUES ('TUY-016', 'GA-009', 'GA-010', 72);    -- Dong Hoi -> Dong Ha    (~72 km)
-INSERT INTO Tuyen VALUES ('TUY-017', 'GA-010', 'GA-003', 70);    -- Dong Ha -> Hue         (~70 km)
-INSERT INTO Tuyen VALUES ('TUY-018', 'GA-003', 'GA-004', 100);   -- Hue -> Da Nang (qua Hai Van, ~100 km)
-INSERT INTO Tuyen VALUES ('TUY-019', 'GA-004', 'GA-011', 72);    -- Da Nang -> Tam Ky      (~72 km)
-INSERT INTO Tuyen VALUES ('TUY-020', 'GA-011', 'GA-012', 40);    -- Tam Ky -> Quang Ngai   (~40 km)
-INSERT INTO Tuyen VALUES ('TUY-021', 'GA-012', 'GA-013', 107);   -- Quang Ngai -> Dieu Tri (~107 km)
-INSERT INTO Tuyen VALUES ('TUY-022', 'GA-013', 'GA-014', 85);    -- Dieu Tri -> Tuy Hoa    (~85 km)
-INSERT INTO Tuyen VALUES ('TUY-023', 'GA-014', 'GA-015', 104);   -- Tuy Hoa -> Nha Trang   (~104 km)
-INSERT INTO Tuyen VALUES ('TUY-024', 'GA-015', 'GA-016', 101);   -- Nha Trang -> Phan Rang (~101 km)
-INSERT INTO Tuyen VALUES ('TUY-025', 'GA-016', 'GA-017', 185);   -- Phan Rang -> Bien Hoa  (~185 km)
-INSERT INTO Tuyen VALUES ('TUY-026', 'GA-017', 'GA-005', 32);    -- Bien Hoa -> Sai Gon    (~32 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-011', 'GA-001', 'GA-006', 87);    -- Ha Noi -> Nam Dinh     (~87 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-012', 'GA-006', 'GA-007', 30);    -- Nam Dinh -> Ninh Binh  (~30 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-013', 'GA-007', 'GA-008', 57);    -- Ninh Binh -> Thanh Hoa (~57 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-014', 'GA-008', 'GA-002', 73);    -- Thanh Hoa -> Vinh      (~73 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-015', 'GA-002', 'GA-009', 166);   -- Vinh -> Dong Hoi       (~166 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-016', 'GA-009', 'GA-010', 72);    -- Dong Hoi -> Dong Ha    (~72 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-017', 'GA-010', 'GA-003', 70);    -- Dong Ha -> Hue         (~70 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-018', 'GA-003', 'GA-004', 100);   -- Hue -> Da Nang (qua Hai Van, ~100 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-019', 'GA-004', 'GA-011', 72);    -- Da Nang -> Tam Ky      (~72 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-020', 'GA-011', 'GA-012', 40);    -- Tam Ky -> Quang Ngai   (~40 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-021', 'GA-012', 'GA-013', 107);   -- Quang Ngai -> Dieu Tri (~107 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-022', 'GA-013', 'GA-014', 85);    -- Dieu Tri -> Tuy Hoa    (~85 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-023', 'GA-014', 'GA-015', 104);   -- Tuy Hoa -> Nha Trang   (~104 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-024', 'GA-015', 'GA-016', 101);   -- Nha Trang -> Phan Rang (~101 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-025', 'GA-016', 'GA-017', 185);   -- Phan Rang -> Bien Hoa  (~185 km)
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-026', 'GA-017', 'GA-005', 32);    -- Bien Hoa -> Sai Gon    (~32 km)
 -- TUY-027..040: Doan trung gian Nam->Bac (nguoc chieu)
-INSERT INTO Tuyen VALUES ('TUY-027', 'GA-006', 'GA-001', 87);    -- Nam Dinh -> Ha Noi
-INSERT INTO Tuyen VALUES ('TUY-028', 'GA-007', 'GA-006', 30);    -- Ninh Binh -> Nam Dinh
-INSERT INTO Tuyen VALUES ('TUY-029', 'GA-008', 'GA-007', 57);    -- Thanh Hoa -> Ninh Binh
-INSERT INTO Tuyen VALUES ('TUY-030', 'GA-002', 'GA-008', 73);    -- Vinh -> Thanh Hoa
-INSERT INTO Tuyen VALUES ('TUY-031', 'GA-009', 'GA-002', 166);   -- Dong Hoi -> Vinh
-INSERT INTO Tuyen VALUES ('TUY-032', 'GA-010', 'GA-009', 72);    -- Dong Ha -> Dong Hoi
-INSERT INTO Tuyen VALUES ('TUY-033', 'GA-003', 'GA-010', 70);    -- Hue -> Dong Ha
-INSERT INTO Tuyen VALUES ('TUY-034', 'GA-011', 'GA-004', 72);    -- Tam Ky -> Da Nang
-INSERT INTO Tuyen VALUES ('TUY-035', 'GA-012', 'GA-011', 40);    -- Quang Ngai -> Tam Ky
-INSERT INTO Tuyen VALUES ('TUY-036', 'GA-013', 'GA-012', 107);   -- Dieu Tri -> Quang Ngai
-INSERT INTO Tuyen VALUES ('TUY-037', 'GA-014', 'GA-013', 85);    -- Tuy Hoa -> Dieu Tri
-INSERT INTO Tuyen VALUES ('TUY-038', 'GA-015', 'GA-014', 104);   -- Nha Trang -> Tuy Hoa
-INSERT INTO Tuyen VALUES ('TUY-039', 'GA-016', 'GA-015', 101);   -- Phan Rang -> Nha Trang
-INSERT INTO Tuyen VALUES ('TUY-040', 'GA-017', 'GA-016', 185);   -- Bien Hoa -> Phan Rang
-INSERT INTO Tuyen VALUES ('TUY-041', 'GA-005', 'GA-017', 32);    -- Sai Gon -> Bien Hoa
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-027', 'GA-006', 'GA-001', 87);    -- Nam Dinh -> Ha Noi
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-028', 'GA-007', 'GA-006', 30);    -- Ninh Binh -> Nam Dinh
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-029', 'GA-008', 'GA-007', 57);    -- Thanh Hoa -> Ninh Binh
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-030', 'GA-002', 'GA-008', 73);    -- Vinh -> Thanh Hoa
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-031', 'GA-009', 'GA-002', 166);   -- Dong Hoi -> Vinh
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-032', 'GA-010', 'GA-009', 72);    -- Dong Ha -> Dong Hoi
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-033', 'GA-003', 'GA-010', 70);    -- Hue -> Dong Ha
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-034', 'GA-011', 'GA-004', 72);    -- Tam Ky -> Da Nang
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-035', 'GA-012', 'GA-011', 40);    -- Quang Ngai -> Tam Ky
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-036', 'GA-013', 'GA-012', 107);   -- Dieu Tri -> Quang Ngai
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-037', 'GA-014', 'GA-013', 85);    -- Tuy Hoa -> Dieu Tri
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-038', 'GA-015', 'GA-014', 104);   -- Nha Trang -> Tuy Hoa
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-039', 'GA-016', 'GA-015', 101);   -- Phan Rang -> Nha Trang
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-040', 'GA-017', 'GA-016', 185);   -- Bien Hoa -> Phan Rang
+INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES ('TUY-041', 'GA-005', 'GA-017', 32);    -- Sai Gon -> Bien Hoa
 
 -- ==================== 7. DoanTau ====================
 -- Ten tau theo quy uoc cua VNR (SE = Speed Express, TN = Thong Nhat)
@@ -504,14 +508,14 @@ INSERT INTO Ghe VALUES ('G-003-43', 'TOA-003', 43); INSERT INTO Ghe VALUES ('G-0
 INSERT INTO Ghe VALUES ('G-003-46', 'TOA-003', 46); INSERT INTO Ghe VALUES ('G-003-47', 'TOA-003', 47); INSERT INTO Ghe VALUES ('G-003-48', 'TOA-003', 48);
 
 -- ==================== 10. Lich (thoiGianChay da doi sang INT = so phut) ====================
-INSERT INTO Lich VALUES ('LCH-001', 'TUY-001', 'DT-001', '2026-04-10 06:00:00', 330);   -- 5h30p
-INSERT INTO Lich VALUES ('LCH-002', 'TUY-001', 'DT-001', '2026-04-11 06:00:00', 330);   -- 5h30p
-INSERT INTO Lich VALUES ('LCH-003', 'TUY-002', 'DT-002', '2026-04-10 14:00:00', 360);   -- 6h
-INSERT INTO Lich VALUES ('LCH-004', 'TUY-002', 'DT-002', '2026-04-11 14:00:00', 360);   -- 6h
-INSERT INTO Lich VALUES ('LCH-005', 'TUY-003', 'DT-003', '2026-04-10 08:00:00', 150);   -- 2h30p
-INSERT INTO Lich VALUES ('LCH-006', 'TUY-004', 'DT-001', '2026-04-12 19:00:00', 1020);  -- 17h
-INSERT INTO Lich VALUES ('LCH-007', 'TUY-005', 'DT-002', '2026-04-13 07:00:00', 1020);  -- 17h
-INSERT INTO Lich VALUES ('LCH-008', 'TUY-009', 'DT-003', '2026-04-15 19:00:00', 1980);  -- 33h
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-001', 'TUY-001', 'DT-001', '2026-04-10 06:00:00', 330);   -- 5h30p
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-002', 'TUY-001', 'DT-001', '2026-04-11 06:00:00', 330);   -- 5h30p
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-003', 'TUY-002', 'DT-002', '2026-04-10 14:00:00', 360);   -- 6h
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-004', 'TUY-002', 'DT-002', '2026-04-11 14:00:00', 360);   -- 6h
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-005', 'TUY-003', 'DT-003', '2026-04-10 08:00:00', 150);   -- 2h30p
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-006', 'TUY-004', 'DT-001', '2026-04-12 19:00:00', 1020);  -- 17h
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-007', 'TUY-005', 'DT-002', '2026-04-13 07:00:00', 1020);  -- 17h
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-008', 'TUY-009', 'DT-003', '2026-04-15 19:00:00', 1980);  -- 33h
 
 -- ==================== 11. Gia ====================
 INSERT INTO Gia VALUES ('GIA-001', '2026-01-01', '2026-12-31', N'Bảng giá thường 2026', 0);
@@ -932,29 +936,29 @@ INSERT INTO ChiTietGia VALUES ('CTG-126', 'GIA-001', 'TUY-010', 'GIUONG_NAM',160
 
 -- ==================== Lich (them 22 lich chay, LCH-009 den LCH-030) ====================
 -- Lich thuong ngay (16-25/4/2026)
-INSERT INTO Lich VALUES ('LCH-009', 'TUY-001', 'DT-004', '2026-04-16 06:00:00',  330);  -- SE3 HN->Vinh
-INSERT INTO Lich VALUES ('LCH-010', 'TUY-008', 'DT-005', '2026-04-16 14:00:00',  330);  -- SE4 Vinh->HN
-INSERT INTO Lich VALUES ('LCH-011', 'TUY-002', 'DT-004', '2026-04-16 12:00:00',  360);  -- SE3 Vinh->Hue
-INSERT INTO Lich VALUES ('LCH-012', 'TUY-003', 'DT-006', '2026-04-16 09:00:00',  150);  -- SE5 Hue->DN
-INSERT INTO Lich VALUES ('LCH-013', 'TUY-006', 'DT-007', '2026-04-16 08:00:00',  150);  -- SE8 DN->Hue
-INSERT INTO Lich VALUES ('LCH-014', 'TUY-009', 'DT-004', '2026-04-17 19:00:00', 1980);  -- SE3 HN->SG xuyen Viet
-INSERT INTO Lich VALUES ('LCH-015', 'TUY-010', 'DT-005', '2026-04-18 07:00:00', 1980);  -- SE4 SG->HN xuyen Viet
-INSERT INTO Lich VALUES ('LCH-016', 'TUY-009', 'DT-008', '2026-04-19 20:00:00', 2160);  -- TN1 HN->SG (cham hon SE)
-INSERT INTO Lich VALUES ('LCH-017', 'TUY-001', 'DT-002', '2026-04-20 06:00:00',  330);  -- SE2 HN->Vinh
-INSERT INTO Lich VALUES ('LCH-018', 'TUY-004', 'DT-001', '2026-04-20 19:00:00', 1020);  -- SE1 DN->SG
-INSERT INTO Lich VALUES ('LCH-019', 'TUY-005', 'DT-002', '2026-04-21 07:00:00', 1020);  -- SE2 SG->DN
-INSERT INTO Lich VALUES ('LCH-020', 'TUY-002', 'DT-001', '2026-04-22 08:00:00',  360);  -- SE1 Vinh->Hue
-INSERT INTO Lich VALUES ('LCH-021', 'TUY-007', 'DT-002', '2026-04-22 10:00:00',  360);  -- SE2 Hue->Vinh
-INSERT INTO Lich VALUES ('LCH-022', 'TUY-003', 'DT-003', '2026-04-23 08:00:00',  150);  -- SE7 Hue->DN
-INSERT INTO Lich VALUES ('LCH-023', 'TUY-001', 'DT-004', '2026-04-25 06:00:00',  330);  -- SE3 HN->Vinh
-INSERT INTO Lich VALUES ('LCH-024', 'TUY-002', 'DT-004', '2026-04-25 12:00:00',  360);  -- SE3 Vinh->Hue
-INSERT INTO Lich VALUES ('LCH-025', 'TUY-003', 'DT-006', '2026-04-25 19:00:00',  150);  -- SE5 Hue->DN
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-009', 'TUY-001', 'DT-004', '2026-04-16 06:00:00',  330);  -- SE3 HN->Vinh
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-010', 'TUY-008', 'DT-005', '2026-04-16 14:00:00',  330);  -- SE4 Vinh->HN
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-011', 'TUY-002', 'DT-004', '2026-04-16 12:00:00',  360);  -- SE3 Vinh->Hue
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-012', 'TUY-003', 'DT-006', '2026-04-16 09:00:00',  150);  -- SE5 Hue->DN
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-013', 'TUY-006', 'DT-007', '2026-04-16 08:00:00',  150);  -- SE8 DN->Hue
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-014', 'TUY-009', 'DT-004', '2026-04-17 19:00:00', 1980);  -- SE3 HN->SG xuyen Viet
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-015', 'TUY-010', 'DT-005', '2026-04-18 07:00:00', 1980);  -- SE4 SG->HN xuyen Viet
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-016', 'TUY-009', 'DT-008', '2026-04-19 20:00:00', 2160);  -- TN1 HN->SG (cham hon SE)
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-017', 'TUY-001', 'DT-002', '2026-04-20 06:00:00',  330);  -- SE2 HN->Vinh
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-018', 'TUY-004', 'DT-001', '2026-04-20 19:00:00', 1020);  -- SE1 DN->SG
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-019', 'TUY-005', 'DT-002', '2026-04-21 07:00:00', 1020);  -- SE2 SG->DN
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-020', 'TUY-002', 'DT-001', '2026-04-22 08:00:00',  360);  -- SE1 Vinh->Hue
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-021', 'TUY-007', 'DT-002', '2026-04-22 10:00:00',  360);  -- SE2 Hue->Vinh
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-022', 'TUY-003', 'DT-003', '2026-04-23 08:00:00',  150);  -- SE7 Hue->DN
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-023', 'TUY-001', 'DT-004', '2026-04-25 06:00:00',  330);  -- SE3 HN->Vinh
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-024', 'TUY-002', 'DT-004', '2026-04-25 12:00:00',  360);  -- SE3 Vinh->Hue
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-025', 'TUY-003', 'DT-006', '2026-04-25 19:00:00',  150);  -- SE5 Hue->DN
 -- Lich dip Le 30/4 - 1/5 (nhu cau cao, gia ap dung KM-002)
-INSERT INTO Lich VALUES ('LCH-026', 'TUY-001', 'DT-004', '2026-04-28 06:00:00',  330);  -- SE3 HN->Vinh (le)
-INSERT INTO Lich VALUES ('LCH-027', 'TUY-009', 'DT-004', '2026-04-28 19:00:00', 1980);  -- SE3 HN->SG (le)
-INSERT INTO Lich VALUES ('LCH-028', 'TUY-010', 'DT-005', '2026-04-30 07:00:00', 1980);  -- SE4 SG->HN (le)
-INSERT INTO Lich VALUES ('LCH-029', 'TUY-004', 'DT-005', '2026-04-29 20:00:00', 1020);  -- SE4 DN->SG
-INSERT INTO Lich VALUES ('LCH-030', 'TUY-005', 'DT-004', '2026-05-01 09:00:00', 1020);  -- SE3 SG->DN (sau le)
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-026', 'TUY-001', 'DT-004', '2026-04-28 06:00:00',  330);  -- SE3 HN->Vinh (le)
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-027', 'TUY-009', 'DT-004', '2026-04-28 19:00:00', 1980);  -- SE3 HN->SG (le)
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-028', 'TUY-010', 'DT-005', '2026-04-30 07:00:00', 1980);  -- SE4 SG->HN (le)
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-029', 'TUY-004', 'DT-005', '2026-04-29 20:00:00', 1020);  -- SE4 DN->SG
+INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES ('LCH-030', 'TUY-005', 'DT-004', '2026-05-01 09:00:00', 1020);  -- SE3 SG->DN (sau le)
 
 -- ==================== Ve (them 52 ve moi, VE-010 den VE-061) ====================
 -- LCH-009 (SE3 HN->Vinh 16/4, DT-004 co TOA-001+TOA-002+TOA-003)

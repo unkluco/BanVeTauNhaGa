@@ -114,6 +114,21 @@ public class DAO_Lich {
         return false;
     }
 
+    public boolean setHoatDong(String maLich, boolean hoatDong) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return false;
+
+        String sql = "UPDATE Lich SET hoatDong = ? WHERE maLich = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setBoolean(1, hoatDong);
+            ps.setString(2, maLich);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi cập nhật trạng thái lịch: " + e.getMessage());
+        }
+        return false;
+    }
+
     private Lich mapRow(ResultSet rs) throws SQLException {
         String maLich = rs.getString("maLich");
         Tuyen tuyen = daoTuyen.findById(rs.getString("maTuyen"));
@@ -121,6 +136,8 @@ public class DAO_Lich {
         Timestamp ts = rs.getTimestamp("thoiGianBatDau");
         LocalDateTime thoiGianBatDau = ts != null ? ts.toLocalDateTime() : null;
         String thoiGianChay = String.valueOf(rs.getInt("thoiGianChay"));
-        return new Lich(maLich, tuyen, doanTau, thoiGianBatDau, thoiGianChay);
+        Lich lich = new Lich(maLich, tuyen, doanTau, thoiGianBatDau, thoiGianChay);
+        try { lich.setHoatDong(rs.getBoolean("hoatDong")); } catch (SQLException ignored) {}
+        return lich;
     }
 }

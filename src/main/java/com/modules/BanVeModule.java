@@ -343,7 +343,9 @@ public class BanVeModule extends JPanel implements AppModule {
 
             case STEP_5B -> {
                 Tuyen   tuyen      = (ctxLich != null) ? ctxLich.getTuyen() : null;
-                BanVeStep5bModule m5b = new BanVeStep5bModule(tuyen, ctxGhes, ctxPriceMap);
+                LocalDateTime departureTime = (ctxLich != null) ? ctxLich.getThoiGianBatDau() : null;
+                BanVeStep5bModule m5b = new BanVeStep5bModule(
+                    tuyen, ctxGhes, ctxPriceMap, departureTime);
                 m5b.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     ctxChiTietKMsBySeat.clear();

@@ -612,6 +612,13 @@ public class TongQuatModule extends JPanel implements AppModule {
         ));
         btnAll.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnAll.setFocusPainted(false);
+        btnAll.addActionListener(e -> {
+            if (navCallback != null) {
+                String today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+                LichSearchCriteria criteria = new LichSearchCriteria(null, null, today, today);
+                navCallback.navigate("QL_LICH_CHAY", "Quản lý lịch chạy", criteria);
+            }
+        });
         card.add(btnAll, BorderLayout.SOUTH);
 
         return card;

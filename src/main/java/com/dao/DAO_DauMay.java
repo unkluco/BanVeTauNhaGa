@@ -12,7 +12,9 @@ import com.connectDB.ConnectDB;
 import com.entity.DauMay;
 
 public class DAO_DauMay {
-    private static final String DEFAULT_TRANG_THAI = "Đang hoạt động";
+    private static final String STATUS_ACTIVE      = "Đang hoạt động";
+    private static final String STATUS_MAINTENANCE = "Đang bảo trì";
+    private static final String STATUS_STOPPED     = "Ngừng hoạt động";
     private Boolean hasExtendedSchema;
 
     public List<DauMay> getAll() {
@@ -81,7 +83,7 @@ public class DAO_DauMay {
                 setNullableNString(ps, 3, dm.getHangSanXuat());
                 setNullableInt(ps, 4, dm.getNamSanXuat());
                 setNullableInt(ps, 5, dm.getCongSuatKw());
-                ps.setNString(6, normalizeTrangThai(dm.getTrangThai()));
+                ps.setNString(6, toDbTrangThai(dm.getTrangThai()));
                 setNullableNString(ps, 7, dm.getMoTa());
                 return ps.executeUpdate() > 0;
             } catch (SQLException e) {
@@ -113,7 +115,7 @@ public class DAO_DauMay {
                 setNullableNString(ps, 2, dm.getHangSanXuat());
                 setNullableInt(ps, 3, dm.getNamSanXuat());
                 setNullableInt(ps, 4, dm.getCongSuatKw());
-                ps.setNString(5, normalizeTrangThai(dm.getTrangThai()));
+                ps.setNString(5, toDbTrangThai(dm.getTrangThai()));
                 setNullableNString(ps, 6, dm.getMoTa());
                 ps.setString(7, dm.getMaDauMay());
                 return ps.executeUpdate() > 0;
@@ -130,6 +132,22 @@ public class DAO_DauMay {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi cập nhật đầu máy: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean updateTrangThai(String maDauMay, String trangThai) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || maDauMay == null || maDauMay.isBlank()) return false;
+        if (!supportsExtendedSchema(con)) return false;
+
+        String sql = "UPDATE DauMay SET trangThai = ? WHERE maDauMay = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setNString(1, toDbTrangThai(trangThai));
+            ps.setString(2, maDauMay);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi cập nhật trạng thái đầu máy: " + e.getMessage());
         }
         return false;
     }
@@ -174,7 +192,7 @@ public class DAO_DauMay {
         String trangThai = getNStringIfExists(rs, "trangThai");
         String moTa = getNStringIfExists(rs, "moTa");
 
-        return new DauMay(ma, ten, hang, nam, congSuat, normalizeTrangThai(trangThai), moTa);
+        return new DauMay(ma, ten, hang, nam, congSuat, toDisplayTrangThai(trangThai), moTa);
     }
 
     private boolean supportsExtendedSchema(Connection con) {
@@ -233,8 +251,24 @@ public class DAO_DauMay {
         }
     }
 
-    private String normalizeTrangThai(String trangThai) {
-        if (trangThai == null || trangThai.isBlank()) return DEFAULT_TRANG_THAI;
-        return trangThai.trim();
+    private String toDisplayTrangThai(String trangThai) {
+        if (trangThai == null || trangThai.isBlank()) return STATUS_ACTIVE;
+        String normalized = trangThai.trim().toLowerCase();
+        if (normalized.contains("ngừng") || normalized.contains("ngung") || normalized.contains("khai thác")) {
+            return STATUS_STOPPED;
+        }
+        if (normalized.contains("bảo trì") || normalized.contains("bao tri")) {
+            return STATUS_MAINTENANCE;
+        }
+        return STATUS_ACTIVE;
+    }
+
+    private String toDbTrangThai(String trangThai) {
+        // Giữ tương thích với schema cũ đang CHECK (Đang hoạt động | Bảo trì | Ngừng khai thác)
+        if (trangThai == null || trangThai.isBlank()) return STATUS_ACTIVE;
+        String normalized = trangThai.trim().toLowerCase();
+        if (normalized.contains("ngừng") || normalized.contains("ngung")) return "Ngừng khai thác";
+        if (normalized.contains("bảo trì") || normalized.contains("bao tri")) return "Bảo trì";
+        return STATUS_ACTIVE;
     }
 }

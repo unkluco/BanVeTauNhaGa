@@ -41,6 +41,7 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
     private final Tuyen tuyen;
     private final List<Ghe> ghes;
     private final Map<LoaiGhe, Double> priceMap;
+    private final LocalDateTime departureTime;
 
     private final DAO_KhuyenMai daoKM = new DAO_KhuyenMai();
     private final DAO_ChiTietKhuyenMai daoCTKM = new DAO_ChiTietKhuyenMai();
@@ -78,10 +79,12 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
     private JButton btnSubmit, btnCancel;
     private JPanel btnPanel;
 
-    public BanVeStep5bModule(Tuyen tuyen, List<Ghe> ghes, Map<LoaiGhe, Double> priceMap) {
+    public BanVeStep5bModule(Tuyen tuyen, List<Ghe> ghes, Map<LoaiGhe, Double> priceMap,
+                             LocalDateTime departureTime) {
         this.tuyen = tuyen;
         this.ghes = (ghes == null) ? Collections.emptyList() : new ArrayList<>(ghes);
         this.priceMap = (priceMap == null) ? Collections.emptyMap() : priceMap;
+        this.departureTime = (departureTime == null) ? LocalDateTime.now() : departureTime;
         setLayout(new BorderLayout());
         setBackground(SURFACE);
         loadPromos();
@@ -93,12 +96,12 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
         promoById.clear();
 
         String maTuyen = (tuyen != null) ? tuyen.getMaTuyen() : null;
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime refTime = departureTime;
 
         for (KhuyenMai km : daoKM.getAll()) {
             if (km == null || !km.isTrangThai()) continue;
-            if (km.getThoiGianBatDau() != null && now.isBefore(km.getThoiGianBatDau())) continue;
-            if (km.getThoiGianKetThuc() != null && now.isAfter(km.getThoiGianKetThuc())) continue;
+            if (km.getThoiGianBatDau() != null && refTime.isBefore(km.getThoiGianBatDau())) continue;
+            if (km.getThoiGianKetThuc() != null && refTime.isAfter(km.getThoiGianKetThuc())) continue;
 
             for (ChiTietKhuyenMai ctg : daoCTKM.findByKhuyenMai(km.getMaKhuyenMai())) {
                 if (ctg == null) continue;
@@ -322,6 +325,7 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
         cb.addActionListener(e -> {
             if (cb.isSelected()) selectedIds.add(id);
             else selectedIds.remove(id);
+            refreshPromoPanel();
             if (seatList != null) seatList.repaint();
         });
 
@@ -346,9 +350,8 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
         info.add(lblName);
 
         if (selectedSeat != null) {
-            double seatBasePrice = unitPriceFor(selectedSeat);
-            double saving = seatBasePrice * clampDiscount(promo.getPhanTramGiam());
-            JLabel lblSaving = new JLabel("Tiết kiệm cho vé này: −" + VND_FMT.format((long) saving) + " ₫");
+            double saving = savingForPromoWithCurrentStack(selectedSeat, promo, selectedIds);
+            JLabel lblSaving = new JLabel("Áp dụng cho vé: −" + VND_FMT.format((long) saving) + " ₫");
             lblSaving.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             lblSaving.setForeground(PROMO_FG);
             info.add(lblSaving);
@@ -451,6 +454,31 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
             finalPrice *= (1.0 - clampDiscount(promo.getPhanTramGiam()));
         }
         return finalPrice;
+    }
+
+    /**
+     * Giá trị giảm của 1 khuyến mãi được tính trên mức giá sau các KM đã chọn trước nó.
+     * Công thức là nhân dồn, không cộng dồn.
+     */
+    private double savingForPromoWithCurrentStack(Ghe ghe, ChiTietKhuyenMai targetPromo, Set<String> selectedIds) {
+        if (ghe == null || targetPromo == null) return 0.0;
+        String seatKey = seatKey(ghe);
+        List<ChiTietKhuyenMai> orderedPromos = promosBySeatKey.getOrDefault(seatKey, Collections.emptyList());
+        if (orderedPromos.isEmpty()) return 0.0;
+
+        String targetId = promoId(targetPromo);
+        double runningPrice = unitPriceFor(ghe);
+        for (ChiTietKhuyenMai promo : orderedPromos) {
+            if (promo == null) continue;
+            String promoId = promoId(promo);
+            if (targetId.equals(promoId)) {
+                return runningPrice * clampDiscount(promo.getPhanTramGiam());
+            }
+            if (selectedIds.contains(promoId)) {
+                runningPrice *= (1.0 - clampDiscount(promo.getPhanTramGiam()));
+            }
+        }
+        return 0.0;
     }
 
     private String seatLabel(Ghe ghe) {

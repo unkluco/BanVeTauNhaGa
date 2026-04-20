@@ -177,13 +177,13 @@ public class SuaDauMayDialog extends JDialog {
         row3.setOpaque(false);
         row3.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
 
-        cboTrangThai = new JComboBox<>(new String[]{"Đang hoạt động", "Bảo trì", "Ngừng khai thác"});
+        cboTrangThai = new JComboBox<>(new String[]{"Đang hoạt động", "Đang bảo trì", "Ngừng hoạt động"});
         cboTrangThai.setFont(FONT_INPUT);
         cboTrangThai.setBackground(CARD_BG);
         cboTrangThai.setPreferredSize(new Dimension(0, 36));
         cboTrangThai.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         String status = source == null ? null : source.getTrangThai();
-        if (status != null && !status.isBlank()) cboTrangThai.setSelectedItem(status);
+        if (status != null && !status.isBlank()) cboTrangThai.setSelectedItem(normalizeStatus(status));
         row3.add(buildFieldGroup("Trạng thái", cboTrangThai, null, false, null));
 
         form.add(row3);
@@ -429,6 +429,18 @@ public class SuaDauMayDialog extends JDialog {
         } catch (NumberFormatException ex) {
             return null;
         }
+    }
+
+    private String normalizeStatus(String status) {
+        if (status == null || status.isBlank()) return "Đang hoạt động";
+        String normalized = status.trim().toLowerCase();
+        if (normalized.contains("ngừng") || normalized.contains("ngung") || normalized.contains("khai thác")) {
+            return "Ngừng hoạt động";
+        }
+        if (normalized.contains("bảo trì") || normalized.contains("bao tri")) {
+            return "Đang bảo trì";
+        }
+        return "Đang hoạt động";
     }
 
     private ImageIcon loadScaledIcon(String name, int size) {

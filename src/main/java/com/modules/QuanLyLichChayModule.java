@@ -1,6 +1,5 @@
 package com.modules;
 
-import com.connectDB.ConnectDB;
 import com.dao.DAO_Ga;
 import com.dao.DAO_Lich;
 import com.entity.DoanTau;
@@ -20,8 +19,6 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -507,7 +504,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
 
         // Columns: Mã lịch | Đoàn tàu | Tuyến | Thời gian bắt đầu | Thời gian chạy | Thao tác
         TableColumnModel cm = table.getColumnModel();
-        int[] widths = {110, 130, 200, 150, 130, 160};
+        int[] widths = {110, 130, 200, 150, 130, 180};
         for (int i = 0; i < widths.length; i++) cm.getColumn(i).setPreferredWidth(widths[i]);
 
         cm.getColumn(0).setCellRenderer(new RowRenderer(FONT_MONO, PRIMARY));
@@ -729,21 +726,18 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         dlg.setVisible(true);
     }
 
-    private void deleteLich(Lich lich) {
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Xác nhận xóa lịch " + lich.getMaLich() + "?",
-                "Xóa lịch", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+    private void toggleHoatDong(Lich lich) {
+        boolean current = lich.isHoatDong();
+        String msg = current
+                ? "Ngưng hoạt động lịch " + lich.getMaLich() + "?"
+                : "Kích hoạt lại lịch " + lich.getMaLich() + "?";
+        String title = current ? "Xác nhận ngưng hoạt động" : "Xác nhận kích hoạt";
+        int confirm = JOptionPane.showConfirmDialog(this, msg, title,
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm != JOptionPane.YES_OPTION) return;
-
-        Connection con = ConnectDB.getCon();
-        if (con == null) { JOptionPane.showMessageDialog(this, "Lỗi kết nối.", "Lỗi", JOptionPane.ERROR_MESSAGE); return; }
-        try (PreparedStatement ps = con.prepareStatement("DELETE FROM Lich WHERE maLich = ?")) {
-            ps.setString(1, lich.getMaLich());
-            if (ps.executeUpdate() > 0) loadData();
-            else JOptionPane.showMessageDialog(this, "Không thể xóa lịch này.", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
+        boolean ok = daoLich.setHoatDong(lich.getMaLich(), !current);
+        if (ok) loadData();
+        else JOptionPane.showMessageDialog(this, "Không thể cập nhật trạng thái lịch.", "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
 
     // =====================================================================
@@ -883,7 +877,10 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         @Override public Component getTableCellRendererComponent(JTable t, Object v,
                 boolean sel, boolean focus, int row, int col) {
             super.getTableCellRendererComponent(t, v, sel, focus, row, col);
-            setFont(font); setForeground(fg);
+            Lich lich = tableModel.getAt(row);
+            boolean active = lich == null || lich.isHoatDong();
+            setFont(font);
+            setForeground(active ? fg : ON_SURF_VAR);
             setBorder(new EmptyBorder(0, 16, 0, 8));
             setBackground(getRowBg(sel, row));
             return this;
@@ -903,8 +900,9 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     }
 
     private class ActionRenderer extends JPanel implements TableCellRenderer {
-        private final JLabel lblSua  = new JLabel();
-        private final JLabel lblXoa  = new JLabel();
+        private final JLabel lblSua    = new JLabel();
+        private final JLabel lblToggle = new JLabel();
+        private Color toggleBg = ERROR_BG;
 
         ActionRenderer() {
             setLayout(new GridBagLayout());
@@ -913,7 +911,6 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             g.insets = new Insets(0, 5, 0, 5);
 
             ImageIcon iSua = loadScaledIcon("nutSua.png", 14);
-            ImageIcon iXoa = loadScaledIcon("nutXoa.png", 14);
 
             lblSua.setFont(FONT_BADGE); lblSua.setForeground(PRIMARY);
             lblSua.setHorizontalAlignment(SwingConstants.CENTER);
@@ -921,18 +918,22 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             if (iSua != null) lblSua.setIcon(iSua);
             lblSua.setText(iSua != null ? "  Sửa" : "Sửa");
 
-            lblXoa.setFont(FONT_BADGE); lblXoa.setForeground(ERROR_FG);
-            lblXoa.setHorizontalAlignment(SwingConstants.CENTER);
-            lblXoa.setPreferredSize(new Dimension(72, 28));
-            if (iXoa != null) lblXoa.setIcon(iXoa);
-            lblXoa.setText(iXoa != null ? "  Xóa" : "Xóa");
+            lblToggle.setFont(FONT_BADGE);
+            lblToggle.setHorizontalAlignment(SwingConstants.CENTER);
+            lblToggle.setPreferredSize(new Dimension(88, 28));
 
-            add(lblSua, g); add(lblXoa, g);
+            add(lblSua, g); add(lblToggle, g);
         }
 
         @Override public Component getTableCellRendererComponent(JTable t, Object v,
                 boolean sel, boolean focus, int row, int col) {
             setBackground(getRowBg(sel, row));
+            if (v instanceof Lich lich) {
+                boolean active = lich.isHoatDong();
+                lblToggle.setForeground(active ? ERROR_FG : WARN_FG);
+                lblToggle.setText(active ? "Ngưng HĐ" : "Kích hoạt");
+                toggleBg = active ? ERROR_BG : WARN_BG;
+            }
             return this;
         }
 
@@ -942,17 +943,17 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             Rectangle rs = lblSua.getBounds();
             g2.setColor(PRIMARY_LIGHT);
             g2.fillRoundRect(rs.x, rs.y, rs.width, rs.height, 8, 8);
-            Rectangle rx = lblXoa.getBounds();
-            g2.setColor(ERROR_BG);
+            Rectangle rx = lblToggle.getBounds();
+            g2.setColor(toggleBg);
             g2.fillRoundRect(rx.x, rx.y, rx.width, rx.height, 8, 8);
             g2.dispose(); super.paintChildren(g);
         }
     }
 
     private class ActionEditor extends AbstractCellEditor implements TableCellEditor {
-        private final JPanel   panel   = new JPanel(new GridBagLayout());
-        private final JButton  btnSua  = new JButton();
-        private final JButton  btnXoa  = new JButton();
+        private final JPanel   panel      = new JPanel(new GridBagLayout());
+        private final JButton  btnSua     = new JButton();
+        private final JButton  btnToggle  = new JButton();
         private int editingRow;
 
         ActionEditor() {
@@ -961,38 +962,43 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             g.insets = new Insets(0, 5, 0, 5);
 
             ImageIcon iSua = loadScaledIcon("nutSua.png", 14);
-            ImageIcon iXoa = loadScaledIcon("nutXoa.png", 14);
 
-            styleActionBtn(btnSua, "Sửa", PRIMARY, PRIMARY_LIGHT, iSua);
-            styleActionBtn(btnXoa, "Xóa", ERROR_FG, ERROR_BG, iXoa);
+            styleActionBtn(btnSua, "Sửa", PRIMARY, PRIMARY_LIGHT, iSua, 72);
+            styleActionBtn(btnToggle, "Ngưng HĐ", ERROR_FG, ERROR_BG, null, 88);
 
-            panel.add(btnSua, g); panel.add(btnXoa, g);
+            panel.add(btnSua, g); panel.add(btnToggle, g);
 
             btnSua.addActionListener(e -> {
                 fireEditingStopped();
                 Lich l = tableModel.getAt(editingRow);
                 if (l != null) openDialog(l);
             });
-            btnXoa.addActionListener(e -> {
+            btnToggle.addActionListener(e -> {
                 fireEditingStopped();
                 Lich l = tableModel.getAt(editingRow);
-                if (l != null) deleteLich(l);
+                if (l != null) toggleHoatDong(l);
             });
         }
 
-        private void styleActionBtn(JButton btn, String text, Color fg, Color bg, ImageIcon ico) {
+        private void styleActionBtn(JButton btn, String text, Color fg, Color bg, ImageIcon ico, int width) {
             btn.setFont(FONT_BADGE); btn.setForeground(fg); btn.setBackground(bg);
             if (ico != null) { btn.setIcon(ico); btn.setText("  " + text); }
             else btn.setText(text);
             btn.setBorderPainted(false); btn.setFocusPainted(false);
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            btn.setPreferredSize(new Dimension(72, 28));
+            btn.setPreferredSize(new Dimension(width, 28));
         }
 
         @Override public Component getTableCellEditorComponent(JTable t, Object v,
                 boolean sel, int row, int col) {
             editingRow = row;
             panel.setBackground(getRowBg(true, row));
+            if (v instanceof Lich lich) {
+                boolean active = lich.isHoatDong();
+                btnToggle.setText(active ? "Ngưng HĐ" : "Kích hoạt");
+                btnToggle.setForeground(active ? ERROR_FG : WARN_FG);
+                btnToggle.setBackground(active ? ERROR_BG : WARN_BG);
+            }
             return panel;
         }
         @Override public Object getCellEditorValue() { return null; }

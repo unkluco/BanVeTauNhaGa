@@ -164,6 +164,49 @@ public class DAO_KhachHang {
         return ds;
     }
 
+    // ========================= KIỂM TRA TRÙNG LẶP =========================
+    public boolean existsBySoDienThoai(String sdt, String excludeMaKH) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || sdt == null || sdt.isBlank()) return false;
+        String sql = "SELECT 1 FROM KhachHang WHERE soDienThoai = ? AND maKhachHang <> ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, sdt);
+            ps.setString(2, excludeMaKH);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) {
+            System.err.println("Loi khi kiem tra trung SDT khach hang: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean existsByCccd(String cccd, String excludeMaKH) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || cccd == null || cccd.isBlank()) return false;
+        String sql = "SELECT 1 FROM KhachHang WHERE cccd = ? AND maKhachHang <> ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, cccd);
+            ps.setString(2, excludeMaKH);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) {
+            System.err.println("Loi khi kiem tra trung CCCD khach hang: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean existsByEmail(String email, String excludeMaKH) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || email == null || email.isBlank()) return false;
+        String sql = "SELECT 1 FROM KhachHang WHERE email = ? AND maKhachHang <> ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, email);
+            ps.setString(2, excludeMaKH);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) {
+            System.err.println("Loi khi kiem tra trung email khach hang: " + e.getMessage());
+        }
+        return false;
+    }
+
     // ========================= SINH MA KH MOI =========================
     public String generateNextMaKH() {
         Connection con = ConnectDB.getCon();

@@ -5,6 +5,7 @@ public class Tuyen {
     private Ga gaDi;
     private Ga gaDen;
     private int km;
+    private boolean hoatDong = true;
 
     public Tuyen() {
         super();
@@ -35,6 +36,8 @@ public class Tuyen {
     public void setGaDen(Ga gaDen) { this.gaDen = gaDen; }
     public int getKm() { return km; }
     public void setKm(int km) { this.km = km; }
+    public boolean isHoatDong() { return hoatDong; }
+    public void setHoatDong(boolean hoatDong) { this.hoatDong = hoatDong; }
 
     @Override
     public String toString() {

@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class QuanLyToaModule extends JPanel implements AppModule {
+    private static final String[] STATUS_OPTIONS = {
+            "Đang hoạt động", "Đang bảo trì", "Ngừng hoạt động"
+    };
 
     // ── Design tokens ────────────────────────────────────────────────────
     private static final Color PRIMARY       = new Color(13, 110, 253);
@@ -357,7 +360,10 @@ public class QuanLyToaModule extends JPanel implements AppModule {
 
         filteredData = new ArrayList<>();
         for (ToaTau t : allData) {
-            boolean matchQ = q.isEmpty() || t.getMaToaTau().toLowerCase().contains(q);
+            boolean matchQ = q.isEmpty()
+                    || t.getMaToaTau().toLowerCase().contains(q)
+                    || (t.getLoaiGhe() != null && t.getLoaiGhe().toString().toLowerCase().contains(q))
+                    || normalizeStatus(t.getTrangThai()).toLowerCase().contains(q);
             boolean matchL = !filterLoai || (t.getLoaiGhe() != null && t.getLoaiGhe().toString().equals(loai));
             
             if (matchQ && matchL) filteredData.add(t);
@@ -428,44 +434,35 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         dlg.setVisible(true);
     }
 
-    private void openDeleteToaDialog(ToaTau toa) {
+    private void openChangeToaStatusDialog(ToaTau toa) {
         if (toa == null || toa.getMaToaTau() == null || toa.getMaToaTau().isBlank()) return;
 
-        int doanTauRefs = daoToa.countDoanTauReferences(toa.getMaToaTau());
-        if (doanTauRefs > 0) {
-            JOptionPane.showMessageDialog(this,
-                    "Không thể xóa toa " + toa.getMaToaTau()
-                            + " vì đang được gán cho " + doanTauRefs + " đoàn tàu.",
-                    "Không thể xóa",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+        JComboBox<String> cbo = new JComboBox<>(STATUS_OPTIONS);
+        cbo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbo.setSelectedItem(normalizeStatus(toa.getTrangThai()));
 
-        int seatUsageRefs = daoToa.countSeatUsageReferences(toa.getMaToaTau());
-        if (seatUsageRefs > 0) {
-            JOptionPane.showMessageDialog(this,
-                    "Không thể xóa toa " + toa.getMaToaTau()
-                            + " vì đã phát sinh dữ liệu vé/giữ chỗ (" + seatUsageRefs + " bản ghi).",
-                    "Không thể xóa",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.add(new JLabel("Cập nhật trạng thái cho " + toa.getMaToaTau() + ":"), BorderLayout.NORTH);
+        panel.add(cbo, BorderLayout.CENTER);
 
         int confirmed = JOptionPane.showConfirmDialog(
                 this,
-                "Xóa toa " + toa.getMaToaTau() + " (" + toa.getLoaiGhe() + ")?",
-                "Xác nhận xóa",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE
+                panel,
+                "Đổi trạng thái toa",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
         );
-        if (confirmed != JOptionPane.YES_OPTION) return;
+        if (confirmed != JOptionPane.OK_OPTION) return;
 
-        boolean ok = daoToa.deleteWithSeats(toa.getMaToaTau());
+        String newStatus = (String) cbo.getSelectedItem();
+        if (newStatus == null || normalizeStatus(toa.getTrangThai()).equals(newStatus)) return;
+
+        boolean ok = daoToa.updateTrangThai(toa.getMaToaTau(), newStatus);
         if (ok) {
             loadData();
         } else {
             JOptionPane.showMessageDialog(this,
-                    "Xóa toa thất bại. Vui lòng thử lại.",
+                    "Không thể cập nhật trạng thái toa.",
                     "Lỗi",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -536,8 +533,8 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         };
         card.setOpaque(false);
         card.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        card.setPreferredSize(new Dimension(width, 110));
-        card.setMaximumSize(new Dimension(width, 110));
+        card.setPreferredSize(new Dimension(width, 126));
+        card.setMaximumSize(new Dimension(width, 126));
         card.setBorder(new EmptyBorder(12, 20, 12, 12));
 
         JPanel content = new JPanel(new BorderLayout());
@@ -553,13 +550,13 @@ public class QuanLyToaModule extends JPanel implements AppModule {
 
         JButton btnView = createCardActionButton("nutTimKiem.png", "Xem chi tiết", PRIMARY_LIGHT);
         btnView.addActionListener(e -> openChiTiet(toa));
-        JButton btnDelete = createCardActionButton("nutXoa.png", "Xóa toa", new Color(0xFE, 0xE2, 0xE2));
-        btnDelete.addActionListener(e -> openDeleteToaDialog(toa));
+        JButton btnStatus = createCardActionButton("nutSua.png", "Đổi trạng thái", PRIMARY_LIGHT);
+        btnStatus.addActionListener(e -> openChangeToaStatusDialog(toa));
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         actions.setOpaque(false);
         actions.add(btnView);
-        actions.add(btnDelete);
+        actions.add(btnStatus);
 
         top.add(lblCode, BorderLayout.WEST);
         top.add(actions, BorderLayout.EAST);
@@ -581,10 +578,27 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         lblCount.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblCount.setForeground(TEXT_MUTED);
 
+        JLabel lblStatus = new JLabel(normalizeStatus(toa.getTrangThai())) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(resolveStatusBg(getText()));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblStatus.setForeground(resolveStatusFg(lblStatus.getText()));
+        lblStatus.setBorder(new EmptyBorder(4, 10, 4, 10));
+
         body.add(Box.createVerticalStrut(8));
         body.add(lblType);
         body.add(Box.createVerticalStrut(4));
         body.add(lblCount);
+        body.add(Box.createVerticalStrut(6));
+        body.add(lblStatus);
 
         content.add(body, BorderLayout.CENTER);
         card.add(content, BorderLayout.CENTER);
@@ -597,6 +611,28 @@ public class QuanLyToaModule extends JPanel implements AppModule {
                 Math.min(255, Math.max(0, (int)(c.getRed()   * f))),
                 Math.min(255, Math.max(0, (int)(c.getGreen() * f))),
                 Math.min(255, Math.max(0, (int)(c.getBlue()  * f))));
+    }
+
+    private String normalizeStatus(String status) {
+        if (status == null || status.isBlank()) return STATUS_OPTIONS[0];
+        String normalized = status.trim().toLowerCase();
+        if (normalized.contains("ngừng") || normalized.contains("ngung")) return STATUS_OPTIONS[2];
+        if (normalized.contains("bảo trì") || normalized.contains("bao tri")) return STATUS_OPTIONS[1];
+        return STATUS_OPTIONS[0];
+    }
+
+    private Color resolveStatusBg(String status) {
+        String normalized = status == null ? "" : status.trim().toLowerCase();
+        if (normalized.contains("bảo trì")) return new Color(0xFE, 0xF3, 0xC7);
+        if (normalized.contains("ngừng")) return new Color(0xFE, 0xE2, 0xE2);
+        return new Color(0xDC, 0xFA, 0xE6);
+    }
+
+    private Color resolveStatusFg(String status) {
+        String normalized = status == null ? "" : status.trim().toLowerCase();
+        if (normalized.contains("bảo trì")) return new Color(0x92, 0x60, 0x10);
+        if (normalized.contains("ngừng")) return new Color(0xB9, 0x1C, 0x1C);
+        return new Color(0x16, 0x6B, 0x3A);
     }
 
     private JPanel buildEmptyState() {

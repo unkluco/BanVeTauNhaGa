@@ -121,11 +121,28 @@ public class DAO_Tuyen {
         return false;
     }
 
+    public boolean setHoatDong(String maTuyen, boolean hoatDong) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return false;
+
+        String sql = "UPDATE Tuyen SET hoatDong = ? WHERE maTuyen = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setBoolean(1, hoatDong);
+            ps.setString(2, maTuyen);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi cập nhật trạng thái tuyến: " + e.getMessage());
+        }
+        return false;
+    }
+
     private Tuyen mapRow(ResultSet rs) throws SQLException {
         String maTuyen = rs.getString("maTuyen");
         Ga gaDi = daoGa.findById(rs.getString("gaDi"));
         Ga gaDen = daoGa.findById(rs.getString("gaDen"));
         int km = rs.getInt("km");
-        return new Tuyen(maTuyen, gaDi, gaDen, km);
+        Tuyen tuyen = new Tuyen(maTuyen, gaDi, gaDen, km);
+        try { tuyen.setHoatDong(rs.getBoolean("hoatDong")); } catch (SQLException ignored) {}
+        return tuyen;
     }
 }
