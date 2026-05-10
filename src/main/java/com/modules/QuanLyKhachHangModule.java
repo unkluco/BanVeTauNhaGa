@@ -26,7 +26,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
     // --- UI ---
     private JButton          btnAddNew;
     private JTextField        txtSearch;
-    private JComboBox<String> cboFilter;
+    private JComboBox<String> cboGioiTinh;
     private JTable            table;
     private KhachHangTableModel tableModel;
 
@@ -37,22 +37,25 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
 
     private JLabel  lblPageInfo;
     private JPanel  paginationPanel;
+    private JLabel  lblTotalCount;
+    private JLabel  lblMaleCount;
+    private JLabel  lblFemaleCount;
 
     // --- Data ---
     private List<KhachHang> allData      = new ArrayList<>();
     private List<KhachHang> filteredData = new ArrayList<>();
 
     // --- Design tokens ---
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color ROW_ALT       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color ROW_HOVER     = new Color(0xEE, 0xF5, 0xFB);
-    private static final Color TEXT_MUTED    = new Color(0xA0, 0xAE, 0xBA);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color ROW_ALT       = NotionTheme.PAGE;
+    private static final Color ROW_HOVER     = NotionTheme.ACCENT_SOFT;
+    private static final Color TEXT_MUTED    = NotionTheme.TEXT_FAINT;
 
     private static final Font FONT_TITLE   = new Font("Segoe UI", Font.BOLD, 24);
     private static final Font FONT_DESC    = new Font("Segoe UI", Font.PLAIN, 13);
@@ -75,7 +78,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
     public QuanLyKhachHangModule() {
         setLayout(new BorderLayout());
         setBackground(SURFACE);
-        setBorder(new EmptyBorder(28, 36, 28, 36));
+        setBorder(new EmptyBorder(24, 32, 24, 32));
 
         btnSubmit = new JButton();
         btnCancel = new JButton();
@@ -91,40 +94,72 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
     // =================================================================
 
     private void buildUI() {
-        add(buildHeader(), BorderLayout.NORTH);
-        JPanel content = new JPanel(new BorderLayout(0, 16));
-        content.setOpaque(false);
-        content.add(buildFilterCard(), BorderLayout.NORTH);
-        content.add(buildTableCard(), BorderLayout.CENTER);
-        add(content, BorderLayout.CENTER);
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setOpaque(false);
+        top.add(buildHeader());
+        top.add(Box.createVerticalStrut(16));
+        top.add(buildStatsRow());
+        top.add(Box.createVerticalStrut(16));
+        top.add(buildFilterCard());
+        top.add(Box.createVerticalStrut(16));
+
+        add(top, BorderLayout.NORTH);
+        add(buildTableCard(), BorderLayout.CENTER);
     }
 
     private JPanel buildHeader() {
-        JPanel header = new JPanel(new BorderLayout(0, 0));
+        JPanel header = new JPanel(new BorderLayout(24, 0)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                GradientPaint gp = new GradientPaint(0, 0, NotionTheme.NAVY,
+                        getWidth(), getHeight(), new Color(0x00, 0x75, 0xDE));
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+                g2.setColor(AppColors.withAlpha(NotionTheme.SKY, 150));
+                g2.fillOval(getWidth() - 255, -92, 260, 260);
+                g2.setColor(AppColors.withAlpha(NotionTheme.ROSE, 120));
+                g2.fillRoundRect(getWidth() - 420, 86, 180, 64, 22, 22);
+                g2.setColor(AppColors.withAlpha(Color.WHITE, 48));
+                g2.fillOval(getWidth() - 315, 34, 74, 74);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         header.setOpaque(false);
-        header.setBorder(new EmptyBorder(0, 0, 24, 0));
+        header.setBorder(new EmptyBorder(24, 28, 24, 28));
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel left = new JPanel();
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
+        JLabel lblEyebrow = new JLabel("WORKSPACE / KHÁCH HÀNG");
+        lblEyebrow.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblEyebrow.setForeground(AppColors.withAlpha(Color.WHITE, 175));
+        lblEyebrow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         JLabel lblTitle = new JLabel("Quản lý khách hàng");
-        lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(ON_SURFACE);
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        lblTitle.setForeground(Color.WHITE);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDesc = new JLabel("Quản lý thông tin hành khách đã đặt vé");
-        lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(ON_SURF_VAR);
+        JLabel lblDesc = new JLabel("Theo dõi hồ sơ hành khách, liên hệ và lịch sử đặt vé trong một workspace.");
+        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblDesc.setForeground(AppColors.withAlpha(Color.WHITE, 205));
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        left.add(lblEyebrow);
+        left.add(Box.createVerticalStrut(8));
         left.add(lblTitle);
-        left.add(Box.createVerticalStrut(4));
+        left.add(Box.createVerticalStrut(8));
         left.add(lblDesc);
 
-        // Right: add button
         btnAddNew = createPrimaryButton("+ Thêm khách hàng");
-        btnAddNew.setPreferredSize(new Dimension(170, 40));
+        btnAddNew.setPreferredSize(new Dimension(178, 42));
         btnAddNew.addActionListener(e -> openThemKhachHangDialog());
 
         JPanel rightWrapper = new JPanel(new GridBagLayout());
@@ -134,6 +169,69 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         header.add(left, BorderLayout.CENTER);
         header.add(rightWrapper, BorderLayout.EAST);
         return header;
+    }
+
+    private JPanel buildStatsRow() {
+        JPanel row = new JPanel(new GridLayout(1, 3, 12, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
+
+        lblTotalCount = new JLabel("0");
+        lblMaleCount = new JLabel("0");
+        lblFemaleCount = new JLabel("0");
+
+        row.add(buildStatCard("Kết quả hiện tại", lblTotalCount, NotionTheme.ACCENT, NotionTheme.ACCENT_SOFT));
+        row.add(buildStatCard("Khách nam", lblMaleCount, new Color(0x00, 0x75, 0xDE), NotionTheme.SKY));
+        row.add(buildStatCard("Khách nữ", lblFemaleCount, AppColors.ERROR_DARK, NotionTheme.ROSE));
+        return row;
+    }
+
+    private JPanel buildStatCard(String label, JLabel value, Color accent, Color tint) {
+        JPanel card = new JPanel(new BorderLayout(10, 0)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(tint);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.setColor(AppColors.withAlpha(accent, 80));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        card.setOpaque(false);
+        card.setBorder(new EmptyBorder(14, 18, 14, 18));
+
+        JPanel marker = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(accent);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+            }
+        };
+        marker.setOpaque(false);
+        marker.setPreferredSize(new Dimension(8, 48));
+
+        JPanel text = new JPanel();
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+        text.setOpaque(false);
+        value.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        value.setForeground(accent);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lbl.setForeground(ON_SURF_VAR);
+        text.add(value);
+        text.add(Box.createVerticalStrut(2));
+        text.add(lbl);
+
+        card.add(marker, BorderLayout.WEST);
+        card.add(text, BorderLayout.CENTER);
+        return card;
     }
 
     private JPanel buildFilterCard() {
@@ -151,6 +249,8 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
             }
         };
         card.setOpaque(false);
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
         card.add(buildFilterBar(), BorderLayout.CENTER);
         return card;
     }
@@ -172,6 +272,19 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         card.setOpaque(false);
         card.setBorder(new EmptyBorder(0, 0, 0, 0));
 
+        JPanel tableHeader = new JPanel(new BorderLayout());
+        tableHeader.setOpaque(false);
+        tableHeader.setBorder(new EmptyBorder(18, 20, 14, 20));
+        JLabel title = new JLabel("Danh sách khách hàng");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        title.setForeground(ON_SURFACE);
+        JLabel hint = new JLabel("Nhấp đúp vào dòng hoặc nút Sửa để cập nhật hồ sơ");
+        hint.setFont(FONT_SMALL);
+        hint.setForeground(ON_SURF_VAR);
+        tableHeader.add(title, BorderLayout.WEST);
+        tableHeader.add(hint, BorderLayout.EAST);
+
+        card.add(tableHeader, BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
         card.add(buildPaginationBar(), BorderLayout.SOUTH);
 
@@ -182,106 +295,83 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         JPanel wrapper = new JPanel();
         wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
         wrapper.setOpaque(false);
-        wrapper.setBorder(new EmptyBorder(16, 20, 16, 20));
+        wrapper.setBorder(new EmptyBorder(18, 22, 18, 22));
 
-        // Row 1: Search row (full width)
-        JPanel searchRow = new JPanel(new BorderLayout());
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel title = new JLabel("Bộ lọc khách hàng");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        title.setForeground(ON_SURFACE);
+        JLabel subtitle = new JLabel("Thống kê phía trên thay đổi theo kết quả tìm kiếm bên dưới");
+        subtitle.setFont(FONT_SMALL);
+        subtitle.setForeground(ON_SURF_VAR);
+        header.add(title, BorderLayout.WEST);
+        header.add(subtitle, BorderLayout.EAST);
+        wrapper.add(header);
+        wrapper.add(Box.createVerticalStrut(12));
+
+        JPanel searchRow = new JPanel(new BorderLayout(10, 0));
         searchRow.setOpaque(false);
+        searchRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel bgPanel = new JPanel(new GridBagLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Shadow
-                g2.setColor(new Color(0, 0, 0, 10));
-                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 20, 20);
-                
-                // Background
-                g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
-                
-                // Border
-                g2.setColor(OUTLINE);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        bgPanel.setOpaque(false);
-        bgPanel.setBorder(new EmptyBorder(6, 15, 10, 15));
+        JPanel searchBox = new JPanel(new BorderLayout(10, 0));
+        searchBox.setOpaque(false);
+        searchBox.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(9, 14, 9, 14)
+        ));
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(0, 0, 0, 12);
-        gbc.fill = GridBagConstraints.VERTICAL;
-
-        // Custom search icon label
-        JLabel iconSearch = new JLabel();
-        try {
-            java.net.URL url = getClass().getResource("/icons/nutTimKiem.png");
-            if (url != null) {
-                Image img = new ImageIcon(url).getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
-                iconSearch.setIcon(new ImageIcon(img));
-            }
-        } catch (Exception ignored) {}
-        bgPanel.add(iconSearch, gbc);
+        JLabel iconSearch = new JLabel(LineIcons.image(LineIcons.Name.SEARCH, 18, 18));
+        // Handoff: search icon is generated by LineIcons directly, independent of SVG files.
+        // Risk: keep search icon inside only real search fields, not filter controls.
+        searchBox.add(iconSearch, BorderLayout.WEST);
 
         txtSearch = new JTextField();
         txtSearch.setFont(FONT_BODY);
-        txtSearch.setOpaque(true);
-        txtSearch.setBackground(Color.WHITE);
-        txtSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
-        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên, mã KH, CCCD, SĐT, email...");
-        
-        // Real-time search
+        txtSearch.setOpaque(false);
+        txtSearch.setBorder(BorderFactory.createEmptyBorder());
+        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên, mã KH, CCCD, SĐT hoặc email...");
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
         });
+        searchBox.add(txtSearch, BorderLayout.CENTER);
+        SearchFieldClearButton.install(searchBox, txtSearch, this::applyFilter);
 
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        bgPanel.add(txtSearch, gbc);
-
-        // Bo loc button
-        JButton btnReset = new JButton("Bỏ lọc") {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(OUTLINE);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnReset.setFont(FONT_BOLD);
-        btnReset.setForeground(ON_SURF_VAR);
-        btnReset.setContentAreaFilled(false);
-        btnReset.setBorderPainted(false);
-        btnReset.setFocusPainted(false);
-        btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnReset.setPreferredSize(new Dimension(100, 38));
+        JButton btnReset = new JButton("Bỏ lọc");
+        NotionTheme.styleSecondaryButton(btnReset);
+        btnReset.setPreferredSize(new Dimension(104, 40));
         btnReset.addActionListener(e -> {
-            txtSearch.setText("");
+            cboGioiTinh.setSelectedIndex(0);
             applyFilter();
         });
 
-        gbc.weightx = 0;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(0, 0, 0, 0);
-        bgPanel.add(btnReset, gbc);
-
-        searchRow.add(bgPanel, BorderLayout.CENTER);
+        searchRow.add(searchBox, BorderLayout.CENTER);
         wrapper.add(searchRow);
+        wrapper.add(Box.createVerticalStrut(12));
+
+        cboGioiTinh = createFilterCombo(new String[]{"Tất cả giới tính", "Nam", "Nữ"});
+        cboGioiTinh.addActionListener(e -> applyFilter());
+        JPanel optionRow = new JPanel(new GridBagLayout());
+        optionRow.setOpaque(false);
+        optionRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        GridBagConstraints filterGbc = new GridBagConstraints();
+        filterGbc.gridy = 0;
+        filterGbc.fill = GridBagConstraints.HORIZONTAL;
+        filterGbc.anchor = GridBagConstraints.NORTHWEST;
+        filterGbc.weightx = 1.0;
+        filterGbc.insets = new Insets(0, 0, 0, 12);
+        filterGbc.gridx = 0;
+        optionRow.add(createFilterGroup("Giới tính", cboGioiTinh), filterGbc);
+        filterGbc.gridx = 1;
+        filterGbc.weightx = 0.0;
+        filterGbc.insets = new Insets(0, 0, 0, 0);
+        optionRow.add(FilterActionGroup.wrap(btnReset), filterGbc);
+        // Handoff: filter row dùng grid để control và Bỏ lọc đều cao/cùng nhịp.
+        // Cảnh báo: reset filter không tác động search box vì search có nút X riêng.
+        wrapper.add(optionRow);
 
         return wrapper;
     }
@@ -289,16 +379,15 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
     private JScrollPane buildTableSection() {
         tableModel = new KhachHangTableModel();
         table = new JTable(tableModel);
+        NotionTheme.styleTable(table);
         table.setRowHeight(56);
         table.setShowGrid(false);
         table.setShowHorizontalLines(true);
         table.setGridColor(OUTLINE);
         table.setIntercellSpacing(new Dimension(0, 0));
-        table.setSelectionBackground(PRIMARY_LIGHT);
+        table.setSelectionBackground(NotionTheme.TABLE_SELECTION);
         table.setSelectionForeground(ON_SURFACE);
-        table.setFont(FONT_BODY);
         table.setFillsViewportHeight(true);
-        table.setBackground(CARD_BG);
         table.getTableHeader().setReorderingAllowed(false);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
@@ -325,7 +414,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
                 JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 lbl.setFont(FONT_HEADER);
                 lbl.setForeground(ON_SURF_VAR);
-                lbl.setBackground(new Color(0xF8, 0xFA, 0xFC));
+                lbl.setBackground(NotionTheme.CARD_MUTED);
                 lbl.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
                         new EmptyBorder(0, 20, 0, 8)
@@ -347,7 +436,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         colModel.getColumn(2).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
         colModel.getColumn(3).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
         colModel.getColumn(4).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
-        colModel.getColumn(5).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.CENTER));
+        colModel.getColumn(5).setCellRenderer(new GenderBadgeCellRenderer());
         colModel.getColumn(6).setCellRenderer(new EditButtonRenderer());
         colModel.getColumn(6).setCellEditor(new EditButtonEditor());
 
@@ -452,20 +541,39 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
 
     private void applyFilter() {
         String keyword = txtSearch.getText().trim().toLowerCase();
+        String genderFilter = cboGioiTinh == null ? "" : switch (cboGioiTinh.getSelectedIndex()) {
+            case 1 -> "NAM";
+            case 2 -> "NU";
+            default -> "";
+        };
 
         filteredData = new ArrayList<>();
         for (KhachHang kh : allData) {
-            boolean match = keyword.isEmpty()
+            String gender = kh.getGioiTinh() == null ? "" : kh.getGioiTinh().trim().toUpperCase();
+            boolean matchText = keyword.isEmpty()
                     || (kh.getMaKhachHang() != null && kh.getMaKhachHang().toLowerCase().contains(keyword))
                     || (kh.getHoTen() != null && kh.getHoTen().toLowerCase().contains(keyword))
                     || (kh.getCccd() != null && kh.getCccd().toLowerCase().contains(keyword))
                     || (kh.getSoDienThoai() != null && kh.getSoDienThoai().toLowerCase().contains(keyword));
-            if (match) filteredData.add(kh);
+            boolean matchGender = genderFilter.isEmpty() || genderFilter.equals(gender);
+            if (matchText && matchGender) filteredData.add(kh);
         }
 
+        // Thống kê luôn đi theo filteredData để số liệu phản ánh đúng search + lọc giới tính hiện tại.
+        // Rủi ro: giới tính trong DB đang là String thô NAM/NU, nên cần normalize trước khi so sánh.
         totalRecords = filteredData.size();
+        updateStats(filteredData);
         currentPage = 1;
         refreshTable();
+    }
+
+    private void updateStats(List<KhachHang> source) {
+        if (lblTotalCount == null) return;
+        long male = source.stream().filter(kh -> "NAM".equalsIgnoreCase(kh.getGioiTinh() == null ? "" : kh.getGioiTinh().trim())).count();
+        long female = source.stream().filter(kh -> "NU".equalsIgnoreCase(kh.getGioiTinh() == null ? "" : kh.getGioiTinh().trim())).count();
+        lblTotalCount.setText(String.valueOf(source.size()));
+        lblMaleCount.setText(String.valueOf(male));
+        lblFemaleCount.setText(String.valueOf(female));
     }
 
     // =================================================================
@@ -549,7 +657,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setContentAreaFilled(false);
-        btn.setForeground(page == currentPage ? Color.WHITE : ON_SURF_VAR);
+        btn.setForeground(page == currentPage ? NotionTheme.CARD : ON_SURF_VAR);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.addActionListener(e -> { currentPage = page; refreshTable(); });
         paginationPanel.add(btn);
@@ -597,7 +705,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
                 case 3 -> kh.getSoDienThoai() != null ? kh.getSoDienThoai() : "";
                 case 4 -> kh.getEmail() != null ? kh.getEmail() : "";
                 case 5 -> kh.getGioiTinh() != null ? kh.getGioiTinh() : "";
-                case 6 -> "Sửa";
+                case 6 -> "Chỉnh sửa";
                 default -> "";
             };
         }
@@ -643,6 +751,60 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         }
     }
 
+    private class GenderBadgeCellRenderer extends JPanel implements TableCellRenderer {
+        private final JLabel badge = new JLabel();
+        private Color badgeBg = NotionTheme.CARD_MUTED;
+        private Color badgeFg = ON_SURF_VAR;
+        private static final int BADGE_HEIGHT = 24;
+        private static final int BADGE_MARGIN_X = 28;
+
+        GenderBadgeCellRenderer() {
+            setLayout(new BorderLayout());
+            setOpaque(true);
+            setBorder(new EmptyBorder(0, BADGE_MARGIN_X, 0, BADGE_MARGIN_X));
+            badge.setFont(FONT_BADGE);
+            badge.setHorizontalAlignment(SwingConstants.CENTER);
+            badge.setOpaque(false);
+            badge.setPreferredSize(new Dimension(10, BADGE_HEIGHT));
+            add(badge, BorderLayout.CENTER);
+            // Handoff: badge giới tính bám gần full ô để đồng bộ với các property tag trong table.
+            // Nếu cột giới tính bị hẹp, giảm BADGE_MARGIN_X trước khi giảm font/padding.
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable tbl, Object value,
+                boolean isSel, boolean hasFocus, int row, int col) {
+            String gender = value == null ? "" : value.toString().trim().toUpperCase();
+            switch (gender) {
+                case "NAM" -> { badge.setText("Nam"); badgeBg = NotionTheme.SKY; badgeFg = new Color(0x00, 0x75, 0xDE); }
+                case "NU"  -> { badge.setText("Nữ");  badgeBg = NotionTheme.ROSE; badgeFg = AppColors.ERROR_DARK; }
+                default    -> { badge.setText("--");  badgeBg = NotionTheme.CARD_MUTED; badgeFg = ON_SURF_VAR; }
+            }
+            badge.setForeground(badgeFg);
+            setBackground(getRowBg(tbl, isSel, row));
+            return this;
+        }
+
+        @Override
+        protected void paintChildren(Graphics g) {
+            // Gender badge map raw NAM/NU sang nhãn tiếng Việt có dấu để UI không lộ mã DB.
+            // Rủi ro: nếu DB phát sinh giá trị mới, renderer sẽ rơi về "--" để tránh hiển thị sai.
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Rectangle r = badge.getBounds();
+            int x = r.x;
+            int y = r.y + Math.max(0, (r.height - BADGE_HEIGHT) / 2);
+            int w = r.width;
+            int h = BADGE_HEIGHT;
+            g2.setColor(badgeBg);
+            g2.fillRoundRect(x, y, w, h, 8, 8);
+            g2.setColor(AppColors.withAlpha(badgeFg, 65));
+            g2.drawRoundRect(x, y, w - 1, h - 1, 8, 8);
+            g2.dispose();
+            super.paintChildren(g);
+        }
+    }
+
     private class EditButtonRenderer extends JPanel implements TableCellRenderer {
         private final JLabel lbl = new JLabel();
 
@@ -660,7 +822,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         @Override
         public Component getTableCellRendererComponent(JTable tbl, Object value,
                 boolean isSel, boolean hasFocus, int row, int col) {
-            lbl.setText(value != null ? value.toString() : "Sửa");
+            lbl.setText(value != null ? value.toString() : "Chỉnh sửa");
             setBackground(getRowBg(tbl, isSel, row));
             return this;
         }
@@ -690,14 +852,14 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
             panel = new JPanel(new GridBagLayout());
             panel.setOpaque(true);
 
-            button = new JButton("Sửa");
+            button = new JButton("Chỉnh sửa");
             button.setFont(FONT_BADGE);
-            button.setForeground(PRIMARY);
-            button.setBackground(PRIMARY_LIGHT);
+            button.setForeground(AppColors.ACTION_SOFT_FG);
+            button.setBackground(AppColors.ACTION_SOFT_BG);
             button.setBorderPainted(false);
             button.setFocusPainted(false);
             button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            button.setPreferredSize(new Dimension(72, 28));
+            button.setPreferredSize(new Dimension(96, 28));
 
             button.addActionListener(e -> {
                 fireEditingStopped();
@@ -738,11 +900,11 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         }
 
         @Override
-        public Object getCellEditorValue() { return "Sửa"; }
+        public Object getCellEditorValue() { return "Chỉnh sửa"; }
     }
 
     private Color getRowBg(JTable tbl, boolean isSel, int row) {
-        if (isSel) return PRIMARY_LIGHT;
+        if (isSel) return NotionTheme.TABLE_SELECTION;
         if (row == hoveredRow) return ROW_HOVER;
         return row % 2 == 0 ? CARD_BG : ROW_ALT;
     }
@@ -772,8 +934,35 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
     }
     @Override public void reset() {
         txtSearch.setText("");
+        if (cboGioiTinh != null) cboGioiTinh.setSelectedIndex(0);
         currentPage = 1;
         loadData();
+    }
+
+    private JComboBox<String> createFilterCombo(String[] items) {
+        JComboBox<String> cbo = new JComboBox<>(items);
+        cbo.setFont(FONT_BODY);
+        cbo.setPreferredSize(new Dimension(180, 38));
+        cbo.setBackground(NotionTheme.CARD);
+        cbo.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
+        return cbo;
+    }
+
+    private JLabel createFilterLabel(String text) {
+        JLabel lbl = new JLabel(text + ":");
+        lbl.setFont(FONT_HEADER);
+        lbl.setForeground(ON_SURF_VAR);
+        return lbl;
+    }
+
+    private JPanel createFilterGroup(String label, JComponent input) {
+        JPanel group = new JPanel(new BorderLayout(0, 6));
+        group.setOpaque(false);
+        group.add(createFilterLabel(label), BorderLayout.NORTH);
+        group.add(input, BorderLayout.CENTER);
+        return group;
+        // Handoff: label đặt trên field để filter grid không bị cắt khi nhúng trong MenuModule.
+        // Cảnh báo: nếu thêm filter mới, giữ cấu trúc vertical này để cùng baseline với Bỏ lọc.
     }
 
     private void openThemKhachHangDialog() {
@@ -809,3 +998,6 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         return btn;
     }
 }
+
+
+

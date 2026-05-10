@@ -1,6 +1,7 @@
 package com.modules;
 
 import com.dao.DAO_ChiTietKhuyenMai;
+import com.dao.DAO_KhuyenMai;
 import com.entity.ChiTietKhuyenMai;
 import com.entity.KhuyenMai;
 import com.enums.LoaiGhe;
@@ -28,27 +29,27 @@ import java.util.function.Consumer;
 public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
 
     // ── Design tokens ──────────────────────────────────────────────────
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color PRIMARY_FIXED = new Color(0xCD, 0xE5, 0xFF);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color INFO_CARD_BG  = new Color(0xF2, 0xF4, 0xF6);
-    private static final Color ON_SURFACE    = new Color(0x19, 0x1C, 0x1E);
-    private static final Color ON_SURF_VAR   = new Color(0x40, 0x48, 0x50);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color OUTLINE_VAR   = new Color(0xBF, 0xC7, 0xD1);
-    private static final Color ROW_ALT       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color ROW_HOVER     = new Color(0xEE, 0xF5, 0xFB);
-    private static final Color ERROR_BG      = new Color(0xFF, 0xDA, 0xD6);
-    private static final Color ERROR_FG      = new Color(0xB9, 0x1C, 0x1C);
-    private static final Color BADGE_BG      = new Color(0xEC, 0xEE, 0xF0);
-    private static final Color STATUS_GREEN_BG = new Color(0xDC, 0xFA, 0xE6);
-    private static final Color STATUS_GREEN_FG = new Color(0x16, 0x6B, 0x3A);
-    private static final Color STATUS_RED_BG   = new Color(0xFE, 0xE2, 0xE2);
-    private static final Color STATUS_RED_FG   = new Color(0xB9, 0x1C, 0x1C);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color PRIMARY_FIXED = NotionTheme.ACCENT_SOFT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color INFO_CARD_BG  = NotionTheme.CARD;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color OUTLINE_VAR   = NotionTheme.BORDER_STRONG;
+    private static final Color ROW_ALT       = NotionTheme.CARD_MUTED;
+    private static final Color ROW_HOVER     = NotionTheme.ROW_HOVER;
+    private static final Color ERROR_BG      = NotionTheme.ROSE;
+    private static final Color ERROR_FG      = new Color(0xE0, 0x31, 0x31);
+    private static final Color BADGE_BG      = NotionTheme.ACCENT_SOFT;
+    private static final Color STATUS_GREEN_BG = NotionTheme.MINT;
+    private static final Color STATUS_GREEN_FG = new Color(0x1A, 0xAE, 0x39);
+    private static final Color STATUS_RED_BG   = NotionTheme.ROSE;
+    private static final Color STATUS_RED_FG   = new Color(0xE0, 0x31, 0x31);
 
-    private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 24);
+    private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 28);
     private static final Font FONT_BODY   = new Font("Segoe UI", Font.PLAIN, 13);
     private static final Font FONT_BOLD   = new Font("Segoe UI", Font.BOLD, 13);
     private static final Font FONT_MONO   = new Font("Consolas", Font.BOLD, 13);
@@ -119,9 +120,26 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
     // ── Page header ────────────────────────────────────────────────────
 
     private JPanel buildPageHeader() {
-        JPanel header = new JPanel(new BorderLayout());
+        JPanel header = new JPanel(new BorderLayout(24, 0)) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setPaint(new GradientPaint(0, 0, NotionTheme.NAVY, getWidth(), getHeight(), new Color(0xA0, 0x2E, 0x6D)));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+                g2.setColor(AppColors.withAlpha(NotionTheme.ROSE, 126));
+                g2.fillRoundRect(getWidth() - 245, 18, 150, 96, 28, 28);
+                g2.setColor(AppColors.withAlpha(NotionTheme.YELLOW, 96));
+                g2.fillOval(getWidth() - 145, -24, 126, 126);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         header.setOpaque(false);
         header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        header.setPreferredSize(new Dimension(10, 142));
+        header.setBorder(new EmptyBorder(22, 28, 22, 28));
+        // Handoff: hero chỉ đổi visual Notion, các action quay lại/thêm chi tiết giữ nguyên.
+        // Cảnh báo: không đưa logic khuyến mãi vào paint để tránh repaint gây side-effect.
 
         JPanel leftSection = new JPanel();
         leftSection.setLayout(new BoxLayout(leftSection, BoxLayout.Y_AXIS));
@@ -129,7 +147,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
 
         JLabel lblBack = new JLabel("← Quay lại danh sách");
         lblBack.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblBack.setForeground(PRIMARY);
+        lblBack.setForeground(AppColors.withAlpha(Color.WHITE, 210));
         lblBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         lblBack.setAlignmentX(Component.LEFT_ALIGNMENT);
         lblBack.addMouseListener(new MouseAdapter() {
@@ -142,7 +160,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
 
         JLabel lblTitle = new JLabel("Chi tiết khuyến mãi");
         lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(ON_SURFACE);
+        lblTitle.setForeground(Color.WHITE);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         leftSection.add(lblBack);
@@ -150,7 +168,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
         leftSection.add(lblTitle);
 
         JButton btnAddDetail = createPrimaryButton("+ Thêm chi tiết mới");
-        btnAddDetail.setPreferredSize(new Dimension(200, 40));
+        btnAddDetail.setPreferredSize(new Dimension(210, 42));
         btnAddDetail.addActionListener(e -> openChinhSuaChiTietDialog(null));
 
         JPanel rightWrapper = new JPanel(new GridBagLayout());
@@ -194,18 +212,20 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(PRIMARY_FIXED);
-                g2.fillRoundRect(0, 0, 38, 38, 10, 10);
+                g2.setColor(NotionTheme.ROSE);
+                g2.fillRoundRect(0, 0, 42, 42, 12, 12);
+                g2.setColor(AppColors.withAlpha(NotionTheme.YELLOW, 190));
+                g2.fillOval(28, 5, 11, 11);
                 g2.setColor(PRIMARY);
                 g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
                 FontMetrics fm = g2.getFontMetrics();
                 String s = "%";
-                g2.drawString(s, (38 - fm.stringWidth(s)) / 2, 25);
+                g2.drawString(s, (42 - fm.stringWidth(s)) / 2, 27);
                 g2.dispose();
             }
         };
         icon.setOpaque(false);
-        icon.setPreferredSize(new Dimension(38, 38));
+        icon.setPreferredSize(new Dimension(42, 42));
 
         JLabel lblCardTitle = new JLabel("Thông tin khuyến mãi");
         lblCardTitle.setFont(FONT_BOLD);
@@ -320,7 +340,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
         table.setShowHorizontalLines(true);
         table.setGridColor(OUTLINE);
         table.setIntercellSpacing(new Dimension(0, 0));
-        table.setSelectionBackground(PRIMARY_LIGHT);
+        table.setSelectionBackground(NotionTheme.TABLE_SELECTION);
         table.setSelectionForeground(ON_SURFACE);
         table.setFont(FONT_BODY);
         table.setFillsViewportHeight(true);
@@ -344,7 +364,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
                     boolean isSel, boolean hasFocus, int row, int col) {
                 JLabel lbl = (JLabel) super.getTableCellRendererComponent(tbl, value, isSel, hasFocus, row, col);
                 lbl.setFont(FONT_HEADER); lbl.setForeground(ON_SURF_VAR);
-                lbl.setBackground(new Color(0xF8, 0xFA, 0xFC));
+                lbl.setBackground(AppColors.BACKGROUND);
                 lbl.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
                         new EmptyBorder(0, 20, 0, 8)));
@@ -435,7 +455,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
                 if (getText().isEmpty() && !hasFocus()) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                    g2.setColor(new Color(0x9E, 0xA7, 0xB0));
+                    g2.setColor(NotionTheme.TEXT_FAINT);
                     g2.setFont(FONT_BODY);
                     Insets ins = getInsets();
                     g2.drawString("Tìm theo mã, tên chi tiết, tuyến...", ins.left, getHeight() / 2 + 5);
@@ -468,26 +488,11 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
         cboFilterLoaiGhe.setFont(FONT_BODY);
         cboFilterLoaiGhe.setPreferredSize(new Dimension(200, 38));
         cboFilterLoaiGhe.setMaximumSize(new Dimension(200, 38));
+        cboFilterLoaiGhe.setBackground(CARD_BG);
+        cboFilterLoaiGhe.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
         cboFilterLoaiGhe.addActionListener(e -> applyFilter());
 
-        JButton btnReset = new JButton("Bỏ lọc") {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? OUTLINE_VAR : OUTLINE);
-                g2.fill(new java.awt.geom.RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 8, 8));
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnReset.setFont(FONT_BODY);
-        btnReset.setForeground(ON_SURF_VAR);
-        btnReset.setContentAreaFilled(false);
-        btnReset.setBorderPainted(false);
-        btnReset.setFocusPainted(false);
-        btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnReset.setPreferredSize(new Dimension(72, 38));
-        btnReset.setMaximumSize(new Dimension(72, 38));
+        JButton btnReset = createSoftActionButton("Bỏ lọc", ON_SURFACE, CARD_BG, 82, 38);
         btnReset.addActionListener(e -> {
             txtFilterSearch.setText("");
             cboFilterLoaiGhe.setSelectedIndex(0);
@@ -595,7 +600,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
             btn.setPreferredSize(new Dimension(32, 32));
             btn.setMargin(new java.awt.Insets(0,0,0,0));
             btn.setFocusPainted(false); btn.setBorderPainted(false); btn.setContentAreaFilled(false);
-            btn.setForeground(pg == currentPage ? Color.WHITE : ON_SURF_VAR);
+            btn.setForeground(pg == currentPage ? AppColors.SURFACE : ON_SURF_VAR);
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             btn.addActionListener(e -> { currentPage = pg; refreshTable(); });
             paginationPanel.add(btn);
@@ -641,25 +646,63 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
     }
 
     private void confirmDelete(ChiTietKhuyenMai ctkm) {
-        int res = JOptionPane.showConfirmDialog(this,
-                "Xóa chi tiết khuyến mãi \"" + ctkm.getMaChiTietKM() + "\"?",
+        int usageCount = new DAO_KhuyenMai().countAppliedUsage(khuyenMai.getMaKhuyenMai());
+        if (usageCount > 0 && !confirmCloneRemoveDetail(ctkm, usageCount)) return;
+        int res = NotionMessageDialog.showConfirmDialog(this,
+                usageCount > 0
+                        ? "Chi tiết này sẽ bị loại khỏi bản khuyến mãi mới. Bản cũ sẽ ngừng áp dụng. Tiếp tục?"
+                        : "Xóa chi tiết khuyến mãi \"" + ctkm.getMaChiTietKM() + "\"?",
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (res != JOptionPane.YES_OPTION) return;
+        boolean activateClone = false;
+        if (usageCount > 0) {
+            activateClone = confirmActivateClonedKhuyenMai();
+        }
+        final boolean shouldClone = usageCount > 0;
+        final boolean shouldActivateClone = activateClone;
         new SwingWorker<Boolean, Void>() {
             @Override protected Boolean doInBackground() {
+                if (shouldClone) {
+                    return new DAO_KhuyenMai().cloneKhuyenMaiWithDetailsRemovingDetail(
+                            khuyenMai, ctkm, shouldActivateClone) != null;
+                }
                 return new DAO_ChiTietKhuyenMai().delete(ctkm.getMaChiTietKM());
             }
             @Override protected void done() {
                 try {
-                    if (get()) loadData();
-                    else JOptionPane.showMessageDialog(ChinhSuaKhuyenMaiModule.this,
+                    if (get()) {
+                        loadData();
+                        if (shouldClone) NotionMessageDialog.showMessageDialog(ChinhSuaKhuyenMaiModule.this,
+                                "Đã ngừng khuyến mãi cũ và tạo bản mới không còn chi tiết đã chọn"
+                                        + (shouldActivateClone ? " (đang hoạt động)." : " (chưa hoạt động)."),
+                                "Đã nhân bản khuyến mãi", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                    else NotionMessageDialog.showMessageDialog(ChinhSuaKhuyenMaiModule.this,
                             "Không thể xóa chi tiết khuyến mãi!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(ChinhSuaKhuyenMaiModule.this,
+                    NotionMessageDialog.showMessageDialog(ChinhSuaKhuyenMaiModule.this,
                             "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();
+        // Handoff: xóa detail của KM đã áp dụng sẽ clone-remove để ApDungKM cũ vẫn audit đúng.
+        // Rủi ro: module hiện vẫn đứng trên KM cũ sau clone, cần quay lại danh sách để mở bản mới nếu cần.
+    }
+
+    private boolean confirmCloneRemoveDetail(ChiTietKhuyenMai ctkm, int usageCount) {
+        int choice = NotionMessageDialog.showConfirmDialog(this,
+                "Khuyến mãi này đã được áp dụng trên " + usageCount + " hóa đơn nên không thể xóa chi tiết trực tiếp.\n\n"
+                        + "Bạn có muốn nhân bản khuyến mãi và bỏ chi tiết \"" + ctkm.getMaChiTietKM() + "\" khỏi bản mới không?",
+                "Chi tiết khuyến mãi đã khóa", JOptionPane.WARNING_MESSAGE, "Hủy", "Đồng ý");
+        return choice == JOptionPane.YES_OPTION;
+    }
+
+    private boolean confirmActivateClonedKhuyenMai() {
+        int choice = NotionMessageDialog.showConfirmDialog(this,
+                "Bạn có muốn bật hoạt động cho khuyến mãi mới vừa nhân bản không?\n"
+                        + "Nếu hủy, khuyến mãi mới vẫn được tạo nhưng ở trạng thái ngừng áp dụng.",
+                "Bật khuyến mãi mới", JOptionPane.QUESTION_MESSAGE, "Không bật", "Bật hoạt động");
+        return choice == JOptionPane.YES_OPTION;
     }
 
     // ── Helpers ────────────────────────────────────────────────────────
@@ -669,8 +712,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color c = getModel().isPressed() ? PRIMARY.darker()
-                        : getModel().isRollover() ? PRIMARY.brighter() : PRIMARY;
+                Color c = getModel().isPressed() ? NotionTheme.ACCENT_HOVER : getModel().isRollover() ? new Color(0x6A, 0x57, 0xD6) : PRIMARY;
                 g2.setColor(c);
                 g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 10, 10));
                 g2.dispose(); super.paintComponent(g);
@@ -682,8 +724,35 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
         return btn;
     }
 
+    private JButton createSoftActionButton(String text, Color fg, Color bg, int width, int height) {
+        JButton btn = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? NotionTheme.CARD_MUTED : bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(AppColors.withAlpha(fg, 50));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(FONT_BADGE);
+        btn.setForeground(fg);
+        Dimension size = new Dimension(width, height);
+        btn.setPreferredSize(size);
+        btn.setMaximumSize(size);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return btn;
+        // Handoff: action pill Notion dùng cho Bỏ lọc/Sửa/Xóa trong màn chi tiết khuyến mãi.
+        // Cảnh báo: chỉ đổi visual button, listener nghiệp vụ vẫn gắn ở nơi gọi.
+    }
+
     private Color getRowBg(JTable tbl, boolean isSel, int row) {
-        if (isSel) return PRIMARY_LIGHT;
+        if (isSel) return NotionTheme.TABLE_SELECTION;
         if (row == hoveredRow) return ROW_HOVER;
         return row % 2 == 0 ? CARD_BG : ROW_ALT;
     }
@@ -757,7 +826,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
             String text = (value instanceof Double d)
                     ? PCT_FMT.format(d * 100) + "%" : "—";
             super.getTableCellRendererComponent(tbl, text, isSel, hasFocus, row, col);
-            setFont(FONT_BOLD); setForeground(new Color(0x00, 0x7A, 0x3D));
+            setFont(FONT_BOLD); setForeground(AppColors.SUCCESS_DARK);
             setBorder(new EmptyBorder(0, 20, 0, 8));
             setBackground(getRowBg(tbl, isSel, row));
             return this;
@@ -768,22 +837,28 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
     private class LoaiGheBadgeRenderer extends JPanel implements TableCellRenderer {
         private final JLabel badge = new JLabel();
         private Color badgeBg = BADGE_BG, badgeFg = ON_SURF_VAR;
-        private static final Color GHE_CUNG_BG = new Color(0xDB, 0xEA, 0xFE);
-        private static final Color GHE_CUNG_FG = new Color(0x1D, 0x4E, 0xD8);
-        private static final Color GHE_MEM_BG  = new Color(0xDC, 0xFC, 0xE7);
-        private static final Color GHE_MEM_FG  = new Color(0x15, 0x80, 0x3D);
-        private static final Color GIUONG_BG   = new Color(0xED, 0xE9, 0xFE);
-        private static final Color GIUONG_FG   = new Color(0x6D, 0x28, 0xD9);
+        private static final int BADGE_HEIGHT = 24;
+        private static final int BADGE_MARGIN_X = 36;
+        private static final Color GHE_CUNG_BG  = NotionTheme.SKY;
+        private static final Color GHE_CUNG_FG  = new Color(0x00, 0x75, 0xDE);
+        private static final Color GHE_MEM_BG   = NotionTheme.MINT;
+        private static final Color GHE_MEM_FG   = new Color(0x1A, 0xAE, 0x39);
+        private static final Color GIUONG_BG    = NotionTheme.ACCENT_SOFT;
+        private static final Color GIUONG_FG    = NotionTheme.ACCENT;
 
         LoaiGheBadgeRenderer() {
-            setLayout(new GridBagLayout()); setOpaque(true);
+            setLayout(new BorderLayout()); setOpaque(true);
+            setBorder(new EmptyBorder(0, BADGE_MARGIN_X, 0, BADGE_MARGIN_X));
             badge.setFont(FONT_BADGE);
             badge.setHorizontalAlignment(SwingConstants.CENTER);
+            badge.setPreferredSize(new Dimension(10, BADGE_HEIGHT));
             badge.setOpaque(false);
-            add(badge);
+            add(badge, BorderLayout.CENTER);
+            // Handoff: badge bám gần full ô thay vì width cố định để tránh vỡ khi cột đổi kích thước.
+            // Margin hai bên giữ khoảng thở; nếu cột hẹp quá, ưu tiên giảm BADGE_MARGIN_X trước.
         }
-        private static final Color ALL_BG = new Color(0xFF, 0xF3, 0xCD);
-        private static final Color ALL_FG = new Color(0x92, 0x60, 0x0A);
+        private static final Color ALL_BG = NotionTheme.YELLOW;
+        private static final Color ALL_FG = new Color(0xDD, 0x5B, 0x00);
 
         @Override public Component getTableCellRendererComponent(JTable tbl, Object value,
                 boolean isSel, boolean hasFocus, int row, int col) {
@@ -807,7 +882,8 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             Rectangle r = badge.getBounds();
             g2.setColor(badgeBg);
-            g2.fillRoundRect(r.x - 10, r.y - 3, r.width + 20, r.height + 6, 14, 14);
+            int y = r.y + Math.max(0, (r.height - BADGE_HEIGHT) / 2);
+            g2.fillRoundRect(r.x, y, r.width, BADGE_HEIGHT, 16, 16);
             g2.dispose();
             super.paintChildren(g);
         }
@@ -827,7 +903,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
         private void configLabel(JLabel lbl, Color fg) {
             lbl.setFont(FONT_BADGE); lbl.setForeground(fg);
             lbl.setHorizontalAlignment(SwingConstants.CENTER);
-            lbl.setPreferredSize(new Dimension(52, 28));
+            lbl.setPreferredSize(new Dimension(60, 30));
             lbl.setOpaque(false);
         }
         @Override public Component getTableCellRendererComponent(JTable tbl, Object value,
@@ -839,10 +915,10 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             Rectangle re = editLbl.getBounds();
             g2.setColor(PRIMARY_LIGHT);
-            g2.fillRoundRect(re.x, re.y, re.width, re.height, 8, 8);
+            g2.fillRoundRect(re.x, re.y, re.width, re.height, 10, 10);
             Rectangle rd = delLbl.getBounds();
             g2.setColor(ERROR_BG);
-            g2.fillRoundRect(rd.x, rd.y, rd.width, rd.height, 8, 8);
+            g2.fillRoundRect(rd.x, rd.y, rd.width, rd.height, 10, 10);
             g2.dispose();
             super.paintChildren(g);
         }
@@ -858,20 +934,14 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.insets = new java.awt.Insets(0, 5, 0, 5);
 
-            JButton btnEdit = new JButton("Sửa");
-            btnEdit.setFont(FONT_BADGE); btnEdit.setForeground(PRIMARY); btnEdit.setBackground(PRIMARY_LIGHT);
-            btnEdit.setBorderPainted(false); btnEdit.setFocusPainted(false);
-            btnEdit.setPreferredSize(new Dimension(52, 28));
+            JButton btnEdit = createSoftActionButton("Sửa", PRIMARY, PRIMARY_LIGHT, 60, 30);
             btnEdit.addActionListener(e -> {
                 fireEditingStopped();
                 ChiTietKhuyenMai ct = tableModel.getAt(editingRow);
                 if (ct != null) openChinhSuaChiTietDialog(ct);
             });
 
-            JButton btnDel = new JButton("Xóa");
-            btnDel.setFont(FONT_BADGE); btnDel.setForeground(ERROR_FG); btnDel.setBackground(ERROR_BG);
-            btnDel.setBorderPainted(false); btnDel.setFocusPainted(false);
-            btnDel.setPreferredSize(new Dimension(52, 28));
+            JButton btnDel = createSoftActionButton("Xóa", ERROR_FG, ERROR_BG, 60, 30);
             btnDel.addActionListener(e -> {
                 fireEditingStopped();
                 ChiTietKhuyenMai ct = tableModel.getAt(editingRow);
@@ -919,3 +989,6 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
         if (tableModel != null) applyFilter();
     }
 }
+
+
+

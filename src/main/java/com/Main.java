@@ -2,8 +2,10 @@ package com;
 
 import com.connectDB.ConnectDB;
 import com.entity.NhanVien;
+import com.modules.AppColors;
 import com.modules.LoginModule;
 import com.modules.MenuModule;
+import com.modules.NotionMessageDialog;
 
 import com.formdev.flatlaf.FlatLightLaf;
 
@@ -40,7 +42,7 @@ public class Main {
         loginFrame.setResizable(false);
 
         JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setBorder(BorderFactory.createLineBorder(new Color(0xDE, 0xE3, 0xE8), 1));
+        wrapper.setBorder(BorderFactory.createLineBorder(AppColors.BORDER, 1));
 
         LoginModule loginModule = new LoginModule();
         loginModule.setOnResult(result -> {
@@ -85,115 +87,16 @@ public class Main {
     }
 
     private static boolean showLogoutConfirmDialog(Window owner, String userName) {
-        final boolean[] confirmed = {false};
-
-        final Color PRIMARY     = new Color(0x00, 0x5D, 0x90);
-        final Color CARD_BG     = Color.WHITE;
-        final Color OUTLINE     = new Color(0xDE, 0xE3, 0xE8);
-        final Color HEADER_BG   = new Color(0xF1, 0xF5, 0xF9);
-        final Color FOOTER_BG   = new Color(0xF1, 0xF5, 0xF9);
-        final Color ON_SURFACE  = new Color(0x1A, 0x1D, 0x21);
-        final Color ON_SURF_VAR = new Color(0x5F, 0x67, 0x70);
-        final Color WARN_BG     = new Color(0xFF, 0xF3, 0xCD);
-        final Color WARN_FG     = new Color(0x92, 0x60, 0x10);
-
-        JDialog dialog = new JDialog(owner, "Xác nhận đăng xuất", Dialog.ModalityType.APPLICATION_MODAL);
-        dialog.setUndecorated(true);
-        dialog.setResizable(false);
-        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(CARD_BG);
-        root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
-
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(HEADER_BG);
-        header.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
-                new EmptyBorder(18, 24, 14, 24)
-        ));
-
-        JPanel headLeft = new JPanel();
-        headLeft.setLayout(new BoxLayout(headLeft, BoxLayout.Y_AXIS));
-        headLeft.setOpaque(false);
-
-        JLabel lblTitle = new JLabel("Xác nhận đăng xuất");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblTitle.setForeground(PRIMARY);
-
-        JLabel lblDesc = new JLabel("Phiên làm việc hiện tại sẽ kết thúc.");
-        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblDesc.setForeground(ON_SURF_VAR);
-
-        headLeft.add(lblTitle);
-        headLeft.add(Box.createVerticalStrut(3));
-        headLeft.add(lblDesc);
-        header.add(headLeft, BorderLayout.CENTER);
-
-        JPanel body = new JPanel(new BorderLayout(14, 0));
-        body.setBackground(CARD_BG);
-        body.setBorder(new EmptyBorder(20, 24, 20, 24));
-
-        JPanel iconWrap = new WarningIconPanel(WARN_BG, WARN_FG, 36);
-
-        String who = (userName == null || userName.isBlank()) ? "bạn" : userName;
-        JLabel lblMsg = new JLabel("<html>Bạn có chắc muốn đăng xuất tài khoản <b>" + who + "</b>?</html>");
-        lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lblMsg.setForeground(ON_SURFACE);
-
-        body.add(iconWrap, BorderLayout.WEST);
-        body.add(lblMsg, BorderLayout.CENTER);
-
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        footer.setBackground(FOOTER_BG);
-        footer.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE),
-                new EmptyBorder(14, 24, 14, 24)
-        ));
-
-        JButton btnCancel = new JButton("Hủy");
-        btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnCancel.setForeground(ON_SURF_VAR);
-        btnCancel.setBackground(Color.WHITE);
-        btnCancel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(8, 14, 8, 14)
-        ));
-        btnCancel.setFocusPainted(false);
-        btnCancel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnCancel.addActionListener(e -> dialog.dispose());
-
-        JButton btnLogout = new PrimaryRoundButton("Đăng xuất", PRIMARY, 10);
-        btnLogout.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnLogout.setForeground(Color.WHITE);
-        btnLogout.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnLogout.setPreferredSize(new Dimension(112, 36));
-        btnLogout.addActionListener(e -> {
-            confirmed[0] = true;
-            dialog.dispose();
-        });
-
-        footer.add(btnCancel);
-        footer.add(btnLogout);
-
-        root.add(header, BorderLayout.NORTH);
-        root.add(body, BorderLayout.CENTER);
-        root.add(footer, BorderLayout.SOUTH);
-
-        dialog.setContentPane(buildDialogShadowWrapper(root));
-        dialog.pack();
-        dialog.setMinimumSize(new Dimension(480, dialog.getPreferredSize().height));
-        dialog.setLocationRelativeTo(owner);
-
-        dialog.getRootPane().setDefaultButton(btnLogout);
-        dialog.getRootPane().registerKeyboardAction(
-                e -> dialog.dispose(),
-                KeyStroke.getKeyStroke("ESCAPE"),
-                JComponent.WHEN_IN_FOCUSED_WINDOW
+        String who = (userName == null || userName.isBlank()) ? "b\u1ea1n" : userName;
+        int result = NotionMessageDialog.showConfirmDialog(
+                owner,
+                "B\u1ea1n c\u00f3 ch\u1eafc mu\u1ed1n \u0111\u0103ng xu\u1ea5t t\u00e0i kho\u1ea3n " + who + "?",
+                "X\u00e1c nh\u1eadn \u0111\u0103ng xu\u1ea5t",
+                JOptionPane.WARNING_MESSAGE,
+                "H\u1ee7y",
+                "\u0110\u0103ng xu\u1ea5t"
         );
-
-        dialog.setVisible(true);
-        return confirmed[0];
+        return result == JOptionPane.YES_OPTION;
     }
 
     private static JPanel buildDialogShadowWrapper(JPanel content) {
@@ -203,7 +106,7 @@ public class Main {
     public static JButton createCloseButton() {
         JButton btn = new JButton("X");
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        btn.setForeground(new Color(0x64, 0x74, 0x8B));
+        btn.setForeground(AppColors.TEXT_SECONDARY);
         btn.setPreferredSize(new Dimension(40, 32));
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
@@ -217,14 +120,14 @@ public class Main {
         @Override
         public void mouseEntered(java.awt.event.MouseEvent e) {
             if (e.getSource() instanceof JButton b) {
-                b.setForeground(new Color(0xBA, 0x1A, 0x1A));
+                b.setForeground(AppColors.ERROR_DARK);
             }
         }
 
         @Override
         public void mouseExited(java.awt.event.MouseEvent e) {
             if (e.getSource() instanceof JButton b) {
-                b.setForeground(new Color(0x64, 0x74, 0x8B));
+                b.setForeground(AppColors.TEXT_SECONDARY);
             }
         }
     }
@@ -293,7 +196,7 @@ public class Main {
             super(new BorderLayout());
             this.pad = pad;
             setOpaque(true);
-            setBackground(new Color(0xEE, 0xF2, 0xF6));
+            setBackground(AppColors.BACKGROUND);
             setBorder(BorderFactory.createEmptyBorder(pad, pad, pad + 4, pad));
             add(content, BorderLayout.CENTER);
         }

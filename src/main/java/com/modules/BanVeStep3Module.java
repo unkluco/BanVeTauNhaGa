@@ -3,7 +3,6 @@ package com.modules;
 import com.dao.*;
 import com.entity.*;
 import com.enums.LoaiGhe;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -12,7 +11,6 @@ import java.awt.event.MouseEvent;
 import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * Bước 3 Hợp nhất — Chọn Chỗ (Toa & Ghế).
@@ -23,6 +21,7 @@ public class BanVeStep3Module extends JPanel implements AppModule {
 
     private Consumer<Object> callback;
     private final Lich lich;
+    private final Map<LoaiGhe, Double> priceMap;
 
     // DAOs
     private final DAO_ChiTietDoanTau daoChiTietDT = new DAO_ChiTietDoanTau();
@@ -38,34 +37,41 @@ public class BanVeStep3Module extends JPanel implements AppModule {
 
     // UI Components
     private JPanel trainContainer;
-    private SeatMapCanvas seatCanvas;
+    private ToaSeatDiagramPanel seatCanvas;
     private JLabel lblStatus;
     private JButton btnSubmit, btnCancel;
     private JPanel btnPanel;
 
     // Design tokens
-    private static final Color PRIMARY       = new Color(13, 110, 253);
-    private static final Color PRIMARY_LIGHT = new Color(245, 248, 255);
-    private static final Color SURFACE       = new Color(248, 249, 250);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color TEXT_MAIN     = new Color(33, 37, 41);
-    private static final Color TEXT_MUTED    = new Color(108, 117, 125);
-    private static final Color OUTLINE       = new Color(222, 226, 230);
-    
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color TEXT_MAIN     = NotionTheme.TEXT;
+    private static final Color TEXT_MUTED    = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+
     // Seat Colors
-    private static final Color SEAT_AVAIL_BG     = Color.WHITE;
-    private static final Color SEAT_AVAIL_BORDER  = new Color(180, 185, 190);
-    private static final Color SEAT_SOLD_BG       = new Color(230, 232, 235);
-    private static final Color SEAT_SOLD_BORDER   = new Color(200, 202, 205);
-    private static final Color SEAT_SEL_BG        = new Color(13, 110, 253);
-    private static final Color SEAT_SEL_BORDER    = new Color(10, 88, 202);
+    private static final Color SEAT_AVAIL_BG     = AppColors.SURFACE;
+    private static final Color SEAT_AVAIL_BORDER  = NotionTheme.BORDER_STRONG;
+    private static final Color SEAT_SOLD_BG       = NotionTheme.CARD_MUTED;
+    private static final Color SEAT_SOLD_BORDER   = NotionTheme.TEXT_FAINT;
+    private static final Color SEAT_SEL_BG        = NotionTheme.ACCENT;
+    private static final Color SEAT_SEL_BORDER    = NotionTheme.ACCENT_HOVER;
 
     public BanVeStep3Module(Lich lich) {
+        this(lich, Collections.emptyMap());
+    }
+
+    public BanVeStep3Module(Lich lich, Map<LoaiGhe, Double> priceMap) {
         this.lich = lich;
+        this.priceMap = priceMap == null ? Collections.emptyMap() : new EnumMap<>(priceMap);
         setLayout(new BorderLayout());
         setBackground(SURFACE);
         buildUI();
         loadData();
+        // Handoff: giữ constructor cũ để không phá nơi gọi khác; constructor mới chỉ thêm tooltip giá.
+        // Risk: priceMap rỗng thì Step 3 vẫn hoạt động, tooltip báo chưa có giá.
     }
 
     private void buildUI() {
@@ -115,7 +121,17 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         bottomPanel.setOpaque(false);
         bottomPanel.setBorder(new EmptyBorder(10, 24, 10, 24));
 
-        seatCanvas = new SeatMapCanvas();
+        seatCanvas = new ToaSeatDiagramPanel();
+        seatCanvas.setSelectable(true);
+        seatCanvas.setUnavailableResolver(ghe -> soldMaGhes.contains(ghe.getMaGhe()));
+        seatCanvas.setSelectedResolver(selectedGhes::contains);
+        seatCanvas.setPriceResolver(this::unitPriceForTooltip);
+        seatCanvas.setSeatClickHandler(ghe -> {
+            if (selectedGhes.contains(ghe)) selectedGhes.remove(ghe);
+            else selectedGhes.add(ghe);
+            updateGlobalSelection();
+            seatCanvas.repaint();
+        });
         JScrollPane seatScroll = new JScrollPane(seatCanvas);
         seatScroll.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
         seatScroll.getViewport().setBackground(CARD_BG);
@@ -144,13 +160,11 @@ public class BanVeStep3Module extends JPanel implements AppModule {
             if (callback != null) callback.accept(new ArrayList<>(selectedGhes));
         });
 
-        btnCancel = new JButton("← Trở lại bước 2");
+        btnCancel = new JButton("← Quay lại");
         styleBtn(btnCancel, false);
         btnCancel.addActionListener(e -> { if (callback != null) callback.accept(null); });
 
-        btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 12));
-        btnPanel.setBackground(SURFACE);
-        btnPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE));
+        btnPanel = BookingStepUi.createFooter();
         btnPanel.add(btnCancel);
         btnPanel.add(btnSubmit);
         btnPanel.setVisible(false);
@@ -179,15 +193,7 @@ public class BanVeStep3Module extends JPanel implements AppModule {
     }
 
     private void styleBtn(JButton btn, boolean primary) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(200, 42));
-        if (primary) {
-            btn.setBackground(PRIMARY); btn.setForeground(Color.WHITE); btn.setOpaque(true);
-        } else {
-            btn.setBackground(Color.WHITE); btn.setForeground(TEXT_MAIN); btn.setOpaque(true);
-        }
+        BookingStepUi.styleActionButton(btn, primary);
     }
 
     private void loadData() {
@@ -248,12 +254,11 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         p.setPreferredSize(new Dimension(60, 60));
         p.setMaximumSize(new Dimension(60, 60));
         JLabel lbl = new JLabel();
-        ImageIcon raw = new ImageIcon(getClass().getResource("/icons/bieuTuongTau.png"));
-        if (raw.getImage() != null) {
-            lbl.setIcon(new ImageIcon(raw.getImage().getScaledInstance(32, 32, Image.SCALE_SMOOTH)));
-        }
+        lbl.setIcon(LineIcons.contained(LineIcons.Name.TRAIN, 32, 20));
         p.add(lbl);
         return p;
+        // Handoff: load SVG at final 32px size instead of raster-scaling from 24px.
+        // Risk: keep the surrounding 60x60 circle fixed so step layout does not shift.
     }
 
     private JPanel createWagonCard(ChiTietDoanTau ct, int index) {
@@ -277,7 +282,7 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         
         JLabel lblNum = new JLabel("Toa " + (index + 1), SwingConstants.CENTER);
         lblNum.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblNum.setForeground(isActive ? Color.WHITE : TEXT_MAIN);
+        lblNum.setForeground(isActive ? AppColors.SURFACE : TEXT_MAIN);
         card.add(lblNum, BorderLayout.NORTH);
         
         String typeIcon = switch(ct.getToaTau().getLoaiGhe()){
@@ -287,15 +292,15 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         };
         JLabel lblType = new JLabel(typeIcon, SwingConstants.CENTER);
         lblType.setFont(new Font("Consolas", Font.BOLD, 18));
-        lblType.setForeground(isActive ? Color.WHITE : TEXT_MUTED);
+        lblType.setForeground(isActive ? AppColors.SURFACE : TEXT_MUTED);
         card.add(lblType, BorderLayout.CENTER);
         
         if (selCount > 0) {
             JLabel lblBadge = new JLabel(String.valueOf(selCount), SwingConstants.CENTER);
             lblBadge.setFont(new Font("Segoe UI", Font.BOLD, 10));
-            lblBadge.setForeground(Color.WHITE);
+            lblBadge.setForeground(AppColors.SURFACE);
             lblBadge.setOpaque(true);
-            lblBadge.setBackground(new Color(255, 107, 107));
+            lblBadge.setBackground(AppColors.ERROR);
             lblBadge.setPreferredSize(new Dimension(16, 16));
             JPanel badgeWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
             badgeWrap.setOpaque(false);
@@ -328,8 +333,15 @@ public class BanVeStep3Module extends JPanel implements AppModule {
     private void setActiveWagon(ChiTietDoanTau ct) {
         this.activeCTDT = ct;
         lblStatus.setText("Đang xem: Toa " + ct.getSoThuTu() + " (" + ct.getToaTau().getLoaiGhe().toString() + ")");
-        seatCanvas.loadWagon(ct.getToaTau(), wagonGheMap.get(ct.getToaTau().getMaToaTau()));
+        seatCanvas.setData(ct.getToaTau(), wagonGheMap.get(ct.getToaTau().getMaToaTau()));
         updateTrainSchematic();
+    }
+
+    private Double unitPriceForTooltip(Ghe ghe) {
+        if (ghe == null || ghe.getToaTau() == null || ghe.getToaTau().getLoaiGhe() == null) return null;
+        return priceMap.get(ghe.getToaTau().getLoaiGhe());
+        // Handoff: tooltip dùng đúng giá theo loại ghế mà Step 2 đã resolve cho lịch/tuyến.
+        // Risk: không dùng giá này để tính tiền; tính tiền chính vẫn ở BanVeModule/Step6.
     }
 
     private void updateGlobalSelection() {
@@ -337,125 +349,6 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         updateTrainSchematic();
     }
 
-    // --- Inner Class: Seat Map Canvas ---
-    class SeatMapCanvas extends JPanel {
-        private ToaTau activeToa;
-        private List<Ghe> activeGhes = new ArrayList<>();
-        private final Map<String, Rectangle> rects = new HashMap<>();
-        private String hoveredMaGhe = null;
-
-        // Visual Constants
-        private static final int SEAT_W = 48, SEAT_H = 48, GAP = 8, KHOANG_GAP = 24, PADDING = 30;
-
-        SeatMapCanvas() {
-            setBackground(CARD_BG);
-            addMouseListener(new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) {
-                    String hit = hitTest(e.getPoint());
-                    if (hit != null && !soldMaGhes.contains(hit)) {
-                        Ghe target = activeGhes.stream().filter(g -> g.getMaGhe().equals(hit)).findFirst().orElse(null);
-                        if (target != null) {
-                            if (selectedGhes.contains(target)) selectedGhes.remove(target);
-                            else selectedGhes.add(target);
-                            updateGlobalSelection();
-                            repaint();
-                        }
-                    }
-                }
-            });
-            addMouseMotionListener(new MouseAdapter() {
-                @Override public void mouseMoved(MouseEvent e) {
-                    String prev = hoveredMaGhe;
-                    hoveredMaGhe = hitTest(e.getPoint());
-                    if (!Objects.equals(prev, hoveredMaGhe)) repaint();
-                    setCursor(hoveredMaGhe != null && !soldMaGhes.contains(hoveredMaGhe) ? new Cursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
-                }
-            });
-        }
-
-        void loadWagon(ToaTau toa, List<Ghe> ghes) {
-            this.activeToa = toa;
-            this.activeGhes = ghes != null ? ghes.stream().sorted(Comparator.comparingInt(Ghe::getSoGhe)).collect(Collectors.toList()) : new ArrayList<>();
-            computeLayout();
-            repaint();
-        }
-
-        private void computeLayout() {
-            rects.clear();
-            if (activeToa == null) return;
-            
-            int cols = (activeToa.getLoaiGhe() == LoaiGhe.GIUONG_NAM) ? 10 : 12;
-            int colsPerKhoang = (activeToa.getLoaiGhe() == LoaiGhe.GIUONG_NAM) ? 2 : 6;
-            
-            for (int i = 0; i < activeGhes.size(); i++) {
-                int row = i / cols;
-                int col = i % cols;
-                int khoangIdx = col / colsPerKhoang;
-                int x = PADDING + col * (SEAT_W + GAP) + khoangIdx * (KHOANG_GAP - GAP);
-                int y = PADDING + row * (SEAT_H + GAP);
-                rects.put(activeGhes.get(i).getMaGhe(), new Rectangle(x, y, SEAT_W, SEAT_H));
-            }
-            
-            int numRows = activeGhes.isEmpty() ? 0 : (activeGhes.size() + cols - 1) / cols;
-            int totalW = PADDING * 2 + cols * (SEAT_W + GAP) + (cols/colsPerKhoang - 1) * (KHOANG_GAP - GAP);
-            int totalH = PADDING * 2 + numRows * (SEAT_H + GAP);
-            setPreferredSize(new Dimension(totalW, totalH));
-            revalidate();
-        }
-
-        private String hitTest(Point p) {
-            for (Map.Entry<String, Rectangle> e : rects.entrySet()) {
-                if (e.getValue().contains(p)) return e.getKey();
-            }
-            return null;
-        }
-
-        @Override protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            if (activeToa == null) return;
-            
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            
-            for (Ghe ghe : activeGhes) {
-                Rectangle r = rects.get(ghe.getMaGhe());
-                boolean isSold = soldMaGhes.contains(ghe.getMaGhe());
-                boolean isSel = selectedGhes.contains(ghe);
-                boolean isHover = ghe.getMaGhe().equals(hoveredMaGhe) && !isSold;
-                
-                Color bg = isSold ? SEAT_SOLD_BG : isSel ? SEAT_SEL_BG : isHover ? PRIMARY_LIGHT : SEAT_AVAIL_BG;
-                Color border = isSold ? SEAT_SOLD_BORDER : isSel ? SEAT_SEL_BORDER : SEAT_AVAIL_BORDER;
-                
-                g2.setColor(bg);
-                g2.fillRoundRect(r.x, r.y, r.width, r.height, 8, 8);
-                g2.setColor(border);
-                g2.setStroke(new BasicStroke(isSel ? 2f : 1f));
-                g2.drawRoundRect(r.x, r.y, r.width, r.height, 8, 8);
-                
-                g2.setColor(isSel ? Color.WHITE : TEXT_MAIN);
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 13));
-                String sn = String.valueOf(ghe.getSoGhe());
-                FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(sn, r.x + (r.width - fm.stringWidth(sn))/2, r.y + (r.height + fm.getAscent() - fm.getDescent())/2);
-            }
-
-            // Draw Khoang Dividers
-            g2.setColor(OUTLINE);
-            g2.setStroke(new BasicStroke(1.2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, new float[]{5, 4}, 0f));
-            
-            int cols = (activeToa.getLoaiGhe() == LoaiGhe.GIUONG_NAM) ? 10 : 12;
-            int colsPerKhoang = (activeToa.getLoaiGhe() == LoaiGhe.GIUONG_NAM) ? 2 : 6;
-            int numKhoang = cols / colsPerKhoang;
-            int numRows = activeGhes.isEmpty() ? 0 : (activeGhes.size() + cols - 1) / cols;
-            
-            for (int k = 1; k < numKhoang; k++) {
-                int lineX = PADDING + k * colsPerKhoang * (SEAT_W + GAP) - GAP + (KHOANG_GAP - GAP)/2 + (k-1)*(KHOANG_GAP - GAP);
-                g2.drawLine(lineX, PADDING - 10, lineX, PADDING + numRows*(SEAT_H + GAP) - GAP + 10);
-            }
-
-            g2.dispose();
-        }
-    }
 
     // AppModule interface
     @Override public String getTitle() { return "Bước 3 – Chọn chỗ"; }
@@ -469,3 +362,4 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         updateGlobalSelection();
     }
 }
+

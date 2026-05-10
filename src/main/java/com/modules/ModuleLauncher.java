@@ -25,7 +25,7 @@ public class ModuleLauncher {
         dialog.setBackground(new Color(0, 0, 0, 0));
 
         JPanel content = new JPanel(new BorderLayout());
-        content.setBorder(BorderFactory.createLineBorder(new Color(0xDE, 0xE3, 0xE8), 1));
+        content.setBorder(BorderFactory.createLineBorder(AppColors.BORDER, 1));
         content.add(module.getView(), BorderLayout.CENTER);
 
         dialog.setContentPane(ThemNhanVienDialog.buildShadowWrapper(content));

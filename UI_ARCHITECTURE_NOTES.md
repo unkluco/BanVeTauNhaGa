@@ -1,4 +1,4 @@
-# Ghi chú Kiến trúc UI — Azure Rail (BanVeTauNhaGa)
+﻿# Ghi chú Kiến trúc UI — Azure Rail (BanVeTauNhaGa)
 
 ## Quy tắc chung
 
@@ -44,9 +44,9 @@
 - Nút action trong bảng (ví dụ "Chỉnh sửa"): dùng JPanel(GridBagLayout) bọc ngoài JButton để chỉ trigger khi click đúng nút, không phải toàn ô.
 
 ### 8. Tài nguyên hình ảnh
-- Icons nhỏ (nút, nav): `src/main/resources/icons/` — đặt tên tiếng Việt không dấu, ví dụ `nutThem.png`, `bieuTuongNhanVien.png`.
+- Icons nh? (n?t, nav): d?ng `LineIcons` Java2D trong `src/main/java/com/modules/LineIcons.java`; kh?ng th?m SVG m?i.
 - Ảnh trang trí lớn (logo, nền): `src/main/resources/images/` — ví dụ `logoAzureRail.png`, `hinhNenDangNhap.png`.
-- Load qua `getClass().getResource("/icons/tenFile.png")` hoặc `/images/tenFile.png`.
+- Load icon UI qua `LineIcons.of(...)`, `LineIcons.image(...)`, ho?c `LineIcons.contained(...)`; ?nh minh h?a l?n v?n d?ng `/images/tenFile.png`.
 
 ### 6. QuanLyVeModule
 - Tiêu đề: "Quản lý vé" (KHÔNG phải "Quản lý vé và hóa đơn").

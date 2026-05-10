@@ -24,16 +24,16 @@ public class BanVeStep7TienMatModule extends JPanel implements AppModule {
     private static final NumberFormat VND_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
 
     // Design tokens
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color AMOUNT_COLOR  = new Color(0x1A, 0x7A, 0x3C);
-    private static final Color CHANGE_COLOR  = new Color(0x1A, 0x7A, 0x3C);
-    private static final Color WARN_COLOR    = new Color(0xC6, 0x28, 0x28);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = AppColors.SURFACE;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color AMOUNT_COLOR  = AppColors.SUCCESS_DARK;
+    private static final Color CHANGE_COLOR  = AppColors.SUCCESS_DARK;
+    private static final Color WARN_COLOR    = AppColors.ERROR_DARK;
 
     private JTextField txReceived;
     private JLabel     lblChange;
@@ -92,9 +92,7 @@ public class BanVeStep7TienMatModule extends JPanel implements AppModule {
         styleBtn(btnCancel, false);
         btnCancel.addActionListener(e -> { if (callback != null) callback.accept(null); });
 
-        btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
-        btnPanel.setBackground(SURFACE);
-        btnPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE));
+        btnPanel = BookingStepUi.createFooter();
         btnPanel.add(btnCancel);
         btnPanel.add(btnSubmit);
         btnPanel.setVisible(false);
@@ -198,13 +196,13 @@ public class BanVeStep7TienMatModule extends JPanel implements AppModule {
         card.add(Box.createVerticalStrut(20));
 
         JPanel warningBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
-        warningBox.setBackground(new Color(0xFF, 0xF8, 0xE1));
-        warningBox.setBorder(BorderFactory.createLineBorder(new Color(0xFF, 0xD5, 0x4F), 1));
+        warningBox.setBackground(AppColors.WARNING_LIGHT);
+        warningBox.setBorder(BorderFactory.createLineBorder(AppColors.WARNING, 1));
         warningBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         warningBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         JLabel warnLbl = new JLabel("Kiểm tra tiền trước khi xác nhận.");
         warnLbl.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        warnLbl.setForeground(new Color(0x7B, 0x5D, 0x00));
+        warnLbl.setForeground(AppColors.WARNING_DARK);
         warningBox.add(warnLbl);
         card.add(warningBox);
 
@@ -270,20 +268,20 @@ public class BanVeStep7TienMatModule extends JPanel implements AppModule {
         try {
             String raw = txReceived.getText().replaceAll("[^\\d]", "").trim();
             if (raw.isEmpty()) {
-                JOptionPane.showMessageDialog(this,
+                NotionMessageDialog.showMessageDialog(this,
                     "Vui lòng nhập số tiền khách đưa.", "Thiếu thông tin",
                     JOptionPane.WARNING_MESSAGE);
                 return;
             }
             long received = Long.parseLong(raw);
             if (received < total.longValue()) {
-                JOptionPane.showMessageDialog(this,
+                NotionMessageDialog.showMessageDialog(this,
                     "Số tiền khách đưa chưa đủ.", "Không đủ tiền",
                     JOptionPane.WARNING_MESSAGE);
                 return;
             }
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Số tiền không hợp lệ.",
+            NotionMessageDialog.showMessageDialog(this, "Số tiền không hợp lệ.",
                 "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
@@ -296,15 +294,7 @@ public class BanVeStep7TienMatModule extends JPanel implements AppModule {
     // =========================================================================
 
     private void styleBtn(JButton btn, boolean primary) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(10, 24, 10, 24));
-        if (primary) {
-            btn.setBackground(PRIMARY); btn.setForeground(Color.WHITE); btn.setOpaque(true);
-        } else {
-            btn.setBackground(CARD_BG); btn.setForeground(ON_SURF_VAR); btn.setOpaque(true);
-        }
+        BookingStepUi.styleActionButton(btn, primary);
     }
 
     // =========================================================================

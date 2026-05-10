@@ -10,6 +10,7 @@ import com.entity.DauMay;
 import com.entity.DoanTau;
 import com.entity.ToaTau;
 import com.enums.LoaiGhe;
+import com.util.MaTuDong;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -18,6 +19,7 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
+import java.awt.geom.Path2D;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -34,20 +36,24 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
     private final boolean isEditMode;
 
     // Design tokens
-    private static final Color PRIMARY       = new Color(13, 110, 253);
-    private static final Color PRIMARY_HOVER = new Color(11, 94, 215);
-    private static final Color SURFACE       = new Color(248, 249, 250);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color TEXT_MAIN     = new Color(33, 37, 41);
-    private static final Color TEXT_MUTED    = new Color(108, 117, 125);
-    private static final Color OUTLINE       = new Color(222, 226, 230);
-    private static final Color READONLY_BG   = new Color(233, 236, 239);
-    private static final Color ERROR         = new Color(220, 53, 69);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_HOVER = NotionTheme.ACCENT_HOVER;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color TEXT_MAIN     = NotionTheme.TEXT;
+    private static final Color TEXT_MUTED    = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color READONLY_BG   = NotionTheme.CARD_MUTED;
+    private static final Color ERROR         = AppColors.ERROR;
+    private static final Color HERO_NAVY     = NotionTheme.NAVY;
+    private static final Color PEACH         = NotionTheme.PEACH;
+    private static final Color MINT          = NotionTheme.MINT;
+    private static final Color SKY           = NotionTheme.SKY;
     
     // Badge Colors
-    private static final Color C_CUNG   = new Color(0xFF, 0x8A, 0x65); 
-    private static final Color C_MEM    = new Color(0x64, 0xB5, 0xF6); 
-    private static final Color C_GIUONG = new Color(0x81, 0xC7, 0x84);
+    private static final Color C_CUNG   = new Color(231, 179, 35); 
+    private static final Color C_MEM    = new Color(93, 165, 218); 
+    private static final Color C_GIUONG = new Color(232, 142, 82);
     private static final String STOPPED_STATUS = "Ngừng hoạt động";
 
     private static final Font FONT_TITLE = new Font("Segoe UI", Font.BOLD, 26);
@@ -62,6 +68,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
     private JTextField        txtMaDoanTau;
     private JTextField        txtTenDoanTau;
     private JComboBox<DauMay> cboDauMay;
+    private JComboBox<String> cboTrangThai;
     private JLabel            lblErrTen;
     private JLabel            lblErrDauMay;
 
@@ -96,7 +103,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         
         JPanel body = new JPanel(new BorderLayout(20, 0));
         body.setOpaque(false);
-        body.setBorder(new EmptyBorder(10, 36, 20, 36));
+        body.setBorder(new EmptyBorder(12, 32, 20, 32));
         
         body.add(buildLeftForm(), BorderLayout.WEST);
         body.add(buildVisualizerPanel(), BorderLayout.CENTER);
@@ -121,32 +128,101 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
 
     // ── Header ────────────────────────────────────────────────────────────
     private JPanel buildHeader() {
-        JPanel header = new JPanel(new BorderLayout(16, 0));
-        header.setBackground(SURFACE);
-        header.setBorder(new EmptyBorder(24, 36, 16, 36));
+        JPanel header = new JPanel(new BorderLayout(24, 0)) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(HERO_NAVY);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
+                paintHeroGraphic(g2, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
+        header.setOpaque(false);
+        header.setBorder(new EmptyBorder(24, 28, 24, 28));
 
         JPanel titlePanel = new JPanel();
         titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
         titlePanel.setOpaque(false);
 
-        String titleText = isEditMode ? "Chỉnh Sửa Đội Tàu" : "Thiết Lập Đội Tàu Mới";
-        JLabel lblTitle  = new JLabel(titleText);
-        lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(TEXT_MAIN);
+        JLabel lblKicker = new JLabel(isEditMode ? "TRAINSET / EDIT" : "TRAINSET / CREATE");
+        lblKicker.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblKicker.setForeground(new Color(188, 190, 199));
+        lblKicker.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        String descText = isEditMode
-                ? "Cập nhật, thay đổi đầu kéo hoặc cấu trúc các toa nối."
-                : "Thiết lập cấu hình tàu hỏa mới bằng cách minh họa phân đoạn trực quan.";
-        JLabel lblDesc = new JLabel(descText);
+        JLabel lblTitle = new JLabel(isEditMode ? "Ch\u1ec9nh s\u1eeda \u0111o\u00e0n t\u00e0u" : "Thi\u1ebft l\u1eadp \u0111o\u00e0n t\u00e0u m\u1edbi");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel lblDesc = new JLabel("T\u00f9y ch\u1ec9nh \u0111\u1ea7u m\u00e1y, tr\u1ea1ng th\u00e1i v\u1eadn h\u00e0nh v\u00e0 th\u1ee9 t\u1ef1 toa tr\u00ean c\u00f9ng m\u1ed9t canvas tr\u1ef1c quan.");
         lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(TEXT_MUTED);
+        lblDesc.setForeground(new Color(221, 224, 232));
+        lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        titlePanel.add(lblKicker);
+        titlePanel.add(Box.createVerticalStrut(7));
         titlePanel.add(lblTitle);
-        titlePanel.add(Box.createVerticalStrut(4));
+        titlePanel.add(Box.createVerticalStrut(8));
         titlePanel.add(lblDesc);
 
+        JPanel metric = new JPanel(new GridLayout(1, 2, 10, 0));
+        metric.setOpaque(false);
+        metric.add(buildHeroMetric("M\u00e3", isEditMode && doanTau != null ? doanTau.getMaDoanTau() : "T\u1ef1 \u0111\u1ed9ng"));
+        metric.add(buildHeroMetric("Tr\u1ea1ng th\u00e1i", isEditMode && doanTau != null ? doanTau.getTrangThai() : "\u0110ang ho\u1ea1t \u0111\u1ed9ng"));
+        metric.setPreferredSize(new Dimension(380, 72));
+
         header.add(titlePanel, BorderLayout.CENTER);
-        return header;
+        header.add(metric, BorderLayout.EAST);
+
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setOpaque(false);
+        wrap.setBorder(new EmptyBorder(24, 32, 8, 32));
+        wrap.add(header, BorderLayout.CENTER);
+        return wrap;
+    }
+
+    // Handoff: Hero d?ng paint vector ?? tr?nh icon SVG v?/pixel v? gi? ??ng Notion accent.
+    // Handoff: Metric b?n ph?i ch? hi?n th? t?m t?t, d? li?u th?t v?n l?y t? form/DAO khi l?u.
+    private JPanel buildHeroMetric(String label, String value) {
+        JPanel box = new JPanel(new BorderLayout(0, 4));
+        box.setOpaque(false);
+        box.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(255, 255, 255, 48), 1, true),
+                new EmptyBorder(10, 12, 10, 12)));
+        JLabel top = new JLabel(label.toUpperCase());
+        top.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        top.setForeground(new Color(177, 181, 193));
+        JLabel bot = new JLabel(value == null || value.isBlank() ? "\u2014" : value);
+        bot.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        bot.setForeground(Color.WHITE);
+        box.add(top, BorderLayout.NORTH);
+        box.add(bot, BorderLayout.CENTER);
+        return box;
+    }
+
+    private void paintHeroGraphic(Graphics2D g2, int width, int height) {
+        g2.setColor(new Color(255, 232, 212, 48));
+        g2.fillOval(width - 520, -46, 180, 180);
+        g2.setColor(new Color(220, 236, 250, 58));
+        g2.fillOval(width - 430, height - 80, 128, 128);
+        g2.setStroke(new BasicStroke(2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.setColor(new Color(255, 255, 255, 82));
+        int baseY = height - 34;
+        g2.drawLine(width - 560, baseY, width - 360, baseY);
+        for (int i = 0; i < 3; i++) {
+            int x = width - 535 + i * 58;
+            g2.drawRoundRect(x, baseY - 42, 46, 30, 10, 10);
+            g2.drawOval(x + 7, baseY - 10, 9, 9);
+            g2.drawOval(x + 30, baseY - 10, 9, 9);
+        }
+        Path2D flag = new Path2D.Double();
+        flag.moveTo(width - 372, baseY - 70);
+        flag.lineTo(width - 334, baseY - 55);
+        flag.lineTo(width - 372, baseY - 40);
+        flag.closePath();
+        g2.setColor(new Color(255, 100, 200, 98));
+        g2.fill(flag);
     }
 
     // ── Left Form (Basic info) ──────────────────────────────────────────
@@ -154,7 +230,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setOpaque(false);
-        card.setPreferredSize(new Dimension(380, 0));
+        card.setPreferredSize(new Dimension(390, 0));
         card.setBorder(new EmptyBorder(10, 0, 10, 0));
 
         // Background painter
@@ -177,8 +253,8 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
         inner.setOpaque(false);
 
-        JLabel lblSecTitle = new JLabel("Thông Tin Cơ Bản");
-        lblSecTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        JLabel lblSecTitle = new JLabel("Th\u00f4ng tin v\u1eadn h\u00e0nh");
+        lblSecTitle.setFont(new Font("Segoe UI", Font.BOLD, 19));
         lblSecTitle.setForeground(TEXT_MAIN);
         lblSecTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         inner.add(lblSecTitle);
@@ -203,19 +279,20 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
             txtTenDoanTau.setForeground(TEXT_MAIN);
         }
         lblErrTen = createErrorLabel();
-        inner.add(buildFieldGroup("Tên đoàn tàu", txtTenDoanTau, null, true, lblErrTen));
+        inner.add(buildFieldGroup("T\u00ean \u0111o\u00e0n t\u00e0u", txtTenDoanTau, null, true, lblErrTen));
+        inner.add(Box.createVerticalStrut(18));
+
+        cboTrangThai = new JComboBox<>(new String[]{"\u0110ang ho\u1ea1t \u0111\u1ed9ng", STOPPED_STATUS});
+        styleCombo(cboTrangThai);
+        if (isEditMode && doanTau != null && doanTau.getTrangThai() != null) {
+            cboTrangThai.setSelectedItem(doanTau.getTrangThai());
+        }
+        inner.add(buildFieldGroup("Tr\u1ea1ng th\u00e1i", cboTrangThai, "\u0110i\u1ec1u khi\u1ec3n kh\u1ea3 n\u0103ng \u0111\u01b0a \u0111o\u00e0n t\u00e0u v\u00e0o khai th\u00e1c", true, null));
         inner.add(Box.createVerticalStrut(18));
 
         // Dau may
         cboDauMay = new JComboBox<>();
-        cboDauMay.setFont(FONT_INPUT);
-        cboDauMay.setEditable(false);
-        cboDauMay.setBackground(Color.WHITE);
-        cboDauMay.setPreferredSize(new Dimension(0, 42));
-        Color bColor = new Color(180, 185, 190);
-        cboDauMay.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(bColor, 1, true),
-                BorderFactory.createEmptyBorder(2, 2, 2, 2)));
+        styleCombo(cboDauMay);
         cboDauMay.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean sel, boolean foc) {
@@ -261,7 +338,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         // Title area
         JPanel tPanel = new JPanel(new BorderLayout());
         tPanel.setOpaque(false);
-        JLabel lblSec = new JLabel("Minh Hoạ Tuyến Toa Tàu");
+        JLabel lblSec = new JLabel("Canvas c\u1ea5u h\u00ecnh toa t\u00e0u");
         lblSec.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblSec.setForeground(TEXT_MAIN);
         tPanel.add(lblSec, BorderLayout.WEST);
@@ -269,7 +346,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         JButton btnClear = createOutlineButton("Xóa toàn bộ");
         btnClear.setPreferredSize(new Dimension(120, 34));
         btnClear.addActionListener(e -> {
-            if(JOptionPane.showConfirmDialog(this,"Xác nhận tháo tất cả toa tàu?","Cảnh báo", JOptionPane.YES_NO_OPTION)==JOptionPane.YES_OPTION){
+            if(NotionMessageDialog.showConfirmDialog(this,"Xác nhận tháo tất cả toa tàu?","Cảnh báo", JOptionPane.YES_NO_OPTION)==JOptionPane.YES_OPTION){
                 currentWagons.clear();
                 updateVisualizer();
             }
@@ -282,7 +359,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         visualContainer = new JPanel();
         visualContainer.setLayout(new BoxLayout(visualContainer, BoxLayout.X_AXIS));
         visualContainer.setOpaque(false);
-        visualContainer.setBorder(new EmptyBorder(40, 10, 40, 10));
+        visualContainer.setBorder(new EmptyBorder(36, 12, 36, 12));
 
         JScrollPane sp = new JScrollPane(visualContainer);
         sp.setOpaque(false);
@@ -333,14 +410,26 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         p.setPreferredSize(new Dimension(140, 150));
         p.setMaximumSize(new Dimension(140, 150));
         
-        JLabel lblIco = new JLabel(loadScaledIcon("bieuTuongTau.png", 42));
-        lblIco.setHorizontalAlignment(SwingConstants.CENTER);
-        p.add(lblIco, BorderLayout.CENTER);
+        JPanel locoArt = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(255, 255, 255, 220));
+                g2.fillRoundRect(42, 30, 56, 34, 12, 12);
+                g2.fillRoundRect(76, 18, 26, 28, 10, 10);
+                g2.setColor(new Color(10, 21, 48, 120));
+                g2.fillOval(50, 68, 14, 14);
+                g2.fillOval(78, 68, 14, 14);
+                g2.dispose();
+            }
+        };
+        locoArt.setOpaque(false);
+        p.add(locoArt, BorderLayout.CENTER);
         
         String txt = dm == null ? "KHÔNG RÕ" : dm.getMaDauMay();
         JLabel lblName = new JLabel("ĐẦU MÁY: " + txt, SwingConstants.CENTER);
         lblName.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblName.setForeground(Color.WHITE);
+        lblName.setForeground(AppColors.SURFACE);
         lblName.setBorder(new EmptyBorder(10, 5, 15, 5));
         p.add(lblName, BorderLayout.SOUTH);
         
@@ -363,7 +452,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
+                g2.setColor(AppColors.SURFACE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
                 g2.setColor(finalCol);
                 g2.setStroke(new BasicStroke(2f));
@@ -382,7 +471,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         // Header
         JLabel lblThuTu = new JLabel("TOA SỐ " + (index+1), SwingConstants.CENTER);
         lblThuTu.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblThuTu.setForeground(Color.WHITE);
+        lblThuTu.setForeground(AppColors.SURFACE);
         lblThuTu.setPreferredSize(new Dimension(140, 35));
         p.add(lblThuTu, BorderLayout.NORTH);
         
@@ -448,7 +537,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         JPanel wrapper = new JPanel(new GridBagLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setColor(new Color(200, 200, 200));
+                g2.setColor(AppColors.BORDER);
                 g2.setStroke(new BasicStroke(3f));
                 g2.drawLine(0, getHeight()/2, getWidth(), getHeight()/2);
                 g2.dispose();
@@ -463,8 +552,8 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 if (getModel().isPressed()) g2.setColor(PRIMARY_HOVER);
-                else if (getModel().isRollover()) g2.setColor(new Color(100, 160, 255));
-                else g2.setColor(new Color(160, 160, 160));
+                else if (getModel().isRollover()) g2.setColor(PRIMARY);
+                else g2.setColor(AppColors.BORDER);
                 g2.fillOval(0, 0, getWidth(), getHeight());
                 g2.dispose();
                 super.paintComponent(g);
@@ -472,7 +561,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         };
         btn.setPreferredSize(new Dimension(32, 32));
         btn.setFont(new Font("Arial", Font.BOLD, 18));
-        btn.setForeground(Color.WHITE);
+        btn.setForeground(AppColors.SURFACE);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -488,7 +577,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         JPanel p = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setColor(new Color(200, 200, 200));
+                g2.setColor(AppColors.BORDER);
                 g2.setStroke(new BasicStroke(3f));
                 g2.drawLine(0, getHeight()/2, getWidth(), getHeight()/2);
                 g2.dispose();
@@ -534,7 +623,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         DefaultListModel<ToaTau> model = new DefaultListModel<>();
         refillAddToaList(model, "");
         if (model.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
+            NotionMessageDialog.showMessageDialog(this,
                     "Không có toa nào khả dụng.\n" +
                     "- Toa đã gắn trong đoàn tàu hiện tại sẽ không hiển thị.\n" +
                     "- Toa ở trạng thái \"" + STOPPED_STATUS + "\" không thể thêm mới.",
@@ -705,7 +794,10 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         }
 
         String ma = txtMaDoanTau.getText().trim();
-        DoanTau dt = new DoanTau(ma, ten, dauMay);
+        String trangThai = cboTrangThai != null && cboTrangThai.getSelectedItem() != null
+                ? cboTrangThai.getSelectedItem().toString()
+                : "\u0110ang ho\u1ea1t \u0111\u1ed9ng";
+        DoanTau dt = new DoanTau(ma, ten, dauMay, trangThai);
 
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new SwingWorker<Boolean, Void>() {
@@ -717,6 +809,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
                     
                     DAO_DoanTau dao = new DAO_DoanTau();
                     boolean ok = isEditMode ? dao.update(dt) : dao.insert(dt);
+                    if (ok && isEditMode) ok = dao.updateTrangThai(dt.getMaDoanTau(), dt.getTrangThai());
                     if (!ok) {
                         con.rollback();
                         return false;
@@ -731,7 +824,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
                     // Insert new flow structure
                     DAO_ChiTietDoanTau daoCt = new DAO_ChiTietDoanTau();
                     for (int i = 0; i < currentWagons.size(); i++) {
-                        String newId = "CTDT-" + System.nanoTime() % 1000000L;
+                        String newId = MaTuDong.generate("CTDT");
                         ChiTietDoanTau ctdt = new ChiTietDoanTau(newId, dt, currentWagons.get(i), i + 1);
                         if (!daoCt.insert(ctdt)) {
                             con.rollback();
@@ -753,10 +846,16 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
                 setCursor(Cursor.getDefaultCursor());
                 try {
                     if (get()) {
-                        JOptionPane.showMessageDialog(ChinhSuaDoanTauModule.this, "Lưu cấu hình tàu xuất sắc!");
+                        NotionMessageDialog.showMessageDialog(ChinhSuaDoanTauModule.this,
+                                "Đã lưu cấu hình đoàn tàu.",
+                                "Cập nhật đoàn tàu thành công",
+                                JOptionPane.INFORMATION_MESSAGE);
                         if (callback != null) callback.accept(dt);
                     } else {
-                        JOptionPane.showMessageDialog(ChinhSuaDoanTauModule.this, "Thất bại, có thể lỗi logic khóa ngoại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        NotionMessageDialog.showMessageDialog(ChinhSuaDoanTauModule.this,
+                                "Không thể lưu cấu hình đoàn tàu. Vui lòng kiểm tra lại đầu máy, trạng thái và danh sách toa.",
+                                "Cập nhật đoàn tàu thất bại",
+                                JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception ex) { }
             }
@@ -765,7 +864,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
 
     // ── Utils ─────────────────────────────────────────────────────────────
     private String generateMaDoanTau() {
-        return "DT-" + String.format("%05d", System.currentTimeMillis() % 100000L);
+        return MaTuDong.generate("DT");
     }
 
     private void refillAddToaList(DefaultListModel<ToaTau> model, String keyword) {
@@ -793,6 +892,20 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
                 || normalized.contains("khai thác")
                 || normalized.contains("khai thac");
     }
+
+    private void styleCombo(JComboBox<?> combo) {
+        combo.setFont(FONT_INPUT);
+        combo.setEditable(false);
+        combo.setBackground(CARD_BG);
+        combo.setPreferredSize(new Dimension(0, 44));
+        combo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        combo.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                BorderFactory.createEmptyBorder(2, 2, 2, 2)));
+    }
+
+    // Handoff: Combo keeps the same height and border as text fields to avoid vertical drift.
+    // Handoff: Locomotive renderer keeps old code-name format; status combo uses plain strings.
 
     private JPanel buildFieldGroup(String label, JComponent input, String hint, boolean req, JLabel errLabel) {
         JPanel group = new JPanel();
@@ -861,9 +974,8 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
     
     private void styleField(JTextField f) {
         f.setPreferredSize(new Dimension(0, 42));
-        Color bColor = new Color(180, 185, 190);
         f.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(bColor, 1, true),
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
                 new EmptyBorder(10, 14, 10, 14)));
     }
 
@@ -893,7 +1005,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
             }
         };
         btn.setFont(FONT_BTN);
-        btn.setForeground(Color.WHITE);
+        btn.setForeground(AppColors.SURFACE);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -923,16 +1035,11 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         return btn;
     }
     
-    private ImageIcon loadScaledIcon(String fileName, int size) {
-        try {
-            java.net.URL url = getClass().getResource("/icons/" + fileName);
-            if (url == null) return null;
-            Image img = new ImageIcon(url).getImage()
-                    .getScaledInstance(size, size, Image.SCALE_SMOOTH);
-            return new ImageIcon(img);
-        } catch (Exception e) {
-            return null;
-        }
+    private ImageIcon loadScaledIcon(LineIcons.Name iconName, int size) {
+        ImageIcon icon = LineIcons.image(iconName, size);
+        // Handoff: module icons now use LineIcons enum directly, avoiding legacy SVG path strings.
+        // Risk: keep visual QA at small sizes when adding new icon names.
+        return icon;
     }
 
     // ── AppModule interface ───────────────────────────────────────────────

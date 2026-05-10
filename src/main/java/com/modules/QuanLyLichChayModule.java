@@ -62,22 +62,22 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     private JLabel lblStatTuyen;
 
     // --- Design tokens ---
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color SURFACE_DIM   = new Color(0xF2, 0xF4, 0xF6);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color ROW_ALT       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color ROW_HOVER     = new Color(0xEE, 0xF5, 0xFB);
-    private static final Color ERROR_FG      = new Color(0xB9, 0x1C, 0x1C);
-    private static final Color ERROR_BG      = new Color(0xFF, 0xDA, 0xD6);
-    private static final Color SUCCESS_BG    = new Color(0xDC, 0xFA, 0xE6);
-    private static final Color SUCCESS_FG    = new Color(0x16, 0x6B, 0x3A);
-    private static final Color WARN_BG       = new Color(0xFF, 0xF3, 0xCD);
-    private static final Color WARN_FG       = new Color(0x92, 0x60, 0x10);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color SURFACE_DIM   = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color ROW_ALT       = NotionTheme.PAGE;
+    private static final Color ROW_HOVER     = NotionTheme.ACCENT_SOFT;
+    private static final Color ERROR_FG      = AppColors.ERROR_DARK;
+    private static final Color ERROR_BG      = AppColors.ERROR_LIGHT;
+    private static final Color SUCCESS_BG    = AppColors.SUCCESS_LIGHT;
+    private static final Color SUCCESS_FG    = AppColors.SUCCESS_DARK;
+    private static final Color WARN_BG       = AppColors.WARNING_LIGHT;
+    private static final Color WARN_FG       = AppColors.WARNING_DARK;
 
     private static final Font FONT_TITLE    = new Font("Segoe UI", Font.BOLD, 24);
     private static final Font FONT_DESC     = new Font("Segoe UI", Font.PLAIN, 13);
@@ -122,21 +122,22 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
 
         JPanel header = buildHeader();
         header.setAlignmentX(Component.LEFT_ALIGNMENT);
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
 
         JPanel stats = buildStatsRow();
         stats.setAlignmentX(Component.LEFT_ALIGNMENT);
-        stats.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+        stats.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
 
         JPanel filterArea = buildFilterBar();
         filterArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filterArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
 
         top.add(header);
-        top.add(Box.createVerticalStrut(20));
+        top.add(Box.createVerticalStrut(16));
         top.add(stats);
-        top.add(Box.createVerticalStrut(20));
+        top.add(Box.createVerticalStrut(16));
         top.add(filterArea);
-        top.add(Box.createVerticalStrut(20));
+        top.add(Box.createVerticalStrut(16));
 
         add(top, BorderLayout.NORTH);
         add(buildTableCard(), BorderLayout.CENTER);
@@ -145,191 +146,202 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
 
     // ---- Header ----
     private JPanel buildHeader() {
-        JPanel header = new JPanel(new BorderLayout());
+        JPanel header = new JPanel(new BorderLayout(24, 0)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                GradientPaint gp = new GradientPaint(0, 0, NotionTheme.NAVY,
+                        getWidth(), getHeight(), new Color(0x45, 0x34, 0xB3));
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+                g2.setColor(AppColors.withAlpha(NotionTheme.SKY, 145));
+                g2.fillOval(getWidth() - 230, -82, 250, 250);
+                g2.setColor(AppColors.withAlpha(NotionTheme.YELLOW, 118));
+                g2.fillRoundRect(getWidth() - 365, 82, 190, 62, 18, 18);
+                g2.setColor(AppColors.withAlpha(Color.WHITE, 42));
+                g2.fillRoundRect(getWidth() - 300, 36, 128, 14, 14, 14);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         header.setOpaque(false);
+        header.setBorder(new EmptyBorder(24, 28, 24, 28));
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel left = new JPanel();
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
-        // Title with icon
-        JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        titleRow.setOpaque(false);
-        ImageIcon icoTitle = loadScaledIcon("bieuTuongLich.png", 28);
-        if (icoTitle != null) {
-            JLabel lblIco = new JLabel(icoTitle);
-            titleRow.add(lblIco);
-        }
+        JLabel lblEyebrow = new JLabel("WORKSPACE / DỮ LIỆU TÀU");
+        lblEyebrow.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblEyebrow.setForeground(AppColors.withAlpha(Color.WHITE, 175));
+        lblEyebrow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         JLabel lblTitle = new JLabel("Quản lý lịch chạy");
-        lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(ON_SURFACE);
-        titleRow.add(lblTitle);
-        titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDesc = new JLabel("Xem và quản lý các lịch chạy, đoàn tàu và tuyến đường.");
-        lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(ON_SURF_VAR);
+        JLabel lblDesc = new JLabel("Theo dõi lịch khởi hành, tuyến đường và đoàn tàu trong một bảng điều phối.");
+        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblDesc.setForeground(AppColors.withAlpha(Color.WHITE, 205));
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblDesc.setBorder(new EmptyBorder(4, 0, 0, 0));
 
-        left.add(titleRow);
+        left.add(lblEyebrow);
+        left.add(Box.createVerticalStrut(8));
+        left.add(lblTitle);
+        left.add(Box.createVerticalStrut(8));
         left.add(lblDesc);
+
+        JButton btnThem = createPrimaryButton("+ Thêm lịch");
+        ImageIcon icoThem = loadScaledIcon(LineIcons.Name.ADD, 15);
+        if (icoThem != null) { btnThem.setIcon(icoThem); btnThem.setText("  Thêm lịch"); }
+        btnThem.setPreferredSize(new Dimension(150, 42));
+        btnThem.addActionListener(e -> openDialog(null));
+
+        JPanel rightWrapper = new JPanel(new GridBagLayout());
+        rightWrapper.setOpaque(false);
+        rightWrapper.add(btnThem);
+
         header.add(left, BorderLayout.CENTER);
+        header.add(rightWrapper, BorderLayout.EAST);
         return header;
     }
 
     // ---- Stats row ----
     private JPanel buildStatsRow() {
-        JPanel row = new JPanel(new GridLayout(1, 3, 16, 0));
+        JPanel row = new JPanel(new GridLayout(1, 3, 12, 0));
         row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
 
         lblStatTong   = new JLabel("0");
         lblStatHomNay = new JLabel("0");
         lblStatTuyen  = new JLabel("0");
 
-        row.add(buildStatCard("TỔNG LỊCH CHẠY", lblStatTong, PRIMARY, "bieuTuongLich.png"));
-        row.add(buildStatCard("LỊCH HÔM NAY", lblStatHomNay, SUCCESS_FG, "bieuTuongThoiGian.png"));
-        row.add(buildStatCard("LƯỢT ĐOÀN TÀU", lblStatTuyen, WARN_FG, "bieuTuongTau.png"));
+        row.add(buildStatCard("Tổng lịch chạy", lblStatTong, PRIMARY, NotionTheme.ACCENT_SOFT));
+        row.add(buildStatCard("Lịch hôm nay", lblStatHomNay, new Color(0x00, 0x75, 0xDE), NotionTheme.SKY));
+        row.add(buildStatCard("Lượt đoàn tàu", lblStatTuyen, AppColors.ERROR_DARK, NotionTheme.ROSE));
         return row;
     }
 
-    private JPanel buildStatCard(String label, JLabel valueLbl, Color valueColor, String iconFile) {
-        JPanel card = new JPanel() {
+    private JPanel buildStatCard(String label, JLabel valueLbl, Color valueColor, Color tint) {
+        // Stat card copy pattern Khách hàng: nền pastel toàn thẻ, số ở trên, nhãn ở dưới.
+        // Rủi ro: giữ chiều cao 92px; text label dài cần rút gọn để không cắt khi resize.
+        JPanel card = new JPanel(new BorderLayout(10, 0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(SURFACE_DIM);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 16, 16));
+                g2.setColor(tint);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.setColor(AppColors.withAlpha(valueColor, 80));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
                 g2.dispose();
+                super.paintComponent(g);
             }
         };
         card.setOpaque(false);
-        card.setLayout(new BorderLayout(12, 0));
-        card.setBorder(new EmptyBorder(20, 24, 20, 24));
+        card.setBorder(new EmptyBorder(14, 18, 14, 18));
 
-        // Left: icon
-        ImageIcon ico = loadScaledIcon(iconFile, 36);
-        if (ico != null) {
-            JLabel lblIco = new JLabel(ico);
-            lblIco.setVerticalAlignment(SwingConstants.CENTER);
-            card.add(lblIco, BorderLayout.WEST);
-        }
+        JPanel marker = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(valueColor);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+            }
+        };
+        marker.setOpaque(false);
+        marker.setPreferredSize(new Dimension(8, 48));
 
-        // Right: label + value
-        JPanel textPanel = new JPanel();
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
-        textPanel.setOpaque(false);
-
-        JLabel lblLbl = new JLabel(label);
-        lblLbl.setFont(FONT_STAT_LBL);
-        lblLbl.setForeground(ON_SURF_VAR);
-        lblLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        valueLbl.setFont(FONT_STAT_NUM);
+        JPanel text = new JPanel();
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+        text.setOpaque(false);
+        valueLbl.setFont(new Font("Segoe UI", Font.BOLD, 24));
         valueLbl.setForeground(valueColor);
-        valueLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lbl.setForeground(ON_SURF_VAR);
+        text.add(valueLbl);
+        text.add(Box.createVerticalStrut(2));
+        text.add(lbl);
 
-        textPanel.add(lblLbl);
-        textPanel.add(Box.createVerticalStrut(6));
-        textPanel.add(valueLbl);
-        card.add(textPanel, BorderLayout.CENTER);
+        card.add(marker, BorderLayout.WEST);
+        card.add(text, BorderLayout.CENTER);
         return card;
     }
 
     // ---- Filter bar ----
     private JPanel buildFilterBar() {
-        JPanel wrapper = new JPanel();
-        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
-        wrapper.setOpaque(false);
-
-        // --- Row 1: Primary Search (Full Width) ---
-        JPanel searchRow = new JPanel(new BorderLayout());
-        searchRow.setOpaque(false);
-
-        JPanel bgPanel = new JPanel(new GridBagLayout()) {
+        JPanel wrapper = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Shadow
-                g2.setColor(new Color(0, 0, 0, 10));
-                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 20, 20);
-                
-                // Background
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
-                
-                // Border
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
                 g2.setColor(OUTLINE);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        bgPanel.setOpaque(false);
-        bgPanel.setBorder(new EmptyBorder(6, 15, 10, 15));
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setOpaque(false);
+        wrapper.setBorder(new EmptyBorder(18, 22, 18, 22));
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(0, 0, 0, 12);
-        gbc.fill = GridBagConstraints.VERTICAL;
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel title = new JLabel("Bộ lọc lịch chạy");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        title.setForeground(ON_SURFACE);
+        JLabel subtitle = new JLabel("Tìm theo lịch, tuyến, đoàn tàu hoặc lọc theo ga và ngày chạy");
+        subtitle.setFont(FONT_SMALL);
+        subtitle.setForeground(ON_SURF_VAR);
+        header.add(title, BorderLayout.WEST);
+        header.add(subtitle, BorderLayout.EAST);
+        wrapper.add(header);
+        wrapper.add(Box.createVerticalStrut(12));
 
-        // Custom search icon
+        // Filter card copy pattern Khách hàng: searchBox có icon trong viền, optionRow nằm dưới.
+        // Rủi ro: DatePicker/SearchableComboBox rộng hơn combo thường nên phải giữ grid responsive.
+        JPanel searchRow = new JPanel(new BorderLayout(10, 0));
+        searchRow.setOpaque(false);
+        searchRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        searchRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        JPanel searchBox = new JPanel(new BorderLayout(10, 0));
+        searchBox.setOpaque(false);
+        searchBox.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(9, 14, 9, 14)
+        ));
+
         JLabel iconSearch = new JLabel();
-        try {
-            java.net.URL url = getClass().getResource("/icons/nutTimKiem.png");
-            if (url != null) {
-                Image img = new ImageIcon(url).getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
-                iconSearch.setIcon(new ImageIcon(img));
-            }
-        } catch (Exception ignored) {}
-        bgPanel.add(iconSearch, gbc);
+        ImageIcon icoSearch = loadScaledIcon(LineIcons.Name.SEARCH, 18);
+        if (icoSearch != null) iconSearch.setIcon(icoSearch);
+        searchBox.add(iconSearch, BorderLayout.WEST);
 
         txtSearch = new JTextField();
         txtSearch.setFont(FONT_BODY);
-        txtSearch.setOpaque(true);
-        txtSearch.setBackground(Color.WHITE);
-        txtSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
+        txtSearch.setOpaque(false);
+        txtSearch.setBorder(BorderFactory.createEmptyBorder());
         txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo mã lịch, tên tuyến, mã đoàn tàu...");
-        
-        // Real-time search
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
         });
+        searchBox.add(txtSearch, BorderLayout.CENTER);
+        SearchFieldClearButton.install(searchBox, txtSearch, this::applyFilter);
 
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        bgPanel.add(txtSearch, gbc);
-
-        // Bo loc button
-        JButton btnResetAll = new JButton("Bỏ lọc") {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(OUTLINE);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnResetAll.setFont(FONT_BOLD);
-        btnResetAll.setForeground(ON_SURF_VAR);
-        btnResetAll.setContentAreaFilled(false);
-        btnResetAll.setBorderPainted(false);
-        btnResetAll.setFocusPainted(false);
-        btnResetAll.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnResetAll.setPreferredSize(new Dimension(100, 38));
+        JButton btnResetAll = new JButton("Bỏ lọc");
+        NotionTheme.styleSecondaryButton(btnResetAll);
+        btnResetAll.setPreferredSize(new Dimension(104, 40));
         btnResetAll.addActionListener(e -> {
-            txtSearch.setText("");
             if (filterGaDi  != null) filterGaDi.clearSelection();
             if (filterGaDen != null) filterGaDen.clearSelection();
             if (dateFrom != null) dateFrom.setValue(null);
@@ -337,55 +349,61 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             applyFilter();
         });
 
-        gbc.weightx = 0;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(0, 0, 0, 0);
-        bgPanel.add(btnResetAll, gbc);
-
-        searchRow.add(bgPanel, BorderLayout.CENTER);
+        searchRow.add(searchBox, BorderLayout.CENTER);
         wrapper.add(searchRow);
+        wrapper.add(Box.createVerticalStrut(12));
 
-        // --- Row 2: Entity Filters (Below Search) ---
         JPanel filterRow = new JPanel(new GridBagLayout());
         filterRow.setOpaque(false);
-        filterRow.setBorder(new EmptyBorder(12, 5, 0, 5));
-
-        GridBagConstraints fgbc = new GridBagConstraints();
-        fgbc.gridy = 0;
-        fgbc.fill = GridBagConstraints.HORIZONTAL;
-        fgbc.weightx = 1.0;
-        fgbc.insets = new Insets(0, 0, 0, 10);
+        filterRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filterRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
+        GridBagConstraints filterGbc = new GridBagConstraints();
+        filterGbc.gridy = 0;
+        filterGbc.fill = GridBagConstraints.HORIZONTAL;
+        filterGbc.anchor = GridBagConstraints.NORTHWEST;
+        filterGbc.weightx = 1.0;
+        filterGbc.insets = new Insets(0, 0, 0, 12);
 
         // Ga di
         filterGaDi = new SearchableComboBox<>(
                 ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
                 (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
         filterGaDi.setPlaceholder("Tất cả ga đi");
+        filterGaDi.setPreferredSize(new Dimension(220, 38));
         filterGaDi.setOnChanged(this::applyFilter);
-        filterRow.add(buildFilterGroupLich("GA ĐI", filterGaDi), fgbc);
+        filterGbc.gridx = 0;
+        filterRow.add(buildFilterGroupLich("Ga đi", filterGaDi), filterGbc);
 
         // Ga den
         filterGaDen = new SearchableComboBox<>(
                 ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
                 (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
         filterGaDen.setPlaceholder("Tất cả ga đến");
+        filterGaDen.setPreferredSize(new Dimension(220, 38));
         filterGaDen.setOnChanged(this::applyFilter);
-        fgbc.gridx = 1;
-        filterRow.add(buildFilterGroupLich("GA ĐẾN", filterGaDen), fgbc);
+        filterGbc.gridx = 1;
+        filterRow.add(buildFilterGroupLich("Ga đến", filterGaDen), filterGbc);
 
         // Tu ngay
         dateFrom = new DatePickerField();
-        dateFrom.setPreferredSize(new Dimension(0, 40));
+        dateFrom.setPreferredSize(new Dimension(150, 38));
         dateFrom.addPropertyChangeListener("value", e -> applyFilter());
-        fgbc.gridx = 2;
-        filterRow.add(buildFilterGroupLich("TỪ NGÀY", dateFrom), fgbc);
+        filterGbc.gridx = 2;
+        filterGbc.weightx = 0.7;
+        filterRow.add(buildFilterGroupLich("Từ ngày", dateFrom), filterGbc);
 
         // Den ngay
         dateTo = new DatePickerField();
-        dateTo.setPreferredSize(new Dimension(0, 40));
+        dateTo.setPreferredSize(new Dimension(150, 38));
         dateTo.addPropertyChangeListener("value", e -> applyFilter());
-        fgbc.gridx = 3; fgbc.insets = new Insets(0, 0, 0, 0);
-        filterRow.add(buildFilterGroupLich("ĐẾN NGÀY", dateTo), fgbc);
+        filterGbc.gridx = 3;
+        filterRow.add(buildFilterGroupLich("Đến ngày", dateTo), filterGbc);
+        filterGbc.gridx = 4;
+        filterGbc.weightx = 0.0;
+        filterGbc.insets = new Insets(0, 0, 0, 0);
+        filterRow.add(FilterActionGroup.wrap(btnResetAll), filterGbc);
+        // Handoff: Bỏ lọc chỉ reset ga/ngày, còn tìm kiếm có nút X riêng trong search box.
+        // Cảnh báo: giữ nút ở filterRow để semantics không ngang hàng với thanh tìm kiếm.
 
         wrapper.add(filterRow);
 
@@ -393,18 +411,16 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     }
 
     private JPanel buildFilterGroupLich(String labelText, JComponent field) {
-        JPanel group = new JPanel();
-        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
+        JPanel group = new JPanel(new BorderLayout(0, 6));
         group.setOpaque(false);
-        JLabel lbl = new JLabel(labelText);
-        lbl.setFont(FONT_STAT_LBL);
+        JLabel lbl = new JLabel(labelText + ":");
+        lbl.setFont(FONT_HEADER);
         lbl.setForeground(ON_SURF_VAR);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        field.setAlignmentX(Component.LEFT_ALIGNMENT);
-        group.add(lbl);
-        group.add(Box.createVerticalStrut(4));
-        group.add(field);
+        group.add(lbl, BorderLayout.NORTH);
+        group.add(field, BorderLayout.CENTER);
         return group;
+        // Handoff: label đặt trên field để đồng bộ filter grid với các module quản lý.
+        // Cảnh báo: DatePicker có icon riêng nên không ép border/renderer ở helper này.
     }
 
     private void loadGaFilters() {
@@ -428,6 +444,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             }
         };
         card.setOpaque(false);
+        card.setBorder(new EmptyBorder(0, 0, 0, 0));
         card.add(buildTableHeader(), BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
         card.add(buildPaginationBar(), BorderLayout.SOUTH);
@@ -437,42 +454,32 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     private JPanel buildTableHeader() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
-        bar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
-                new EmptyBorder(16, 20, 16, 20)));
+        bar.setBorder(new EmptyBorder(18, 20, 14, 20));
 
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        left.setOpaque(false);
-        ImageIcon icoList = loadScaledIcon("bieuTuongLich.png", 18);
-        if (icoList != null) left.add(new JLabel(icoList));
         JLabel lbl = new JLabel("Danh sách lịch chạy");
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lbl.setForeground(ON_SURFACE);
-        left.add(lbl);
+        JLabel hint = new JLabel("Nhấp đúp vào dòng hoặc dùng thao tác để cập nhật lịch chạy");
+        hint.setFont(FONT_SMALL);
+        hint.setForeground(ON_SURF_VAR);
 
-        JButton btnThem = createPrimaryButton("+  Thêm lịch");
-        ImageIcon icoThem = loadScaledIcon("nutThem.png", 15);
-        if (icoThem != null) { btnThem.setIcon(icoThem); btnThem.setText("  Thêm lịch"); }
-        btnThem.addActionListener(e -> openDialog(null));
-
-        bar.add(left, BorderLayout.WEST);
-        bar.add(btnThem, BorderLayout.EAST);
+        bar.add(lbl, BorderLayout.WEST);
+        bar.add(hint, BorderLayout.EAST);
         return bar;
     }
 
     private JScrollPane buildTableSection() {
         tableModel = new LichTableModel();
         table = new JTable(tableModel);
+        NotionTheme.styleTable(table);
         table.setRowHeight(52);
         table.setShowGrid(false);
         table.setShowHorizontalLines(true);
         table.setGridColor(OUTLINE);
         table.setIntercellSpacing(new Dimension(0, 0));
-        table.setSelectionBackground(PRIMARY_LIGHT);
+        table.setSelectionBackground(NotionTheme.TABLE_SELECTION);
         table.setSelectionForeground(ON_SURFACE);
-        table.setFont(FONT_BODY);
         table.setFillsViewportHeight(true);
-        table.setBackground(CARD_BG);
         table.getTableHeader().setReorderingAllowed(false);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
@@ -484,6 +491,17 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         });
         table.addMouseListener(new MouseAdapter() {
             @Override public void mouseExited(MouseEvent e) { hoveredRow = -1; table.repaint(); }
+
+            @Override public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() != 2 || !SwingUtilities.isLeftMouseButton(e)) return;
+                int row = table.rowAtPoint(e.getPoint());
+                int col = table.columnAtPoint(e.getPoint());
+                if (row < 0 || col == 6) return;
+                Lich lich = tableModel.getAt(table.convertRowIndexToModel(row));
+                if (lich != null) openDialog(lich);
+                // Handoff: double-click dòng mở cùng dialog với nút Chỉnh sửa hiện có.
+                // Cảnh báo: bỏ qua cột thao tác để không xung đột click button editor.
+            }
         });
 
         JTableHeader header = table.getTableHeader();
@@ -493,7 +511,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
                 JLabel lbl = (JLabel) super.getTableCellRendererComponent(tbl, value, isSel, hasFocus, row, col);
                 lbl.setFont(FONT_HEADER);
                 lbl.setForeground(ON_SURF_VAR);
-                lbl.setBackground(SURFACE);
+                lbl.setBackground(NotionTheme.CARD_MUTED);
                 lbl.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
                         new EmptyBorder(0, 16, 0, 8)));
@@ -502,9 +520,9 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             }
         });
 
-        // Columns: Mã lịch | Đoàn tàu | Tuyến | Thời gian bắt đầu | Thời gian chạy | Thao tác
+        // Columns: Mã lịch | Đoàn tàu | Tuyến | Thời gian bắt đầu | Thời gian chạy | Trạng thái | Thao tác
         TableColumnModel cm = table.getColumnModel();
-        int[] widths = {110, 130, 200, 150, 130, 180};
+        int[] widths = {105, 120, 190, 145, 125, 110, 170};
         for (int i = 0; i < widths.length; i++) cm.getColumn(i).setPreferredWidth(widths[i]);
 
         cm.getColumn(0).setCellRenderer(new RowRenderer(FONT_MONO, PRIMARY));
@@ -512,8 +530,9 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         cm.getColumn(2).setCellRenderer(new RowRenderer(FONT_BODY, ON_SURFACE));
         cm.getColumn(3).setCellRenderer(new RowRenderer(FONT_SMALL, ON_SURF_VAR));
         cm.getColumn(4).setCellRenderer(new DurationRenderer());
-        cm.getColumn(5).setCellRenderer(new ActionRenderer());
-        cm.getColumn(5).setCellEditor(new ActionEditor());
+        cm.getColumn(5).setCellRenderer(new StatusBadgeRenderer());
+        cm.getColumn(6).setCellRenderer(new ActionRenderer());
+        cm.getColumn(6).setCellEditor(new ActionEditor());
 
         JScrollPane sp = new JScrollPane(table);
         sp.setBorder(BorderFactory.createEmptyBorder());
@@ -698,7 +717,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         btn.setFont(FONT_HEADER); btn.setPreferredSize(new Dimension(32,32));
         btn.setMargin(new Insets(0,0,0,0)); btn.setFocusPainted(false);
         btn.setBorderPainted(false); btn.setContentAreaFilled(false);
-        btn.setForeground(page == currentPage ? Color.WHITE : ON_SURF_VAR);
+        btn.setForeground(page == currentPage ? NotionTheme.CARD : ON_SURF_VAR);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.addActionListener(e -> { currentPage = page; refreshTable(); });
         paginationPanel.add(btn);
@@ -732,12 +751,12 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
                 ? "Ngưng hoạt động lịch " + lich.getMaLich() + "?"
                 : "Kích hoạt lại lịch " + lich.getMaLich() + "?";
         String title = current ? "Xác nhận ngưng hoạt động" : "Xác nhận kích hoạt";
-        int confirm = JOptionPane.showConfirmDialog(this, msg, title,
+        int confirm = NotionMessageDialog.showConfirmDialog(this, msg, title,
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm != JOptionPane.YES_OPTION) return;
         boolean ok = daoLich.setHoatDong(lich.getMaLich(), !current);
         if (ok) loadData();
-        else JOptionPane.showMessageDialog(this, "Không thể cập nhật trạng thái lịch.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        else NotionMessageDialog.showMessageDialog(this, "Không thể cập nhật trạng thái lịch.", "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
 
     // =====================================================================
@@ -760,17 +779,13 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     }
 
     private Color getRowBg(boolean isSel, int row) {
-        if (isSel) return PRIMARY_LIGHT;
+        if (isSel) return NotionTheme.TABLE_SELECTION;
         if (row == hoveredRow) return ROW_HOVER;
         return row % 2 == 0 ? CARD_BG : ROW_ALT;
     }
 
-    private ImageIcon loadScaledIcon(String name, int size) {
-        try {
-            java.net.URL url = getClass().getResource("/icons/" + name);
-            if (url != null) return new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH));
-        } catch (Exception ignored) {}
-        return null;
+    private ImageIcon loadScaledIcon(LineIcons.Name iconName, int size) {
+        return LineIcons.image(iconName, size);
     }
 
     private JTextField createSearchField(String placeholder) {
@@ -779,7 +794,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
                 super.paintComponent(g);
                 if (getText().isEmpty() && !hasFocus()) {
                     Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setColor(new Color(0x9E, 0xA7, 0xB0));
+                    g2.setColor(NotionTheme.BORDER);
                     g2.setFont(FONT_BODY);
                     Insets ins = getInsets();
                     g2.drawString(placeholder, ins.left, getHeight() / 2 + 5);
@@ -806,13 +821,38 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
                 g2.dispose(); super.paintComponent(g);
             }
         };
-        ImageIcon icoSearch = loadScaledIcon("nutTimKiem.png", 16);
+        ImageIcon icoSearch = loadScaledIcon(LineIcons.Name.SEARCH, 16);
         if (icoSearch != null) { btn.setIcon(icoSearch); btn.setText("  Tìm"); }
         else btn.setText("Tìm");
         btn.setFont(FONT_BTN); btn.setForeground(Color.WHITE);
         btn.setContentAreaFilled(false); btn.setBorderPainted(false);
         btn.setFocusPainted(false); btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setPreferredSize(new Dimension(90, 38));
+        return btn;
+    }
+
+    private JButton createSecondaryButton(String text, int width, int height) {
+        // Nút phụ dùng nền trắng và border mảnh để hợp card filter, tránh lẫn với primary action.
+        // Rủi ro: helper này đang tối ưu cho button ngắn; text dài cần tăng width truyền vào.
+        JButton btn = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? NotionTheme.CARD_MUTED : NotionTheme.CARD);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(FONT_BOLD);
+        btn.setForeground(ON_SURF_VAR);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(width, height));
         return btn;
     }
 
@@ -840,7 +880,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     private class LichTableModel extends AbstractTableModel {
         private final String[] COLS = {
             "MÃ LỊCH", "ĐOÀN TÀU", "TUYẾN",
-            "THỜI GIAN BẮT ĐẦU", "THỜI GIAN CHẠY", "THAO TÁC"
+            "THỜI GIAN BẮT ĐẦU", "THỜI GIAN CHẠY", "TRẠNG THÁI", "THAO TÁC"
         };
         private List<Lich> data = new ArrayList<>();
 
@@ -850,7 +890,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         @Override public int getRowCount()    { return data.size(); }
         @Override public int getColumnCount() { return COLS.length; }
         @Override public String getColumnName(int c) { return COLS[c]; }
-        @Override public boolean isCellEditable(int r, int c) { return c == 5; }
+        @Override public boolean isCellEditable(int r, int c) { return c == 6; }
 
         @Override public Object getValueAt(int r, int c) {
             Lich l = data.get(r);
@@ -861,7 +901,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
                 case 3 -> l.getThoiGianBatDau() != null
                         ? l.getThoiGianBatDau().format(FMT_DATETIME) : "";
                 case 4 -> l.getThoiGianChay();
-                case 5 -> l;
+                case 5, 6 -> l;
                 default -> "";
             };
         }
@@ -899,6 +939,55 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         }
     }
 
+    private class StatusBadgeRenderer extends JPanel implements TableCellRenderer {
+        private final JLabel badge = new JLabel();
+        private Color badgeBg = SUCCESS_BG;
+        private Color badgeFg = SUCCESS_FG;
+        private static final int BADGE_HEIGHT = 24;
+        private static final int BADGE_MARGIN_X = 28;
+
+        StatusBadgeRenderer() {
+            setLayout(new BorderLayout());
+            setOpaque(true);
+            setBorder(new EmptyBorder(0, BADGE_MARGIN_X, 0, BADGE_MARGIN_X));
+            badge.setFont(FONT_BADGE);
+            badge.setHorizontalAlignment(SwingConstants.CENTER);
+            badge.setPreferredSize(new Dimension(10, BADGE_HEIGHT));
+            add(badge, BorderLayout.CENTER);
+            // Handoff: status badge lịch chạy dùng gần full ô để đồng bộ với tag table khác.
+            // Nếu cột trạng thái hẹp, giảm BADGE_MARGIN_X trước khi thay đổi row/table layout.
+        }
+
+        @Override public Component getTableCellRendererComponent(JTable t, Object v,
+                boolean sel, boolean focus, int row, int col) {
+            setBackground(getRowBg(sel, row));
+            boolean active = !(v instanceof Lich lich) || lich.isHoatDong();
+            badge.setText(active ? "Hoạt động" : "Tạm ngưng");
+            badgeBg = active ? SUCCESS_BG : WARN_BG;
+            badgeFg = active ? SUCCESS_FG : WARN_FG;
+            badge.setForeground(badgeFg);
+            return this;
+        }
+
+        @Override protected void paintChildren(Graphics g) {
+            // Badge trạng thái dùng chữ nhật bo góc nhẹ để đồng bộ với property tag kiểu Notion.
+            // Rủi ro: nếu đổi text dài hơn cần kiểm tra lại width cột để không cắt nhãn.
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Rectangle r = badge.getBounds();
+            int x = r.x;
+            int y = r.y + Math.max(0, (r.height - BADGE_HEIGHT) / 2);
+            int w = r.width;
+            int h = BADGE_HEIGHT;
+            g2.setColor(badgeBg);
+            g2.fillRoundRect(x, y, w, h, 8, 8);
+            g2.setColor(AppColors.withAlpha(badgeFg, 65));
+            g2.drawRoundRect(x, y, w - 1, h - 1, 8, 8);
+            g2.dispose();
+            super.paintChildren(g);
+        }
+    }
+
     private class ActionRenderer extends JPanel implements TableCellRenderer {
         private final JLabel lblSua    = new JLabel();
         private final JLabel lblToggle = new JLabel();
@@ -910,13 +999,13 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             GridBagConstraints g = new GridBagConstraints();
             g.insets = new Insets(0, 5, 0, 5);
 
-            ImageIcon iSua = loadScaledIcon("nutSua.png", 14);
+            ImageIcon iSua = loadScaledIcon(LineIcons.Name.EDIT, 14);
 
             lblSua.setFont(FONT_BADGE); lblSua.setForeground(PRIMARY);
             lblSua.setHorizontalAlignment(SwingConstants.CENTER);
-            lblSua.setPreferredSize(new Dimension(72, 28));
+            lblSua.setPreferredSize(new Dimension(86, 28));
             if (iSua != null) lblSua.setIcon(iSua);
-            lblSua.setText(iSua != null ? "  Sửa" : "Sửa");
+            lblSua.setText(iSua != null ? "  Chỉnh sửa" : "Chỉnh sửa");
 
             lblToggle.setFont(FONT_BADGE);
             lblToggle.setHorizontalAlignment(SwingConstants.CENTER);
@@ -961,9 +1050,9 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             GridBagConstraints g = new GridBagConstraints();
             g.insets = new Insets(0, 5, 0, 5);
 
-            ImageIcon iSua = loadScaledIcon("nutSua.png", 14);
+            ImageIcon iSua = loadScaledIcon(LineIcons.Name.EDIT, 14);
 
-            styleActionBtn(btnSua, "Sửa", PRIMARY, PRIMARY_LIGHT, iSua, 72);
+            styleActionBtn(btnSua, "Chỉnh sửa", PRIMARY, PRIMARY_LIGHT, iSua, 86);
             styleActionBtn(btnToggle, "Ngưng HĐ", ERROR_FG, ERROR_BG, null, 88);
 
             panel.add(btnSua, g); panel.add(btnToggle, g);
@@ -981,10 +1070,16 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         }
 
         private void styleActionBtn(JButton btn, String text, Color fg, Color bg, ImageIcon ico, int width) {
+            // Action editor mô phỏng tag/button Notion bằng nền mềm + border theo màu chữ.
+            // Rủi ro: JButton vẫn do LAF paint một phần, nên luôn giữ contentAreaFilled true với background rõ.
             btn.setFont(FONT_BADGE); btn.setForeground(fg); btn.setBackground(bg);
             if (ico != null) { btn.setIcon(ico); btn.setText("  " + text); }
             else btn.setText(text);
-            btn.setBorderPainted(false); btn.setFocusPainted(false);
+            btn.setOpaque(true); btn.setContentAreaFilled(true);
+            btn.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(AppColors.withAlpha(fg, 55), 1, true),
+                    new EmptyBorder(0, 8, 0, 8)));
+            btn.setFocusPainted(false);
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             btn.setPreferredSize(new Dimension(width, 28));
         }
@@ -1066,5 +1161,13 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     @Override public String getTitle()  { return "Quản lý lịch chạy"; }
     @Override public JPanel getView()   { return this; }
     @Override public void setOnResult(Consumer<Object> cb) { this.callback = cb; }
-    @Override public void reset() { txtSearch.setText(""); loadData(); }
+    @Override public void reset() {
+        txtSearch.setText("");
+        if (dateFrom != null) dateFrom.setValue(null);
+        if (dateTo != null) dateTo.setValue(null);
+        loadData();
+    }
 }
+
+
+

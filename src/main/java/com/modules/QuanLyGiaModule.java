@@ -53,23 +53,23 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
     private List<Gia> filteredData = new ArrayList<>();
 
     // --- Design tokens (same as QuanLyNhanVienModule) ---
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color TABLE_HEAD_BG = new Color(0xF3, 0xF7, 0xFB);
-    private static final Color TABLE_HEAD_FG = new Color(0x4E, 0x5F, 0x70);
-    private static final Color TABLE_DIVIDER = new Color(0xE7, 0xED, 0xF3);
-    private static final Color ROW_ALT       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color ROW_HOVER     = new Color(0xEE, 0xF5, 0xFB);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color TABLE_HEAD_BG = NotionTheme.PAGE;
+    private static final Color TABLE_HEAD_FG = NotionTheme.TEXT_MUTED;
+    private static final Color TABLE_DIVIDER = NotionTheme.ACCENT_SOFT;
+    private static final Color ROW_ALT       = NotionTheme.PAGE;
+    private static final Color ROW_HOVER     = NotionTheme.ACCENT_SOFT;
 
-    private static final Color STATUS_GREEN_BG  = new Color(0xDC, 0xFA, 0xE6);
-    private static final Color STATUS_GREEN_FG  = new Color(0x16, 0x6B, 0x3A);
-    private static final Color STATUS_RED_BG    = new Color(0xFE, 0xE2, 0xE2);
-    private static final Color STATUS_RED_FG    = new Color(0xB9, 0x1C, 0x1C);
+    private static final Color STATUS_GREEN_BG  = AppColors.SUCCESS_LIGHT;
+    private static final Color STATUS_GREEN_FG  = AppColors.SUCCESS_DARK;
+    private static final Color STATUS_RED_BG    = AppColors.ERROR_LIGHT;
+    private static final Color STATUS_RED_FG    = AppColors.ERROR_DARK;
 
     private static final Font FONT_TITLE   = new Font("Segoe UI", Font.BOLD, 24);
     private static final Font FONT_DESC    = new Font("Segoe UI", Font.PLAIN, 13);
@@ -140,11 +140,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(CARD_BG);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 16, 16));
-                g2.setColor(OUTLINE);
-                g2.setStroke(new BasicStroke(1f));
-                g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1, getHeight() - 1, 16, 16));
+                NotionTheme.paintCard(g2, this, CARD_BG, OUTLINE, 16);
                 g2.dispose();
             }
         };
@@ -154,30 +150,49 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
     }
 
     private JPanel buildHeader() {
-        JPanel header = new JPanel(new BorderLayout(0, 0));
+        JPanel header = new JPanel(new BorderLayout(24, 0)) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                GradientPaint gp = new GradientPaint(0, 0, NotionTheme.NAVY, getWidth(), getHeight(), new Color(0xDD, 0x5B, 0x00));
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+                g2.setColor(AppColors.withAlpha(NotionTheme.YELLOW, 135));
+                g2.fillRoundRect(getWidth() - 188, 18, 132, 132, 32, 32);
+                g2.setColor(AppColors.withAlpha(NotionTheme.SKY, 105));
+                g2.fillOval(getWidth() - 300, 92, 132, 132);
+                g2.setColor(AppColors.withAlpha(Color.WHITE, 44));
+                g2.fillRoundRect(getWidth() - 260, 40, 118, 14, 14, 14);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         header.setOpaque(false);
-        header.setBorder(new EmptyBorder(0, 0, 24, 0));
+        header.setBorder(new EmptyBorder(24, 28, 24, 28));
+        header.setPreferredSize(new Dimension(10, 150));
 
         JPanel left = new JPanel();
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
+        JLabel eyebrow = new JLabel("WORKSPACE / NGHIỆP VỤ");
+        eyebrow.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        eyebrow.setForeground(AppColors.withAlpha(Color.WHITE, 190));
         JLabel lblTitle = new JLabel("Thiết lập biểu giá");
-        lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(ON_SURFACE);
-        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        lblTitle.setForeground(Color.WHITE);
         JLabel lblDesc = new JLabel("Cấu hình và tìm kiếm thông tin giá vé trên toàn hệ thống.");
-        lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(ON_SURF_VAR);
-        lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblDesc.setForeground(AppColors.withAlpha(Color.WHITE, 210));
 
+        left.add(eyebrow);
+        left.add(Box.createVerticalStrut(8));
         left.add(lblTitle);
-        left.add(Box.createVerticalStrut(4));
+        left.add(Box.createVerticalStrut(8));
         left.add(lblDesc);
 
         btnAddNew = createPrimaryButton("+ Thêm giá mới");
-        btnAddNew.setPreferredSize(new Dimension(150, 40));
+        btnAddNew.setPreferredSize(new Dimension(150, 42));
         btnAddNew.addActionListener(e -> openThemGiaDialog());
 
         JPanel rightWrapper = new JPanel(new GridBagLayout());
@@ -186,7 +201,6 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
 
         header.add(left, BorderLayout.CENTER);
         header.add(rightWrapper, BorderLayout.EAST);
-
         return header;
     }
 
@@ -196,11 +210,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(CARD_BG);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 16, 16));
-                g2.setColor(OUTLINE);
-                g2.setStroke(new BasicStroke(1f));
-                g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1, getHeight() - 1, 16, 16));
+                NotionTheme.paintCard(g2, this, CARD_BG, OUTLINE, 16);
                 g2.dispose();
             }
         };
@@ -243,7 +253,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         lblTableMeta.setForeground(PRIMARY);
         lblTableMeta.setBorder(new EmptyBorder(6, 12, 6, 12));
         lblTableMeta.setOpaque(true);
-        lblTableMeta.setBackground(new Color(0xE8, 0xF1, 0xFB));
+        lblTableMeta.setBackground(NotionTheme.ACCENT_SOFT);
 
         bar.add(left, BorderLayout.WEST);
         bar.add(lblTableMeta, BorderLayout.EAST);
@@ -262,18 +272,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 
-                // Shadow
-                g2.setColor(new Color(0, 0, 0, 10));
-                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 20, 20);
-                
-                // Background
-                g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
-                
-                // Border
-                g2.setColor(OUTLINE);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                NotionTheme.paintCard(g2, this, CARD_BG, OUTLINE, 16);
                 g2.dispose();
                 super.paintComponent(g);
             }
@@ -292,25 +291,21 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         GridBagConstraints sgbc = new GridBagConstraints();
         sgbc.insets = new Insets(0, 0, 0, 12);
         
-        JLabel iconSearch = new JLabel();
-        try {
-            java.net.URL url = getClass().getResource("/icons/nutTimKiem.png");
-            if (url != null) {
-                Image img = new ImageIcon(url).getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
-                iconSearch.setIcon(new ImageIcon(img));
-            }
-        } catch (Exception ignored) {}
-        searchRow.add(iconSearch, sgbc);
-
         txtSearchMaGia = new JTextField();
         txtSearchMaGia.setFont(FONT_BODY);
-        txtSearchMaGia.setOpaque(true);
-        txtSearchMaGia.setBackground(Color.WHITE);
-        txtSearchMaGia.setBorder(BorderFactory.createCompoundBorder(
+        txtSearchMaGia.setOpaque(false);
+        txtSearchMaGia.setBorder(BorderFactory.createEmptyBorder());
+        txtSearchMaGia.putClientProperty("JTextField.placeholderText", "Tìm kiếm theo mã giá, mô tả...");
+        JPanel searchBox = new JPanel(new BorderLayout(10, 0));
+        searchBox.setOpaque(false);
+        searchBox.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1, true),
                 new EmptyBorder(8, 12, 8, 12)
         ));
-        txtSearchMaGia.putClientProperty("JTextField.placeholderText", "Tìm kiếm theo mã giá, mô tả...");
+        JLabel iconSearch = new JLabel(LineIcons.image(LineIcons.Name.SEARCH, 18, 18));
+        searchBox.add(iconSearch, BorderLayout.WEST);
+        searchBox.add(txtSearchMaGia, BorderLayout.CENTER);
+        SearchFieldClearButton.install(searchBox, txtSearchMaGia, this::applyFilter);
         txtSearchMaGia.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
@@ -318,37 +313,20 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         });
         sgbc.weightx = 1.0;
         sgbc.fill = GridBagConstraints.HORIZONTAL;
-        searchRow.add(txtSearchMaGia, sgbc);
+        searchRow.add(searchBox, sgbc);
 
-        JButton btnReset = new JButton("Bỏ lọc") {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(OUTLINE);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnReset.setFont(FONT_BOLD);
-        btnReset.setForeground(ON_SURF_VAR);
-        btnReset.setContentAreaFilled(false);
-        btnReset.setBorderPainted(false);
-        btnReset.setFocusPainted(false);
+        JButton btnReset = new JButton("Bỏ lọc");
+        NotionTheme.styleSecondaryButton(btnReset);
         btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnReset.setPreferredSize(new Dimension(100, 38));
+        btnReset.setPreferredSize(new Dimension(104, 40));
         btnReset.addActionListener(e -> {
-            txtSearchMaGia.setText("");
             cboTrangThai.setSelectedIndex(0);
             dpTuNgay.setValue(null);
             dpDenNgay.setValue(null);
             applyFilter();
         });
-        sgbc.weightx = 0; sgbc.insets = new Insets(0, 0, 0, 0); sgbc.fill = GridBagConstraints.NONE;
-        searchRow.add(btnReset, sgbc);
+        // Handoff: dùng style nút phụ chung để text Bỏ lọc đồng bộ với các module quản lý khác.
+        // Cảnh báo: nút này chỉ clear filter ngày/trạng thái, không xóa thanh tìm kiếm.
 
         gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 1.0;
         bgPanel.add(searchRow, gbc);
@@ -372,6 +350,8 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         cboTrangThai.addActionListener(e -> applyFilter());
         fgbc.gridx = 2; fgbc.insets = new Insets(0, 0, 0, 0);
         filterRow.add(buildFilterGroupGia("TRẠNG THÁI", cboTrangThai), fgbc);
+        fgbc.gridx = 3; fgbc.weightx = 0; fgbc.fill = GridBagConstraints.NONE; fgbc.insets = new Insets(0, 12, 0, 0);
+        filterRow.add(FilterActionGroup.wrap(btnReset), fgbc);
 
         gbc.gridy = 1; gbc.insets = new Insets(0, 0, 0, 0);
         bgPanel.add(filterRow, gbc);
@@ -409,7 +389,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
                 if (getText().isEmpty() && !hasFocus()) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                    g2.setColor(new Color(0x9E, 0xA7, 0xB0));
+                    g2.setColor(NotionTheme.BORDER);
                     g2.setFont(FONT_SMALL);
                     Insets ins = getInsets();
                     g2.drawString("dd/MM/yyyy", ins.left + 2, getHeight() / 2 + 4);
@@ -443,7 +423,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color bg = getModel().isRollover() ? PRIMARY_LIGHT : new Color(0xF1, 0xF5, 0xF9);
+                Color bg = getModel().isRollover() ? PRIMARY_LIGHT : NotionTheme.PAGE;
                 g2.setColor(bg);
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 g2.setColor(OUTLINE);
@@ -514,7 +494,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 if (getModel().isRollover()) {
-                    g2.setColor(new Color(0xFE, 0xE2, 0xE2));
+                    g2.setColor(AppColors.ERROR_LIGHT);
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 }
                 g2.dispose();
@@ -522,7 +502,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
             }
         };
         btnClear.setFont(FONT_BTN);
-        btnClear.setForeground(new Color(0xB9, 0x1C, 0x1C));
+        btnClear.setForeground(AppColors.ERROR_DARK);
         btnClear.setContentAreaFilled(false);
         btnClear.setBorderPainted(false);
         btnClear.setFocusPainted(false);
@@ -538,7 +518,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(Color.WHITE);
         root.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(0xC8, 0xD0, 0xDA), 1),
+                BorderFactory.createLineBorder(NotionTheme.BORDER, 1),
                 new EmptyBorder(4, 4, 0, 4)
         ));
         root.add(jCal, BorderLayout.CENTER);
@@ -585,12 +565,13 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
     private JScrollPane buildTableSection() {
         tableModel = new GiaTableModel();
         table = new JTable(tableModel);
+        NotionTheme.styleTable(table);
         table.setRowHeight(60);
         table.setShowGrid(false);
         table.setShowHorizontalLines(false);
         table.setGridColor(TABLE_DIVIDER);
         table.setIntercellSpacing(new Dimension(0, 0));
-        table.setSelectionBackground(PRIMARY_LIGHT);
+        table.setSelectionBackground(NotionTheme.TABLE_SELECTION);
         table.setSelectionForeground(ON_SURFACE);
         table.setFont(FONT_BODY);
         table.setFillsViewportHeight(true);
@@ -1043,14 +1024,20 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         private final JLabel badge = new JLabel();
         private Color badgeBg = OUTLINE;
         private Color badgeFg = ON_SURF_VAR;
+        private static final int BADGE_HEIGHT = 24;
+        private static final int BADGE_MARGIN_X = 28;
 
         BadgeCellRenderer() {
-            setLayout(new GridBagLayout());
+            setLayout(new BorderLayout());
             setOpaque(true);
+            setBorder(new EmptyBorder(0, BADGE_MARGIN_X, 0, BADGE_MARGIN_X));
             badge.setFont(FONT_BADGE);
             badge.setHorizontalAlignment(SwingConstants.CENTER);
             badge.setOpaque(false);
-            add(badge);
+            badge.setPreferredSize(new Dimension(10, BADGE_HEIGHT));
+            add(badge, BorderLayout.CENTER);
+            // Handoff: badge trạng thái giá bám theo chiều rộng ô, không theo text.
+            // Giữ margin để tag không dính vách cột; nếu cột đổi, renderer tự co giãn theo ô.
         }
 
         @Override
@@ -1080,9 +1067,9 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             Rectangle r = badge.getBounds();
-            int px = 10, py = 3;
             g2.setColor(badgeBg);
-            g2.fillRoundRect(r.x - px, r.y - py, r.width + 2 * px, r.height + 2 * py, 14, 14);
+            int y = r.y + Math.max(0, (r.height - BADGE_HEIGHT) / 2);
+            g2.fillRoundRect(r.x, y, r.width, BADGE_HEIGHT, 14, 14);
             g2.dispose();
 
             super.paintChildren(g);
@@ -1141,8 +1128,8 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
 
             button = new JButton("Chỉnh sửa");
             button.setFont(FONT_BADGE);
-            button.setForeground(PRIMARY);
-            button.setBackground(PRIMARY_LIGHT);
+            button.setForeground(AppColors.ACTION_SOFT_FG);
+            button.setBackground(AppColors.ACTION_SOFT_BG);
             button.setBorderPainted(false);
             button.setFocusPainted(false);
             button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -1191,7 +1178,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
     }
 
     private Color getRowBg(JTable tbl, boolean isSel, int row) {
-        if (isSel) return PRIMARY_LIGHT;
+        if (isSel) return NotionTheme.TABLE_SELECTION;
         if (row == hoveredRow) return ROW_HOVER;
         return row % 2 == 0 ? CARD_BG : ROW_ALT;
     }
@@ -1235,3 +1222,4 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         loadData();
     }
 }
+

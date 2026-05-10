@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.connectDB.ConnectDB;
 import com.entity.KhachHang;
+import com.util.MaTuDong;
 
 public class DAO_KhachHang {
 
@@ -209,20 +210,7 @@ public class DAO_KhachHang {
 
     // ========================= SINH MA KH MOI =========================
     public String generateNextMaKH() {
-        Connection con = ConnectDB.getCon();
-        if (con == null) return "KH-0001";
-
-        String sql = "SELECT MAX(CAST(SUBSTRING(maKhachHang, 4, LEN(maKhachHang)-3) AS INT)) FROM KhachHang WHERE maKhachHang LIKE 'KH-%'";
-        try (PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                int maxNum = rs.getInt(1);
-                return String.format("KH-%04d", maxNum + 1);
-            }
-        } catch (SQLException e) {
-            System.err.println("Loi khi sinh ma KH: " + e.getMessage());
-        }
-        return "KH-0001";
+        return MaTuDong.generate("KH");
     }
 
     private KhachHang mapRow(ResultSet rs) throws SQLException {

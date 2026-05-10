@@ -17,9 +17,9 @@ import java.util.function.Consumer;
  *   ...
  *   EntityDetailModule m = new EntityDetailModule(
  *       "Nhân viên",          // loại thực thể (hiện trên badge header)
- *       new Color(0x005D90),  // màu chủ đạo
+ *       AppColors.PRIMARY_DARK,  // màu chủ đạo
  *       "Nguyễn Văn A",       // tên hiển thị chính
- *       "NV-001",             // ID thực thể
+ *       "NV20260504123045",   // ID thực thể
  *       fields
  *   );
  *   ModuleLauncher.asDialog(m, parentFrame, result -> {});
@@ -27,12 +27,12 @@ import java.util.function.Consumer;
 public class EntityDetailModule extends JPanel implements AppModule {
 
     // ── Màu sắc ──────────────────────────────────────────────────────────────
-    private static final Color CARD_BG   = Color.WHITE;
-    private static final Color TEXT_MAIN = new Color(0x1A1A2E);
-    private static final Color TEXT_SUB  = new Color(0x6B7280);
-    private static final Color ROW_ALT   = new Color(0xF8FAFC);
-    private static final Color FOOTER_BG = new Color(0xF3F4F6);
-    private static final Color DIVIDER   = new Color(0xE5E7EB);
+    private static final Color CARD_BG   = AppColors.SURFACE;
+    private static final Color TEXT_MAIN = AppColors.TEXT_PRIMARY;
+    private static final Color TEXT_SUB  = AppColors.TEXT_SECONDARY;
+    private static final Color ROW_ALT   = AppColors.BACKGROUND;
+    private static final Color FOOTER_BG = AppColors.BACKGROUND;
+    private static final Color DIVIDER   = AppColors.BORDER;
 
     // ── Dữ liệu ──────────────────────────────────────────────────────────────
     private final String typeLabel;
@@ -81,7 +81,7 @@ public class EntityDetailModule extends JPanel implements AppModule {
         // Tên chính
         JLabel name = new JLabel(entityName.isBlank() ? entityId : entityName);
         name.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        name.setForeground(Color.WHITE);
+        name.setForeground(AppColors.SURFACE);
 
         // ID phụ — hiện sau tên
         JLabel idLbl = new JLabel("  #" + entityId);
@@ -156,7 +156,7 @@ public class EntityDetailModule extends JPanel implements AppModule {
         btnClose = new JButton("  Đóng  ");
         btnClose.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnClose.setBackground(typeColor);
-        btnClose.setForeground(Color.WHITE);
+        btnClose.setForeground(AppColors.SURFACE);
         btnClose.setFocusPainted(false);
         btnClose.setBorderPainted(false);
         btnClose.setOpaque(true);

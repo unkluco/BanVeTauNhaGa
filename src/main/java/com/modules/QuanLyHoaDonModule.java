@@ -40,8 +40,13 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
 
     // Pagination
     private int currentPage = 1;
-    private int rowsPerPage = 11; // rowsPerPage + 1 per project convention
+    private int rowsPerPage = 10;
+    private boolean isRefreshing = false;
     private JLabel lblPageInfo;
+    private JLabel lblTableMeta;
+    private JLabel lblStatTotal;
+    private JLabel lblStatTickets;
+    private JLabel lblStatRevenue;
     private JPanel paginationPanel;
 
     // Data
@@ -53,16 +58,17 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     // Design tokens
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color ROW_ALT       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color ROW_HOVER     = new Color(0xEE, 0xF5, 0xFB);
-    private static final Color AMOUNT_COLOR  = new Color(0x1A, 0x7A, 0x3C);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color ROW_ALT       = NotionTheme.CARD_MUTED;
+    private static final Color ROW_HOVER     = NotionTheme.ROW_HOVER;
+    private static final Color AMOUNT_COLOR  = new Color(0x1A, 0xAE, 0x39);
+    private static final Color ERROR_FG      = new Color(0xE0, 0x31, 0x31);
 
     private static final Font FONT_HEADER = new Font("Segoe UI", Font.BOLD,  13);
     private static final Font FONT_BODY   = new Font("Segoe UI", Font.PLAIN, 13);
@@ -80,6 +86,7 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     public QuanLyHoaDonModule() {
         setLayout(new BorderLayout());
         setBackground(SURFACE);
+        setBorder(NotionTheme.pageBorder());
         buildUI();
     }
 
@@ -88,8 +95,21 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     // =========================================================================
 
     private void buildUI() {
-        add(buildHeader(),  BorderLayout.NORTH);
-        add(buildBody(),    BorderLayout.CENTER);
+        JPanel main = new JPanel(new BorderLayout(0, 16));
+        main.setOpaque(false);
+        JPanel top = new JPanel();
+        top.setOpaque(false);
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        JPanel header = buildHeader();
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel stats = buildStatsRow();
+        stats.setAlignmentX(Component.LEFT_ALIGNMENT);
+        top.add(header);
+        top.add(Box.createVerticalStrut(16));
+        top.add(stats);
+        main.add(top, BorderLayout.NORTH);
+        main.add(buildBody(), BorderLayout.CENTER);
+        add(main, BorderLayout.CENTER);
 
         btnSubmit = new JButton("Xác nhận");
         btnCancel = new JButton("Hủy");
@@ -105,194 +125,269 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
 
     // ---- Header ----
     private JPanel buildHeader() {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(CARD_BG);
-        p.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
-                new EmptyBorder(18, 24, 18, 24)));
-
-        // Icon + title
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        left.setBackground(CARD_BG);
-
-        JLabel iconLbl = loadIcon("/icons/bieuTuongHoaDon.png", 36);
-        left.add(iconLbl);
-
-        JPanel titles = new JPanel();
-        titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
-        titles.setBackground(CARD_BG);
-        JLabel t1 = new JLabel("Quản lý Hóa đơn");
-        t1.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        t1.setForeground(ON_SURFACE);
-        JLabel t2 = new JLabel("Danh sách hóa đơn bán vé trong hệ thống");
-        t2.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        t2.setForeground(ON_SURF_VAR);
-        titles.add(t1);
-        titles.add(Box.createVerticalStrut(3));
-        titles.add(t2);
-        left.add(titles);
-
-        p.add(left, BorderLayout.WEST);
-        return p;
-    }
-
-    // ---- Body: filter + table + pagination ----
-    private JPanel buildBody() {
-        JPanel body = new JPanel(new BorderLayout(0, 12));
-        body.setBackground(SURFACE);
-        body.setBorder(new EmptyBorder(16, 20, 16, 20));
-
-        body.add(buildFilterBar(), BorderLayout.NORTH);
-        body.add(buildTableCard(), BorderLayout.CENTER);
-        body.add(buildPaginationBar(), BorderLayout.SOUTH);
-        return body;
-    }
-
-    private JPanel buildFilterBar() {
-        JPanel wrapper = new JPanel();
-        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
-        wrapper.setOpaque(false);
-
-        // --- Row 1: Primary Search Row (Full Width) ---
-        JPanel searchRow = new JPanel(new BorderLayout());
-        searchRow.setOpaque(false);
-
-        JPanel bgPanel = new JPanel(new GridBagLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
+        JPanel hdr = new JPanel(new BorderLayout(24, 0)) {
+            @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Shadow
-                g2.setColor(new Color(0, 0, 0, 10));
-                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 20, 20);
-                
-                // Background
-                g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
-                
-                // Border
-                g2.setColor(OUTLINE);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                GradientPaint gp = new GradientPaint(0, 0, NotionTheme.NAVY, getWidth(), getHeight(), NotionTheme.ACCENT);
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+                g2.setColor(AppColors.withAlpha(NotionTheme.ACCENT_SOFT, 150));
+                g2.fillRoundRect(getWidth() - 198, 12, 138, 138, 34, 34);
+                g2.setColor(AppColors.withAlpha(NotionTheme.ROSE, 112));
+                g2.fillOval(getWidth() - 315, 92, 150, 150);
+                g2.setColor(AppColors.withAlpha(Color.WHITE, 40));
+                g2.fillRoundRect(getWidth() - 270, 38, 116, 14, 14, 14);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        bgPanel.setOpaque(false);
-        bgPanel.setBorder(new EmptyBorder(6, 15, 10, 15));
+        hdr.setOpaque(false);
+        hdr.setBorder(new EmptyBorder(24, 28, 24, 28));
+        hdr.setPreferredSize(new Dimension(10, 150));
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(0, 0, 0, 12);
-        gbc.fill = GridBagConstraints.VERTICAL;
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        JLabel eyebrow = new JLabel("WORKSPACE / NGHIỆP VỤ");
+        eyebrow.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        eyebrow.setForeground(AppColors.withAlpha(Color.WHITE, 190));
+        JLabel title = new JLabel("Quản lý Hóa đơn");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        title.setForeground(Color.WHITE);
+        JLabel desc = new JLabel("Tra cứu hóa đơn, theo dõi khách hàng và mở chi tiết giao dịch bán vé.");
+        desc.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        desc.setForeground(AppColors.withAlpha(Color.WHITE, 210));
+        left.add(eyebrow);
+        left.add(Box.createVerticalStrut(8));
+        left.add(title);
+        left.add(Box.createVerticalStrut(8));
+        left.add(desc);
 
-        // Custom search icon
-        JLabel iconSearch = new JLabel();
-        try {
-            java.net.URL url = getClass().getResource("/icons/nutTimKiem.png");
-            if (url != null) {
-                Image img = new ImageIcon(url).getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
-                iconSearch.setIcon(new ImageIcon(img));
+        JPanel right = new JPanel(new GridBagLayout());
+        right.setOpaque(false);
+        JLabel badge = createHeroBadge("Hóa đơn bán vé");
+        right.add(badge);
+
+        hdr.add(left, BorderLayout.CENTER);
+        hdr.add(right, BorderLayout.EAST);
+        return hdr;
+    }
+
+    private JPanel buildStatsRow() {
+        JPanel row = new JPanel(new GridLayout(1, 3, 12, 0));
+        row.setOpaque(false);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
+        lblStatTotal = new JLabel("0");
+        lblStatTickets = new JLabel("0");
+        lblStatRevenue = new JLabel("0 ₫");
+        row.add(buildStatCard("Hóa đơn hiện tại", lblStatTotal, PRIMARY, NotionTheme.ACCENT_SOFT));
+        row.add(buildStatCard("Tổng số vé", lblStatTickets, PRIMARY, NotionTheme.ACCENT_SOFT));
+        row.add(buildStatCard("Tổng doanh thu", lblStatRevenue, AMOUNT_COLOR, NotionTheme.MINT));
+        return row;
+    }
+
+    private JPanel buildStatCard(String label, JLabel value, Color accent, Color tint) {
+        JPanel card = new JPanel(new BorderLayout(10, 0)) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(tint);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.setColor(AppColors.withAlpha(accent, 80));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
+                g2.dispose();
+                super.paintComponent(g);
             }
-        } catch (Exception ignored) {}
-        bgPanel.add(iconSearch, gbc);
+        };
+        card.setOpaque(false);
+        card.setBorder(new EmptyBorder(14, 18, 14, 18));
+        JPanel marker = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(accent);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+            }
+        };
+        marker.setOpaque(false);
+        marker.setPreferredSize(new Dimension(8, 48));
+        JPanel text = new JPanel();
+        text.setOpaque(false);
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+        value.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        value.setForeground(accent);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lbl.setForeground(ON_SURF_VAR);
+        text.add(value);
+        text.add(Box.createVerticalStrut(2));
+        text.add(lbl);
+        card.add(marker, BorderLayout.WEST);
+        card.add(text, BorderLayout.CENTER);
+        return card;
+    }
+
+    // ---- Body: filter + table + pagination ----
+    private JPanel buildBody() {
+        JPanel body = new JPanel(new BorderLayout(0, 16));
+        body.setOpaque(false);
+        body.add(buildFilterBar(), BorderLayout.NORTH);
+        body.add(buildTableCard(), BorderLayout.CENTER);
+        return body;
+    }
+
+    private JPanel buildFilterBar() {
+        JPanel wrapper = new JPanel(new BorderLayout(0, 12)) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                NotionTheme.paintCard(g2, this, CARD_BG, OUTLINE, 16);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        wrapper.setOpaque(false);
+        wrapper.setBorder(new EmptyBorder(18, 22, 18, 22));
+
+        JPanel header = new JPanel(new BorderLayout(12, 0));
+        header.setOpaque(false);
+        JLabel title = new JLabel("Bộ lọc hóa đơn");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        title.setForeground(ON_SURFACE);
+        JLabel subtitle = new JLabel("Tìm theo mã hóa đơn, khách hàng hoặc nhân viên");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        subtitle.setForeground(ON_SURF_VAR);
+        header.add(title, BorderLayout.WEST);
+        header.add(subtitle, BorderLayout.EAST);
+
+        JPanel filterGrid = new JPanel(new GridBagLayout());
+        filterGrid.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 12);
+
+        JPanel searchBox = new JPanel(new BorderLayout(10, 0));
+        searchBox.setOpaque(false);
+        searchBox.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(9, 14, 9, 14)));
+
+        JLabel iconSearch = loadIcon(LineIcons.Name.SEARCH, 18);
+        searchBox.add(iconSearch, BorderLayout.WEST);
 
         txtSearch = new JTextField();
         txtSearch.setFont(FONT_BODY);
-        txtSearch.setOpaque(true);
-        txtSearch.setBackground(Color.WHITE);
-        txtSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
+        txtSearch.setOpaque(false);
+        txtSearch.setBorder(BorderFactory.createEmptyBorder());
         txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo mã HĐ, khách hàng, nhân viên…");
-        
-        // Real-time search
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
         });
+        searchBox.add(txtSearch, BorderLayout.CENTER);
+        SearchFieldClearButton.install(searchBox, txtSearch, this::applyFilter);
 
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        bgPanel.add(txtSearch, gbc);
+        gbc.gridx = 0;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        filterGrid.add(buildFilterGroup("TÌM KIẾM", searchBox), gbc);
 
-        // Bo loc button
-        JButton btnReset = new JButton("Bỏ lọc") {
-            @Override
-            protected void paintComponent(Graphics g) {
+        wrapper.add(header, BorderLayout.NORTH);
+        // Handoff: hóa đơn hiện chỉ có tìm kiếm nên bỏ nút Bỏ lọc, clear bằng X trong field.
+        // Cảnh báo: filterGrid giữ mỗi ô tự canh hàng; nếu thêm filter thật, thêm vào grid này.
+        wrapper.add(filterGrid, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private JPanel buildFilterGroup(String labelText, JComponent field) {
+        JPanel group = new JPanel(new BorderLayout(0, 6));
+        group.setOpaque(false);
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        label.setForeground(ON_SURF_VAR);
+        field.setPreferredSize(new Dimension(field.getPreferredSize().width, 42));
+        field.setMinimumSize(new Dimension(120, 42));
+        group.add(label, BorderLayout.NORTH);
+        group.add(field, BorderLayout.CENTER);
+        return group;
+        // Handoff: nhóm filter chuẩn hóa label + chiều cao control để tránh lệch/che khuất.
+        // Cảnh báo: không nhét nút không phải filter vào đây nếu không có label rõ nghĩa.
+    }
+
+    private JPanel buildTableCard() {
+        JPanel card = new JPanel(new BorderLayout(0, 12)) {
+            @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(OUTLINE);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                NotionTheme.paintCard(g2, this, CARD_BG, OUTLINE, 16);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        btnReset.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnReset.setForeground(ON_SURF_VAR);
-        btnReset.setContentAreaFilled(false);
-        btnReset.setBorderPainted(false);
-        btnReset.setFocusPainted(false);
-        btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnReset.setPreferredSize(new Dimension(100, 38));
-        btnReset.addActionListener(e -> {
-            txtSearch.setText("");
-            applyFilter();
-        });
+        card.setOpaque(false);
+        card.setBorder(new EmptyBorder(16, 18, 16, 18));
 
-        gbc.weightx = 0;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(0, 0, 0, 0);
-        bgPanel.add(btnReset, gbc);
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setOpaque(false);
+        JLabel tableTitle = new JLabel("Danh sách hóa đơn");
+        tableTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        tableTitle.setForeground(ON_SURFACE);
+        lblTableMeta = createMetaBadge("0 hóa đơn");
+        topBar.add(tableTitle, BorderLayout.WEST);
+        topBar.add(lblTableMeta, BorderLayout.EAST);
+        card.add(topBar, BorderLayout.NORTH);
 
-        searchRow.add(bgPanel, BorderLayout.CENTER);
-        wrapper.add(searchRow);
-
-        return wrapper;
-    }
-
-    private JPanel buildTableCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1),
-                BorderFactory.createEmptyBorder(0, 0, 0, 0)));
-
-        String[] cols = {"", "Mã Hóa đơn", "Ngày lập", "Khách hàng", "SĐT", "Nhân viên", "Số vé", "Tổng tiền", "Chi tiết"};
+        String[] cols = {"Mã Hóa đơn", "Ngày lập", "Khách hàng", "SĐT", "Nhân viên", "Số vé", "Tổng tiền", "Chi tiết"};
         tableModel = new HoaDonTableModel(cols);
         table = new JTable(tableModel);
-        table.setFont(FONT_BODY);
-        table.setRowHeight(46);
+        NotionTheme.styleTable(table);
+        table.setRowHeight(56);
         table.setShowGrid(false);
+        table.setShowHorizontalLines(true);
+        table.setGridColor(OUTLINE);
         table.setIntercellSpacing(new Dimension(0, 0));
-        table.setSelectionBackground(PRIMARY_LIGHT);
+        table.setSelectionBackground(NotionTheme.TABLE_SELECTION);
         table.setSelectionForeground(ON_SURFACE);
         table.setFillsViewportHeight(true);
         table.setBackground(CARD_BG);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
 
         JTableHeader th = table.getTableHeader();
-        th.setFont(FONT_HEADER);
-        th.setBackground(new Color(0xF0, 0xF4, 0xF8));
-        th.setForeground(ON_SURFACE);
         th.setReorderingAllowed(false);
-        th.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE));
-        ((DefaultTableCellRenderer) th.getDefaultRenderer()).setHorizontalAlignment(SwingConstants.LEFT);
+        th.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                lbl.setFont(FONT_HEADER);
+                lbl.setForeground(ON_SURF_VAR);
+                lbl.setBackground(NotionTheme.PAGE);
+                lbl.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
+                        new EmptyBorder(0, 20, 0, 8)));
+                lbl.setPreferredSize(new Dimension(lbl.getPreferredSize().width, 44));
+                return lbl;
+            }
+        });
 
-        // Column widths
-        int[] widths = {40, 170, 140, 160, 120, 150, 60, 130, 100};
-        for (int i = 0; i < widths.length; i++)
-            table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
+        TableColumnModel colModel = table.getColumnModel();
+        int[] widths = {150, 140, 180, 120, 160, 80, 140, 110};
+        for (int i = 0; i < widths.length; i++) colModel.getColumn(i).setPreferredWidth(widths[i]);
 
-        // Renderers
-        table.setDefaultRenderer(Object.class, new HoaDonRowRenderer());
-        table.getColumnModel().getColumn(0).setCellRenderer(new IconCellRenderer());
-        table.getColumnModel().getColumn(7).setCellRenderer(new AmountRenderer());
-        table.getColumnModel().getColumn(8).setCellRenderer(new DetailBtnRenderer());
-        table.getColumnModel().getColumn(8).setCellEditor(new DetailBtnEditor(new JCheckBox()));
+        colModel.getColumn(0).setCellRenderer(new HoaDonTextRenderer(FONT_MONO, PRIMARY, SwingConstants.LEFT));
+        colModel.getColumn(1).setCellRenderer(new HoaDonTextRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
+        colModel.getColumn(2).setCellRenderer(new HoaDonTextRenderer(new Font("Segoe UI", Font.BOLD, 13), ON_SURFACE, SwingConstants.LEFT));
+        colModel.getColumn(3).setCellRenderer(new HoaDonTextRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
+        colModel.getColumn(4).setCellRenderer(new HoaDonTextRenderer(FONT_BODY, ON_SURF_VAR, SwingConstants.LEFT));
+        colModel.getColumn(5).setCellRenderer(new HoaDonTextRenderer(FONT_BODY, ON_SURFACE, SwingConstants.CENTER));
+        colModel.getColumn(6).setCellRenderer(new AmountRenderer());
+        colModel.getColumn(7).setCellRenderer(new DetailBtnRenderer());
+        colModel.getColumn(7).setCellEditor(new DetailBtnEditor(new JCheckBox()));
 
         // Hover
         table.addMouseMotionListener(new MouseAdapter() {
@@ -307,18 +402,58 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
 
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.setOpaque(false);
         scroll.getViewport().setBackground(CARD_BG);
+        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scroll.setWheelScrollingEnabled(false);
+        scroll.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent e) {
+                int newRows = calcRowsFromViewport();
+                if (newRows > 0 && newRows != rowsPerPage) {
+                    rowsPerPage = newRows;
+                    if (!isRefreshing) refreshTable();
+                }
+            }
+        });
         card.add(scroll, BorderLayout.CENTER);
+        card.add(buildPaginationBar(), BorderLayout.SOUTH);
         return card;
     }
 
+    private int calcRowsFromViewport() {
+        if (table == null || !(table.getParent() instanceof JViewport vp)) return 0;
+        int viewH = vp.getHeight();
+        int rowH = table.getRowHeight() > 0 ? table.getRowHeight() : 56;
+        int headerH = table.getTableHeader() != null ? table.getTableHeader().getHeight() : 44;
+        if (headerH <= 0 && table.getTableHeader() != null) headerH = table.getTableHeader().getPreferredSize().height;
+        if (headerH <= 0) headerH = 44;
+        int available = viewH - headerH;
+        return available > 0 ? Math.max(1, available / rowH + 1) : 0;
+        // Handoff: copy nhịp tính dòng từ các module bảng để lấp đầy khoảng trống còn lại.
+        // Cảnh báo: hàng cuối có thể sát mép như mẫu bảng, không bật scrollbar dọc ở đây.
+    }
+
     private JPanel buildPaginationBar() {
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 4));
-        paginationPanel.setBackground(SURFACE);
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+        bar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE),
+                new EmptyBorder(12, 20, 12, 20)
+        ));
+
         lblPageInfo = new JLabel();
         lblPageInfo.setFont(FONT_BODY);
         lblPageInfo.setForeground(ON_SURF_VAR);
-        return paginationPanel;
+
+        paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        paginationPanel.setOpaque(false);
+
+        bar.add(lblPageInfo, BorderLayout.WEST);
+        bar.add(paginationPanel, BorderLayout.EAST);
+        return bar;
+        // Handoff: phân trang hóa đơn dùng cùng bố cục bảng với Quản lý vé/khách hàng.
+        // Cảnh báo: không đặt info vào paginationPanel để tránh bị canh giữa như layout lưới.
     }
 
     // =========================================================================
@@ -356,60 +491,106 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     }
 
     private void refreshTable() {
-        int total = filteredData.size();
-        int pages = Math.max(1, (int) Math.ceil((double) total / rowsPerPage));
-        if (currentPage > pages) currentPage = pages;
+        isRefreshing = true;
+        try {
+            int vpRows = calcRowsFromViewport();
+            if (vpRows > 0) {
+                rowsPerPage = vpRows;
+            } else {
+                int screenH = Toolkit.getDefaultToolkit().getScreenSize().height;
+                int rh = (table != null && table.getRowHeight() > 0) ? table.getRowHeight() : 56;
+                rowsPerPage = Math.max(5, (screenH - 300) / rh);
+            }
+            int total = filteredData.size();
+            int pages = Math.max(1, (int) Math.ceil((double) total / rowsPerPage));
+            if (currentPage > pages) currentPage = pages;
 
-        int from = (currentPage - 1) * rowsPerPage;
-        int to   = Math.min(from + rowsPerPage, total);
-        List<HoaDonRow> page = filteredData.subList(from, to);
+            int from = (currentPage - 1) * rowsPerPage;
+            int to   = Math.min(from + rowsPerPage, total);
+            List<HoaDonRow> page = filteredData.subList(from, to);
 
-        tableModel.setData(page, from);
-        buildPaginationControls(pages);
+            tableModel.setData(page, from);
+            buildPaginationControls(pages, from, to);
+        } finally {
+            isRefreshing = false;
+        }
     }
 
-    private void buildPaginationControls(int totalPages) {
+    private void buildPaginationControls(int totalPages, int from, int to) {
         paginationPanel.removeAll();
 
-        lblPageInfo.setText("Trang " + currentPage + " / " + totalPages
-                + "  (" + filteredData.size() + " hóa đơn)");
-        paginationPanel.add(lblPageInfo);
-
-        if (totalPages > 1) {
-            JButton prev = pageBtn("<");
-            prev.setEnabled(currentPage > 1);
-            prev.addActionListener(e -> { currentPage--; refreshTable(); });
-
-            JButton next = pageBtn(">");
-            next.setEnabled(currentPage < totalPages);
-            next.addActionListener(e -> { currentPage++; refreshTable(); });
-
-            paginationPanel.add(Box.createHorizontalStrut(10));
-            paginationPanel.add(prev);
-            for (int i = 1; i <= totalPages; i++) {
-                final int p = i;
-                JButton pb = pageBtn(String.valueOf(i));
-                if (i == currentPage) {
-                    pb.setBackground(PRIMARY);
-                    pb.setForeground(Color.WHITE);
-                }
-                pb.addActionListener(e -> { currentPage = p; refreshTable(); });
-                paginationPanel.add(pb);
-            }
-            paginationPanel.add(next);
+        int total = filteredData.size();
+        String rangeText = total == 0 ? "0" : (from + 1) + "-" + to;
+        lblPageInfo.setText("Hiển thị " + rangeText + " / " + total
+                + " hóa đơn · Trang " + currentPage + " / " + totalPages);
+        if (lblTableMeta != null) lblTableMeta.setText(filteredData.size() + " hóa đơn");
+        if (lblStatTotal != null) {
+            lblStatTotal.setText(String.valueOf(filteredData.size()));
+            lblStatTickets.setText(String.valueOf(filteredData.stream().mapToInt(HoaDonRow::soVe).sum()));
+            BigDecimal totalRevenue = filteredData.stream()
+                    .map(HoaDonRow::tongTien)
+                    .filter(java.util.Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            lblStatRevenue.setText(VND_FMT.format(totalRevenue) + " ₫");
         }
+
+        addNavButton("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
+        for (int i = 1; i <= totalPages; i++) {
+            if (totalPages > 7) {
+                if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    addPageButton(i);
+                } else if (i == currentPage - 2 || i == currentPage + 2) {
+                    JLabel dots = new JLabel("…");
+                    dots.setFont(FONT_BODY);
+                    dots.setForeground(ON_SURF_VAR);
+                    dots.setBorder(new EmptyBorder(0, 6, 0, 6));
+                    paginationPanel.add(dots);
+                }
+            } else {
+                addPageButton(i);
+            }
+        }
+        addNavButton("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
 
         paginationPanel.revalidate();
         paginationPanel.repaint();
     }
 
-    private JButton pageBtn(String text) {
-        JButton b = new JButton(text);
-        b.setFont(FONT_BODY);
-        b.setPreferredSize(new Dimension(34, 28));
-        b.setBackground(CARD_BG);
-        b.setForeground(ON_SURFACE);
-        b.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
+    private void addPageButton(int page) {
+        JButton button = pageBtn(String.valueOf(page), page == currentPage);
+        button.addActionListener(e -> { currentPage = page; refreshTable(); });
+        paginationPanel.add(button);
+    }
+
+    private void addNavButton(String text, boolean enabled, Runnable action) {
+        JButton button = pageBtn(text, false);
+        button.setEnabled(enabled);
+        button.addActionListener(e -> action.run());
+        paginationPanel.add(button);
+    }
+
+    private JButton pageBtn(String text, boolean active) {
+        JButton b = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (active) {
+                    g2.setColor(PRIMARY);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                } else if (getModel().isRollover() && isEnabled()) {
+                    g2.setColor(OUTLINE);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                }
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        b.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        b.setPreferredSize(new Dimension(32, 32));
+        b.setMargin(new Insets(0, 0, 0, 0));
+        b.setForeground(active ? Color.WHITE : ON_SURF_VAR);
+        b.setContentAreaFilled(false);
+        b.setBorderPainted(false);
         b.setFocusPainted(false);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return b;
@@ -447,7 +628,7 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
         @Override public int getRowCount()    { return data.size(); }
         @Override public int getColumnCount() { return cols.length; }
         @Override public String getColumnName(int c) { return cols[c]; }
-        @Override public boolean isCellEditable(int r, int c) { return c == 8; }
+        @Override public boolean isCellEditable(int r, int c) { return c == 7; }
 
         @Override public Object getValueAt(int r, int c) {
             HoaDonRow row = data.get(r);
@@ -456,18 +637,17 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
             KhachHang first = (khs != null && !khs.isEmpty()) ? khs.get(0) : null;
             int extra = (khs != null && khs.size() > 1) ? khs.size() - 1 : 0;
             return switch (c) {
-                case 0 -> "icon";
-                case 1 -> hd.getMaHoaDon();
-                case 2 -> hd.getNgayLap() != null ? hd.getNgayLap().format(DT_FMT) : "";
-                case 3 -> first != null
+                case 0 -> hd.getMaHoaDon();
+                case 1 -> hd.getNgayLap() != null ? hd.getNgayLap().format(DT_FMT) : "";
+                case 2 -> first != null
                         ? (first.getHoTen() != null ? first.getHoTen() : "")
                           + (extra > 0 ? " (+" + extra + ")" : "")
                         : "";
-                case 4 -> first != null && first.getSoDienThoai() != null ? first.getSoDienThoai() : "";
-                case 5 -> hd.getNhanVien()  != null ? hd.getNhanVien().getHoTen()  : "";
-                case 6 -> row.soVe();
-                case 7 -> row.tongTien();
-                case 8 -> "Chi tiết";
+                case 3 -> first != null && first.getSoDienThoai() != null ? first.getSoDienThoai() : "";
+                case 4 -> hd.getNhanVien()  != null ? hd.getNhanVien().getHoTen()  : "";
+                case 5 -> row.soVe();
+                case 6 -> row.tongTien();
+                case 7 -> "Chi tiết";
                 default -> "";
             };
         }
@@ -477,26 +657,23 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     //  RENDERERS & EDITORS
     // =========================================================================
 
-    class HoaDonRowRenderer extends DefaultTableCellRenderer {
-        @Override public Component getTableCellRendererComponent(
-                JTable t, Object v, boolean sel, boolean foc, int r, int c) {
-            JLabel lbl = (JLabel) super.getTableCellRendererComponent(t, v, sel, foc, r, c);
-            lbl.setFont(FONT_BODY);
-            lbl.setBorder(new EmptyBorder(0, 12, 0, 12));
-            lbl.setForeground(ON_SURFACE);
-            if (!sel) lbl.setBackground(r == hoveredRow ? ROW_HOVER : (r % 2 == 0 ? CARD_BG : ROW_ALT));
-            return lbl;
-        }
-    }
+    class HoaDonTextRenderer extends DefaultTableCellRenderer {
+        private final Font font;
+        private final Color fg;
 
-    class IconCellRenderer extends DefaultTableCellRenderer {
+        HoaDonTextRenderer(Font font, Color fg, int align) {
+            this.font = font;
+            this.fg = fg;
+            setHorizontalAlignment(align);
+        }
+
         @Override public Component getTableCellRendererComponent(
                 JTable t, Object v, boolean sel, boolean foc, int r, int c) {
             JLabel lbl = (JLabel) super.getTableCellRendererComponent(t, v, sel, foc, r, c);
-            lbl.setText("");
-            lbl.setHorizontalAlignment(SwingConstants.CENTER);
-            lbl.setIcon(loadIcon("/icons/bieuTuongHoaDon.png", 22).getIcon());
-            if (!sel) lbl.setBackground(r == hoveredRow ? ROW_HOVER : (r % 2 == 0 ? CARD_BG : ROW_ALT));
+            lbl.setFont(font);
+            lbl.setBorder(new EmptyBorder(0, 20, 0, 8));
+            lbl.setForeground(sel ? ON_SURFACE : fg);
+            lbl.setBackground(rowBg(sel, r));
             return lbl;
         }
     }
@@ -510,31 +687,37 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
             lbl.setFont(FONT_AMOUNT);
             lbl.setForeground(sel ? ON_SURFACE : AMOUNT_COLOR);
             lbl.setHorizontalAlignment(SwingConstants.RIGHT);
-            lbl.setBorder(new EmptyBorder(0, 8, 0, 16));
-            if (!sel) lbl.setBackground(r == hoveredRow ? ROW_HOVER : (r % 2 == 0 ? CARD_BG : ROW_ALT));
+            lbl.setBorder(new EmptyBorder(0, 8, 0, 20));
+            lbl.setBackground(rowBg(sel, r));
             return lbl;
         }
     }
 
     class DetailBtnRenderer extends JPanel implements TableCellRenderer {
-        private final JButton btn = new JButton("Chi tiết");
+        private final JLabel label = new JLabel("Chi tiết", SwingConstants.CENTER);
         DetailBtnRenderer() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 0, 7));
+            setLayout(new GridBagLayout());
             setOpaque(true);
-            btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            btn.setForeground(PRIMARY);
-            btn.setBackground(PRIMARY_LIGHT);
-            btn.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(0xBB, 0xDE, 0xFB), 1),
-                    new EmptyBorder(4, 12, 4, 12)));
-            btn.setFocusPainted(false);
-            btn.setOpaque(true);
-            add(btn);
+            label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            label.setForeground(PRIMARY);
+            add(label);
         }
         @Override public Component getTableCellRendererComponent(
                 JTable t, Object v, boolean sel, boolean foc, int r, int c) {
-            setBackground(sel ? PRIMARY_LIGHT : (r == hoveredRow ? ROW_HOVER : (r % 2 == 0 ? CARD_BG : ROW_ALT)));
+            label.setText(v != null ? v.toString() : "Chi tiết");
+            setBackground(rowBg(sel, r));
             return this;
+        }
+        @Override protected void paintChildren(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Rectangle r = label.getBounds();
+            g2.setColor(PRIMARY_LIGHT);
+            g2.fillRoundRect(r.x - 12, r.y - 5, r.width + 24, r.height + 10, 10, 10);
+            g2.setColor(AppColors.withAlpha(PRIMARY, 60));
+            g2.drawRoundRect(r.x - 12, r.y - 5, r.width + 24, r.height + 10, 10, 10);
+            g2.dispose();
+            super.paintChildren(g);
         }
     }
 
@@ -543,35 +726,120 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
         private int editingRow = -1;
         DetailBtnEditor(JCheckBox cb) {
             super(cb);
-            btn = new JButton("Chi tiết");
-            btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            btn.setForeground(PRIMARY);
-            btn.setBackground(PRIMARY_LIGHT);
-            btn.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(0xBB, 0xDE, 0xFB), 1),
-                    new EmptyBorder(4, 12, 4, 12)));
-            btn.setFocusPainted(false);
+            btn = createTableActionButton("Chi tiết", PRIMARY, PRIMARY_LIGHT);
             btn.addActionListener(e -> { fireEditingStopped(); openChiTiet(editingRow); });
         }
         @Override public Component getTableCellEditorComponent(
-                JTable t, Object v, boolean sel, int r, int c) { editingRow = r; return btn; }
+                JTable t, Object v, boolean sel, int r, int c) {
+            editingRow = r;
+            JPanel panel = new JPanel(new GridBagLayout());
+            panel.setBackground(rowBg(true, r));
+            panel.add(btn);
+            return panel;
+        }
         @Override public Object getCellEditorValue() { return "Chi tiết"; }
+    }
+
+    private Color rowBg(boolean selected, int row) {
+        if (selected) return NotionTheme.TABLE_SELECTION;
+        if (row == hoveredRow) return ROW_HOVER;
+        return row % 2 == 0 ? CARD_BG : ROW_ALT;
     }
 
     // =========================================================================
     //  HELPERS
     // =========================================================================
 
-    private JLabel loadIcon(String path, int size) {
-        JLabel lbl = new JLabel();
-        try {
-            ImageIcon raw = new ImageIcon(getClass().getResource(path));
-            lbl.setIcon(new ImageIcon(raw.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH)));
-        } catch (Exception ignored) {}
+    private JLabel createHeroBadge(String text) {
+        JLabel badge = new JLabel(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(AppColors.withAlpha(Color.WHITE, 235));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        badge.setForeground(NotionTheme.NAVY);
+        badge.setBorder(new EmptyBorder(10, 16, 10, 16));
+        return badge;
+    }
+
+    private JLabel createMetaBadge(String text) {
+        JLabel badge = new JLabel(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(NotionTheme.ACCENT_SOFT);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(AppColors.withAlpha(PRIMARY, 70));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        badge.setForeground(PRIMARY);
+        badge.setBorder(new EmptyBorder(5, 10, 5, 10));
+        return badge;
+    }
+
+    private JButton createSecondaryButton(String text, int width, int height) {
+        JButton button = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? NotionTheme.CARD_MUTED : CARD_BG);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        button.setForeground(ON_SURF_VAR);
+        button.setPreferredSize(new Dimension(width, height));
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
+    private JButton createTableActionButton(String text, Color accent, Color tint) {
+        JButton button = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? tint : CARD_BG);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(AppColors.withAlpha(accent, 95));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setForeground(accent);
+        button.setPreferredSize(new Dimension(76, 30));
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
+    private JLabel loadIcon(LineIcons.Name iconName, int size) {
+        JLabel lbl = new JLabel(LineIcons.image(iconName, size, size));
+        // Handoff: module icons use LineIcons enum directly, independent of legacy SVG resource files.
+        // Risk: only use search icons for real search fields, not filter controls.
         return lbl;
     }
 
-    private JButton iconButton(String iconPath, String tooltip, int iconSize) {
+    private JButton iconButton(LineIcons.Name iconName, String tooltip, int iconSize) {
         JButton b = new JButton();
         b.setToolTipText(tooltip);
         b.setFocusPainted(false);
@@ -580,10 +848,9 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
                 BorderFactory.createLineBorder(OUTLINE, 1),
                 new EmptyBorder(4, 10, 4, 10)));
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        try {
-            ImageIcon ic = new ImageIcon(getClass().getResource(iconPath));
-            b.setIcon(new ImageIcon(ic.getImage().getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH)));
-        } catch (Exception ignored) { b.setText(tooltip); }
+        b.setIcon(LineIcons.contained(iconName, iconSize, Math.max(8, iconSize - 8)));
+        // Handoff: action buttons use LineIcons enum directly, so deleted SVG files are safe.
+        // Risk: if a new action icon is needed, add a curated LineIcons.Name first.
         return b;
     }
 
@@ -613,3 +880,4 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     }
     @Override public void reset() { txtSearch.setText(""); loadData(); }
 }
+

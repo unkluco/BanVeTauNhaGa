@@ -12,6 +12,7 @@ import com.connectDB.ConnectDB;
 import com.entity.NhanVien;
 import com.enums.TrangThaiNhanVien;
 import com.enums.VaiTro;
+import com.util.MaTuDong;
 
 public class DAO_NhanVien {
 
@@ -123,14 +124,17 @@ public class DAO_NhanVien {
     }
 
     // ========================= ĐĂNG NHẬP =========================
-    public NhanVien checkLogin(String maNV, String password) {
+    public NhanVien checkLogin(String taiKhoan, String password) {
         Connection con = ConnectDB.getCon();
         if (con == null) return null;
 
-        String sql = "SELECT * FROM NhanVien WHERE maNV = ? AND [password] = ?";
+        // Cho phép đăng nhập bằng mã NV, SĐT hoặc email; chú ý trùng SĐT/email sẽ lấy bản ghi đầu tiên theo DB.
+        String sql = "SELECT * FROM NhanVien WHERE (maNV = ? OR soDienThoai = ? OR email = ?) AND [password] = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, maNV);
-            ps.setString(2, password);
+            ps.setString(1, taiKhoan);
+            ps.setString(2, taiKhoan);
+            ps.setString(3, taiKhoan);
+            ps.setString(4, password);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapRow(rs);
@@ -263,20 +267,7 @@ public class DAO_NhanVien {
 
     // ========================= SINH MA NV MOI =========================
     public String generateNextMaNV() {
-        Connection con = ConnectDB.getCon();
-        if (con == null) return "NV-0001";
-
-        String sql = "SELECT MAX(CAST(SUBSTRING(maNV, 4, LEN(maNV)-3) AS INT)) FROM NhanVien WHERE maNV LIKE 'NV-%'";
-        try (PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                int maxNum = rs.getInt(1);
-                return String.format("NV-%04d", maxNum + 1);
-            }
-        } catch (SQLException e) {
-            System.err.println("Loi khi sinh ma NV: " + e.getMessage());
-        }
-        return "NV-0001";
+        return MaTuDong.generate("NV");
     }
 
     // ========================= LẤY DANH SÁCH GA =========================

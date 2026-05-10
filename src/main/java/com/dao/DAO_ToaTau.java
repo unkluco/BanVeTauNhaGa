@@ -7,12 +7,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.connectDB.ConnectDB;
 import com.entity.ToaTau;
 import com.enums.LoaiGhe;
+import com.util.MaTuDong;
 
 public class DAO_ToaTau {
     private static final String STATUS_ACTIVE      = "Đang hoạt động";
@@ -91,21 +89,7 @@ public class DAO_ToaTau {
     }
 
     public String generateNextMaToaTau() {
-        Connection con = ConnectDB.getCon();
-        if (con == null) return "TOA-001";
-
-        String sql = "SELECT MAX(CAST(SUBSTRING(maToaTau, 5, LEN(maToaTau)-4) AS INT)) " +
-                     "FROM ToaTau WHERE maToaTau LIKE 'TOA-%'";
-        try (PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                int maxNum = rs.getInt(1);
-                return String.format("TOA-%03d", maxNum + 1);
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi sinh mã toa: " + e.getMessage());
-        }
-        return "TOA-001";
+        return MaTuDong.generate("TOA");
     }
 
     public boolean insert(ToaTau tt) {
@@ -163,9 +147,8 @@ public class DAO_ToaTau {
                 }
 
                 int seatCount = defaultSeatCount(toaTau.getLoaiGhe());
-                String toaSuffix = extractToaSuffix(toaTau.getMaToaTau());
                 for (int i = 1; i <= seatCount; i++) {
-                    String maGhe = String.format("G-%s-%02d", toaSuffix, i);
+                    String maGhe = MaTuDong.generate("GHE");
                     psGhe.setString(1, maGhe);
                     psGhe.setString(2, toaTau.getMaToaTau());
                     psGhe.setInt(3, i);
@@ -328,16 +311,6 @@ public class DAO_ToaTau {
         };
     }
 
-    private String extractToaSuffix(String maToaTau) {
-        if (maToaTau == null) return "000";
-        Matcher m = Pattern.compile("(\\d+)$").matcher(maToaTau.trim());
-        if (m.find()) {
-            int n = Integer.parseInt(m.group(1));
-            return String.format("%03d", n % 1000);
-        }
-        int hash = Math.abs(maToaTau.hashCode()) % 1000;
-        return String.format("%03d", hash);
-    }
 
     private boolean hasColumn(ResultSet rs, String columnName) throws SQLException {
         ResultSetMetaData md = rs.getMetaData();

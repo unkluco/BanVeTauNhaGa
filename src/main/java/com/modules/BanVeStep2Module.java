@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 /**
  * Bước 2 — Chọn lịch tàu chạy.
  * Hiển thị các lịch thỏa mãn + giá từng loại ghế trên cùng hàng.
- * Output: Object[]{ Lich selectedLich, Map<LoaiGhe, Double> priceMap }
+ * Output: Object[]{ Lich selectedLich, Map<LoaiGhe, Double> priceMap, Map<LoaiGhe, ChiTietGia> priceDetailMap }
  */
 public class BanVeStep2Module extends JPanel implements AppModule {
 
@@ -49,17 +49,17 @@ public class BanVeStep2Module extends JPanel implements AppModule {
     private static final DateTimeFormatter DT_FMT  = DateTimeFormatter.ofPattern("HH:mm  dd/MM");
 
     // Design tokens
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color ROW_ALT       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color ROW_HOVER     = new Color(0xEE, 0xF5, 0xFB);
-    private static final Color ROW_SELECTED  = new Color(0xD0, 0xEA, 0xFF);
-    private static final Color AMOUNT_COLOR  = new Color(0x1A, 0x7A, 0x3C);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color ROW_ALT       = NotionTheme.CARD_MUTED;
+    private static final Color ROW_HOVER     = NotionTheme.ROW_HOVER;
+    private static final Color ROW_SELECTED  = NotionTheme.ACCENT_SOFT;
+    private static final Color AMOUNT_COLOR  = AppColors.SUCCESS_DARK;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
 
     private static final Font FONT_HEADER = new Font("Segoe UI", Font.BOLD,  13);
     private static final Font FONT_BODY   = new Font("Segoe UI", Font.PLAIN, 13);
@@ -74,7 +74,7 @@ public class BanVeStep2Module extends JPanel implements AppModule {
     private JPanel  btnPanel;
 
     // DTO
-    record LichRow(Lich lich, Map<LoaiGhe, Double> priceMap) {}
+    record LichRow(Lich lich, Map<LoaiGhe, Double> priceMap, Map<LoaiGhe, ChiTietGia> priceDetailMap) {}
 
     // =========================================================================
     //  CONSTRUCTOR
@@ -109,9 +109,7 @@ public class BanVeStep2Module extends JPanel implements AppModule {
         styleBtn(btnCancel, false);
         btnCancel.addActionListener(e -> { if (callback != null) callback.accept(null); });
 
-        btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
-        btnPanel.setBackground(SURFACE);
-        btnPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE));
+        btnPanel = BookingStepUi.createFooter();
         btnPanel.add(btnCancel);
         btnPanel.add(btnSubmit);
         btnPanel.setVisible(false);
@@ -157,17 +155,15 @@ public class BanVeStep2Module extends JPanel implements AppModule {
         };
         tableModel = new LichTableModel(cols);
         table = new JTable(tableModel);
-        table.setFont(FONT_BODY);
+        NotionTheme.styleTable(table);
         table.setRowHeight(48);
         table.setShowGrid(false);
         table.setIntercellSpacing(new Dimension(0, 0));
-        table.setBackground(CARD_BG);
         table.setFillsViewportHeight(true);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         JTableHeader th = table.getTableHeader();
         th.setFont(FONT_HEADER);
-        th.setBackground(new Color(0xF0, 0xF4, 0xF8));
         th.setForeground(ON_SURFACE);
         th.setReorderingAllowed(false);
         th.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE));
@@ -206,7 +202,7 @@ public class BanVeStep2Module extends JPanel implements AppModule {
         lblNoResult.setVisible(false);
 
         JScrollPane scroll = new JScrollPane(table);
-        scroll.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
+        scroll.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
         scroll.getViewport().setBackground(CARD_BG);
 
         panel.add(sectionTitle, BorderLayout.NORTH);
@@ -231,14 +227,18 @@ public class BanVeStep2Module extends JPanel implements AppModule {
             List<Lich> lichs = daoLich.findByTuyenAndDate(tuyen.getMaTuyen(), dayStart, dayEnd);
             for (Lich lich : lichs) {
                 Map<LoaiGhe, Double> priceMap = new EnumMap<>(LoaiGhe.class);
+                Map<LoaiGhe, ChiTietGia> priceDetailMap = new EnumMap<>(LoaiGhe.class);
                 if (giaHH != null) {
                     for (LoaiGhe loai : LoaiGhe.values()) {
                         ChiTietGia ctg = daoCTGia.findByGiaTuyenLoaiGhe(
                             giaHH.getMaGia(), tuyen.getMaTuyen(), loai.toDbValue());
-                        if (ctg != null) priceMap.put(loai, ctg.getGiaNiemYet());
+                        if (ctg != null) {
+                            priceMap.put(loai, ctg.getGiaNiemYet());
+                            priceDetailMap.put(loai, ctg);
+                        }
                     }
                 }
-                if (!priceMap.isEmpty()) rows.add(new LichRow(lich, priceMap));
+                if (!priceMap.isEmpty()) rows.add(new LichRow(lich, priceMap, priceDetailMap));
             }
         }
 
@@ -253,7 +253,7 @@ public class BanVeStep2Module extends JPanel implements AppModule {
     private void execute() {
         if (selectedRow < 0 || selectedRow >= rows.size()) return;
         LichRow row = rows.get(selectedRow);
-        if (callback != null) callback.accept(new Object[]{ row.lich(), row.priceMap() });
+        if (callback != null) callback.accept(new Object[]{ row.lich(), row.priceMap(), row.priceDetailMap() });
     }
 
     // =========================================================================
@@ -335,15 +335,7 @@ public class BanVeStep2Module extends JPanel implements AppModule {
     // =========================================================================
 
     private void styleBtn(JButton btn, boolean primary) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(10, 24, 10, 24));
-        if (primary) {
-            btn.setBackground(PRIMARY); btn.setForeground(Color.WHITE); btn.setOpaque(true);
-        } else {
-            btn.setBackground(CARD_BG); btn.setForeground(ON_SURF_VAR); btn.setOpaque(true);
-        }
+        BookingStepUi.styleActionButton(btn, primary);
     }
 
     // =========================================================================

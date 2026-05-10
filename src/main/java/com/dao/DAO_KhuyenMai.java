@@ -7,10 +7,14 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.connectDB.ConnectDB;
+import com.entity.ChiTietKhuyenMai;
 import com.entity.KhuyenMai;
+import com.util.MaTuDong;
 
 public class DAO_KhuyenMai {
 
@@ -104,6 +108,161 @@ public class DAO_KhuyenMai {
             System.err.println("Lỗi khi cập nhật khuyến mãi: " + e.getMessage());
         }
         return false;
+    }
+
+    public int countAppliedUsage(String maKhuyenMai) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return 0;
+        String sql = "SELECT COUNT(DISTINCT ad.maApDung) AS total "
+                + "FROM ApDungKM ad "
+                + "JOIN ChiTietKhuyenMai ctkm ON ctkm.maChiTietKM = ad.maChiTietKM "
+                + "WHERE ctkm.maKhuyenMai = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maKhuyenMai);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("total") : 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi kiểm tra khuyến mãi đã áp dụng: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public KhuyenMai cloneKhuyenMaiWithDetails(KhuyenMai editedKm, boolean activateNew) {
+        return cloneKhuyenMaiWithDetails(editedKm, null, false, false, activateNew);
+    }
+
+    public KhuyenMai cloneKhuyenMaiWithDetailsReplacingDetail(KhuyenMai sourceKm, ChiTietKhuyenMai editedDetail,
+                                                              boolean activateNew) {
+        return cloneKhuyenMaiWithDetails(sourceKm, editedDetail, true, false, activateNew);
+    }
+
+    public KhuyenMai cloneKhuyenMaiWithDetailsRemovingDetail(KhuyenMai sourceKm, ChiTietKhuyenMai removedDetail,
+                                                             boolean activateNew) {
+        return cloneKhuyenMaiWithDetails(sourceKm, removedDetail, false, true, activateNew);
+    }
+
+    public KhuyenMai cloneKhuyenMaiWithDetailsAddingDetail(KhuyenMai sourceKm, ChiTietKhuyenMai addedDetail,
+                                                           boolean activateNew) {
+        return cloneKhuyenMaiWithDetails(sourceKm, addedDetail, false, false, activateNew);
+    }
+
+    private KhuyenMai cloneKhuyenMaiWithDetails(KhuyenMai sourceKm, ChiTietKhuyenMai changedDetail,
+                                                boolean replaceDetail, boolean removeDetail,
+                                                boolean activateNew) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || sourceKm == null) return null;
+        boolean oldAutoCommit;
+        try {
+            oldAutoCommit = con.getAutoCommit();
+            con.setAutoCommit(false);
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi bắt đầu nhân bản khuyến mãi: " + e.getMessage());
+            return null;
+        }
+        String oldMaKm = sourceKm.getMaKhuyenMai();
+        String newMaKm = MaTuDong.generate("KM");
+        KhuyenMai cloned = new KhuyenMai(newMaKm, sourceKm.getTenKhuyenMai(), sourceKm.getThoiGianBatDau(),
+                sourceKm.getThoiGianKetThuc(), sourceKm.getMoTa(), activateNew);
+        try {
+            updateTrangThaiKhuyenMai(con, oldMaKm, false);
+            insertKhuyenMai(con, cloned);
+            cloneChiTietKhuyenMai(con, oldMaKm, newMaKm, changedDetail, replaceDetail, removeDetail);
+            con.commit();
+            con.setAutoCommit(oldAutoCommit);
+            return cloned;
+        } catch (SQLException e) {
+            try { con.rollback(); } catch (SQLException rollbackEx) { System.err.println("Lỗi rollback nhân bản khuyến mãi: " + rollbackEx.getMessage()); }
+            try { con.setAutoCommit(oldAutoCommit); } catch (SQLException restoreEx) { System.err.println("Lỗi khôi phục transaction khuyến mãi: " + restoreEx.getMessage()); }
+            System.err.println("Lỗi khi nhân bản khuyến mãi đã áp dụng: " + e.getMessage());
+        }
+        return null;
+    }
+
+    private void insertKhuyenMai(Connection con, KhuyenMai km) throws SQLException {
+        String sql = "INSERT INTO KhuyenMai (maKhuyenMai, tenKhuyenMai, thoiGianBatDau, thoiGianKetThuc, moTa, trangThai) VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, km.getMaKhuyenMai());
+            ps.setNString(2, km.getTenKhuyenMai());
+            ps.setTimestamp(3, Timestamp.valueOf(km.getThoiGianBatDau()));
+            ps.setTimestamp(4, Timestamp.valueOf(km.getThoiGianKetThuc()));
+            ps.setNString(5, km.getMoTa());
+            ps.setBoolean(6, km.isTrangThai());
+            if (ps.executeUpdate() == 0) throw new SQLException("Không thêm được khuyến mãi mới");
+        }
+    }
+
+    private void updateKhuyenMai(Connection con, KhuyenMai km) throws SQLException {
+        String sql = "UPDATE KhuyenMai SET tenKhuyenMai = ?, thoiGianBatDau = ?, thoiGianKetThuc = ?, moTa = ?, trangThai = ? WHERE maKhuyenMai = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setNString(1, km.getTenKhuyenMai());
+            ps.setTimestamp(2, Timestamp.valueOf(km.getThoiGianBatDau()));
+            ps.setTimestamp(3, Timestamp.valueOf(km.getThoiGianKetThuc()));
+            ps.setNString(4, km.getMoTa());
+            ps.setBoolean(5, km.isTrangThai());
+            ps.setString(6, km.getMaKhuyenMai());
+            if (ps.executeUpdate() == 0) throw new SQLException("Không cập nhật được khuyến mãi");
+        }
+    }
+
+    private void updateTrangThaiKhuyenMai(Connection con, String maKhuyenMai, boolean trangThai) throws SQLException {
+        String sql = "UPDATE KhuyenMai SET trangThai = ? WHERE maKhuyenMai = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setBoolean(1, trangThai);
+            ps.setString(2, maKhuyenMai);
+            if (ps.executeUpdate() == 0) throw new SQLException("Không cập nhật được trạng thái khuyến mãi cũ");
+        }
+    }
+
+    private void cloneChiTietKhuyenMai(Connection con, String oldMaKm, String newMaKm, ChiTietKhuyenMai changedDetail,
+                                       boolean replaceDetail, boolean removeDetail) throws SQLException {
+        String selectSql = "SELECT maChiTietKM, maTuyen, loaiGhe, tenChiTiet, phanTramGiam FROM ChiTietKhuyenMai WHERE maKhuyenMai = ?";
+        String insertSql = "INSERT INTO ChiTietKhuyenMai (maChiTietKM, maKhuyenMai, maTuyen, loaiGhe, tenChiTiet, phanTramGiam) VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement select = con.prepareStatement(selectSql);
+             PreparedStatement insert = con.prepareStatement(insertSql)) {
+            select.setString(1, oldMaKm);
+            boolean appendDetail = changedDetail != null && !replaceDetail && !removeDetail;
+            boolean touched = changedDetail == null || appendDetail;
+            Set<String> uniqueKeys = new HashSet<>();
+            try (ResultSet rs = select.executeQuery()) {
+                while (rs.next()) {
+                    boolean same = changedDetail != null && changedDetail.getMaChiTietKM().equals(rs.getString("maChiTietKM"));
+                    if (same) touched = true;
+                    if (same && removeDetail) continue;
+                    String maTuyen = same && replaceDetail ? changedDetail.getTuyen() == null ? null : changedDetail.getTuyen().getMaTuyen() : rs.getString("maTuyen");
+                    String loaiGhe = same && replaceDetail ? changedDetail.getLoaiGhe() == null ? null : changedDetail.getLoaiGhe().toDbValue() : rs.getString("loaiGhe");
+                    String tenChiTiet = same && replaceDetail ? changedDetail.getTenChiTiet() : rs.getNString("tenChiTiet");
+                    double phanTramGiam = same && replaceDetail ? changedDetail.getPhanTramGiam() : rs.getDouble("phanTramGiam");
+                    String uniqueKey = String.valueOf(maTuyen) + "|" + String.valueOf(loaiGhe);
+                    if (!uniqueKeys.add(uniqueKey)) throw new SQLException("Trùng tuyến và loại ghế trong khuyến mãi mới: " + uniqueKey);
+                    insert.setString(1, MaTuDong.generate("CTKM"));
+                    insert.setString(2, newMaKm);
+                    insert.setString(3, maTuyen);
+                    insert.setString(4, loaiGhe);
+                    insert.setNString(5, tenChiTiet);
+                    insert.setDouble(6, phanTramGiam);
+                    insert.addBatch();
+                }
+            }
+            if (!touched) throw new SQLException("Không tìm thấy chi tiết khuyến mãi cần thay trong bản cũ");
+            if (appendDetail) addChiTietKhuyenMaiBatch(insert, newMaKm, changedDetail, uniqueKeys);
+            insert.executeBatch();
+        }
+    }
+
+    private void addChiTietKhuyenMaiBatch(PreparedStatement insert, String newMaKm, ChiTietKhuyenMai detail,
+                                          Set<String> uniqueKeys) throws SQLException {
+        String maTuyen = detail.getTuyen() == null ? null : detail.getTuyen().getMaTuyen();
+        String loaiGhe = detail.getLoaiGhe() == null ? null : detail.getLoaiGhe().toDbValue();
+        String uniqueKey = String.valueOf(maTuyen) + "|" + String.valueOf(loaiGhe);
+        if (!uniqueKeys.add(uniqueKey)) throw new SQLException("Trùng tuyến và loại ghế trong khuyến mãi mới: " + uniqueKey);
+        insert.setString(1, MaTuDong.generate("CTKM"));
+        insert.setString(2, newMaKm);
+        insert.setString(3, maTuyen);
+        insert.setString(4, loaiGhe);
+        insert.setNString(5, detail.getTenChiTiet());
+        insert.setDouble(6, detail.getPhanTramGiam());
+        insert.addBatch();
     }
 
     public boolean delete(String maKhuyenMai) {

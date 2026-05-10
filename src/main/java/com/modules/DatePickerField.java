@@ -31,18 +31,18 @@ import java.util.Locale;
 public class DatePickerField extends JPanel {
 
     // ── Design tokens ────────────────────────────────────────────────────────
-    private static final Color PRIMARY        = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT  = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SURFACE        = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG        = Color.WHITE;
-    private static final Color ON_SURFACE     = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR    = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE        = new Color(0xDE, 0xE3, 0xE8);
+    private static final Color PRIMARY        = AppColors.PRIMARY_DARK;
+    private static final Color PRIMARY_LIGHT  = AppColors.PRIMARY_LIGHT;
+    private static final Color SURFACE        = AppColors.BACKGROUND;
+    private static final Color CARD_BG        = AppColors.SURFACE;
+    private static final Color ON_SURFACE     = AppColors.TEXT_PRIMARY;
+    private static final Color ON_SURF_VAR    = AppColors.TEXT_SECONDARY;
+    private static final Color OUTLINE        = AppColors.BORDER;
     private static final Color CELL_TODAY_FG  = PRIMARY;
     private static final Color CELL_SEL_BG    = PRIMARY;
     private static final Color CELL_HOVER_BG  = PRIMARY_LIGHT;
-    private static final Color CELL_OTHERMON  = new Color(0xBD, 0xC3, 0xCA);
-    private static final Color CELL_DISABLED  = new Color(0xD0, 0xD5, 0xDB);
+    private static final Color CELL_OTHERMON  = AppColors.BORDER;
+    private static final Color CELL_DISABLED  = AppColors.BORDER;
 
     private static final DateTimeFormatter DISPLAY_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final String[] DAY_NAMES = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
@@ -94,7 +94,7 @@ public class DatePickerField extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 Color bg = getModel().isRollover() ? PRIMARY_LIGHT
-                    : getModel().isPressed()       ? new Color(0xBB, 0xDE, 0xFB)
+                    : getModel().isPressed()       ? AppColors.PRIMARY_LIGHT
                     : SURFACE;
                 g2.setColor(bg);
                 g2.fillRect(0, 0, getWidth(), getHeight());
@@ -314,7 +314,7 @@ public class DatePickerField extends JPanel {
             for (int i = 0; i < 7; i++) {
                 JLabel lbl = new JLabel(DAY_NAMES[i], SwingConstants.CENTER);
                 lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-                lbl.setForeground(i == 6 ? new Color(0xC6, 0x28, 0x28) : ON_SURF_VAR);
+                lbl.setForeground(i == 6 ? AppColors.ERROR_DARK : ON_SURF_VAR);
                 lbl.setPreferredSize(new Dimension(36, 18));
                 row.add(lbl);
             }
@@ -427,7 +427,7 @@ public class DatePickerField extends JPanel {
                     g2.setColor(CELL_SEL_BG);
                     g2.fillOval(cx, cy, diam, diam);
                     font      = new Font("Segoe UI", Font.BOLD, 12);
-                    textColor = Color.WHITE;
+                    textColor = AppColors.SURFACE;
                 } else if (hovered) {
                     g2.setColor(CELL_HOVER_BG);
                     g2.fillOval(cx, cy, diam, diam);
@@ -444,7 +444,7 @@ public class DatePickerField extends JPanel {
                     if (disabled)          textColor = CELL_DISABLED;
                     else if (!thisMonth)   textColor = CELL_OTHERMON;
                     else if (day.getDayOfWeek() == DayOfWeek.SUNDAY)
-                        textColor = new Color(0xC6, 0x28, 0x28);
+                        textColor = AppColors.ERROR_DARK;
                     else
                         textColor = ON_SURFACE;
                 }

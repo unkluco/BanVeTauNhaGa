@@ -40,15 +40,15 @@ public class BanVeStep6Module extends JPanel implements AppModule {
     private static final DateTimeFormatter DT_FMT  = DateTimeFormatter.ofPattern("HH:mm  dd/MM/yyyy");
 
     // Design tokens
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color AMOUNT_COLOR  = new Color(0x1A, 0x7A, 0x3C);
-    private static final Color DIVIDER       = new Color(0xF0, 0xF4, 0xF8);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = AppColors.SURFACE;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color AMOUNT_COLOR  = AppColors.SUCCESS_DARK;
+    private static final Color DIVIDER       = NotionTheme.PAGE;
 
     private ButtonGroup   bgPayment;
     private JRadioButton  rbTienMat, rbChuyenKhoan;
@@ -116,9 +116,7 @@ public class BanVeStep6Module extends JPanel implements AppModule {
         styleBtn(btnCancel, false);
         btnCancel.addActionListener(e -> { if (callback != null) callback.accept(null); });
 
-        btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
-        btnPanel.setBackground(SURFACE);
-        btnPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE));
+        btnPanel = BookingStepUi.createFooter();
         btnPanel.add(btnCancel);
         btnPanel.add(btnSubmit);
         btnPanel.setVisible(false);
@@ -154,6 +152,7 @@ public class BanVeStep6Module extends JPanel implements AppModule {
         LoaiGhe firstLoai = (!ghes.isEmpty() && ghes.get(0).getToaTau() != null)
             ? ghes.get(0).getToaTau().getLoaiGhe() : null;
         Map<String, PromoUsage> promoUsageMap = new LinkedHashMap<>();
+        List<SeatPromoSummary> seatPromoSummaries = new ArrayList<>();
 
         for (Ghe g : ghes) {
             LoaiGhe l = g.getToaTau() != null ? g.getToaTau().getLoaiGhe() : null;
@@ -163,6 +162,7 @@ public class BanVeStep6Module extends JPanel implements AppModule {
 
             double seatFinal = base;
             List<ChiTietKhuyenMai> seatPromotions = selectedPromotionsForSeat(g);
+            seatPromoSummaries.add(new SeatPromoSummary(g, seatPromotions));
             for (ChiTietKhuyenMai km : seatPromotions) {
                 seatFinal *= (1.0 - clampDiscount(km.getPhanTramGiam()));
                 String id = promoId(km);
@@ -210,19 +210,9 @@ public class BanVeStep6Module extends JPanel implements AppModule {
 
         if (!promoUsageMap.isEmpty()) {
             double discountAmt = total - finalTotal;
-            Color  ORANGE      = new Color(0xE6, 0x52, 0x00);
             addInfoRow(card, "Tạm tính:",   fmt(total), ON_SURFACE);
-            for (PromoUsage usage : promoUsageMap.values()) {
-                ChiTietKhuyenMai km = usage.promo;
-                String promoLabel = promoNameFor(km);
-                int pct = (int) Math.round(clampDiscount(km.getPhanTramGiam()) * 100);
-                String usageLabel = "áp dụng " + usage.seatCount + "/" + ghes.size() + " ghế";
-                Color usageColor = usage.seatCount > 0 ? ORANGE : ON_SURF_VAR;
-                addInfoRow(card, "Khuyến mãi:",
-                    promoLabel + "  (−" + pct + "%, " + usageLabel + ")",
-                    usageColor);
-            }
-            addInfoRow(card, "Giảm:",       "−" + fmt(discountAmt), discountAmt > 0.0 ? ORANGE : ON_SURF_VAR);
+            addSeatPromotionRows(card, seatPromoSummaries);
+            addInfoRow(card, "Giảm:",       "−" + fmt(discountAmt), discountAmt > 0.0 ? AppColors.WARNING : ON_SURF_VAR);
             addInfoRow(card, "Tổng tiền:",  fmt(finalTotal), AMOUNT_COLOR, true);
         } else {
             addInfoRow(card, "Tổng tiền:", fmt(total), AMOUNT_COLOR, true);
@@ -343,6 +333,81 @@ public class BanVeStep6Module extends JPanel implements AppModule {
         card.add(Box.createVerticalStrut(4));
     }
 
+    private void addSeatPromotionRows(JPanel card, List<SeatPromoSummary> summaries) {
+        JLabel title = new JLabel("Khuyến mãi theo từng ghế");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        title.setForeground(PRIMARY);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.add(Box.createVerticalStrut(4));
+        card.add(title);
+        card.add(Box.createVerticalStrut(8));
+
+        JPanel list = new JPanel();
+        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
+        list.setBackground(CARD_BG);
+        list.setAlignmentX(Component.LEFT_ALIGNMENT);
+        list.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        for (SeatPromoSummary summary : summaries) {
+            list.add(createSeatPromoRow(summary));
+            list.add(Box.createVerticalStrut(6));
+        }
+        card.add(list);
+        card.add(Box.createVerticalStrut(6));
+        // Handoff: hiển thị KM ngang hàng với từng ghế để tránh hiểu nhầm KM áp cho mọi ghế.
+        // Risk: nếu số KM/ghế tăng nhiều, row có thể cao hơn nhưng không đổi công thức tính tiền.
+    }
+
+    private JPanel createSeatPromoRow(SeatPromoSummary summary) {
+        JPanel row = new JPanel(new BorderLayout(12, 0));
+        row.setBackground(PRIMARY_LIGHT);
+        row.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(0xD7, 0xCC, 0xF2), 1),
+            new EmptyBorder(8, 10, 8, 10)
+        ));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+
+        JLabel seat = new JLabel(seatPromoLabel(summary.ghe));
+        seat.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        seat.setForeground(PRIMARY);
+        seat.setPreferredSize(new Dimension(150, 24));
+        row.add(seat, BorderLayout.WEST);
+
+        JPanel promos = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        promos.setOpaque(false);
+        if (summary.promotions.isEmpty()) {
+            promos.add(promoChip("Không áp dụng", ON_SURF_VAR, NotionTheme.CARD_MUTED, OUTLINE));
+        } else {
+            for (ChiTietKhuyenMai km : summary.promotions) {
+                int pct = (int) Math.round(clampDiscount(km.getPhanTramGiam()) * 100);
+                promos.add(promoChip(promoNameFor(km) + "  −" + pct + "%", AppColors.WARNING_DARK, AppColors.WARNING_LIGHT, AppColors.WARNING));
+            }
+        }
+        row.add(promos, BorderLayout.CENTER);
+        return row;
+        // Handoff: row dùng màu tím nhạt theo Notion, chip KM dùng vàng để nhấn giảm giá.
+        // Risk: text tên KM dài sẽ chiếm ngang; ưu tiên giữ đầy đủ nội dung thay vì cắt logic.
+    }
+
+    private JLabel promoChip(String text, Color fg, Color bg, Color border) {
+        JLabel chip = new JLabel(text);
+        chip.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        chip.setForeground(fg);
+        chip.setOpaque(true);
+        chip.setBackground(bg);
+        chip.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(border, 1),
+            new EmptyBorder(4, 8, 4, 8)
+        ));
+        return chip;
+    }
+
+    private String seatPromoLabel(Ghe ghe) {
+        if (ghe == null) return "Ghế —";
+        String toaMa = ghe.getToaTau() != null ? ghe.getToaTau().getMaToaTau() : "—";
+        return "Ghế " + ghe.getSoGhe() + " · " + toaMa;
+    }
+
     private String fmt(double amount) {
         return VND_FMT.format((long) amount) + " ₫";
     }
@@ -409,6 +474,16 @@ public class BanVeStep6Module extends JPanel implements AppModule {
         }
     }
 
+    private static class SeatPromoSummary {
+        private final Ghe ghe;
+        private final List<ChiTietKhuyenMai> promotions;
+
+        private SeatPromoSummary(Ghe ghe, List<ChiTietKhuyenMai> promotions) {
+            this.ghe = ghe;
+            this.promotions = promotions == null ? java.util.Collections.emptyList() : promotions;
+        }
+    }
+
     // =========================================================================
     //  EXECUTE
     // =========================================================================
@@ -423,15 +498,7 @@ public class BanVeStep6Module extends JPanel implements AppModule {
     // =========================================================================
 
     private void styleBtn(JButton btn, boolean primary) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(10, 24, 10, 24));
-        if (primary) {
-            btn.setBackground(PRIMARY); btn.setForeground(Color.WHITE); btn.setOpaque(true);
-        } else {
-            btn.setBackground(CARD_BG); btn.setForeground(ON_SURF_VAR); btn.setOpaque(true);
-        }
+        BookingStepUi.styleActionButton(btn, primary);
     }
 
     // =========================================================================

@@ -140,6 +140,21 @@ public class DAO_ChiTietKhuyenMai {
         return false;
     }
 
+    public int countAppliedUsage(String maChiTietKM) {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return 0;
+        String sql = "SELECT COUNT(DISTINCT maApDung) AS total FROM ApDungKM WHERE maChiTietKM = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maChiTietKM);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("total") : 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi kiểm tra chi tiết khuyến mãi đã áp dụng: " + e.getMessage());
+        }
+        return 0;
+    }
+
     public boolean delete(String maChiTietKM) {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;

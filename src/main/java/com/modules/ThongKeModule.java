@@ -61,32 +61,32 @@ public class ThongKeModule extends JPanel implements AppModule {
     private JLabel lblVeHuy;
 
     // ── Colors ────────────────────────────────────────────────────────────
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color ACCENT1       = new Color(0x00, 0x96, 0x88);
-    private static final Color ACCENT2       = new Color(0xFF, 0x65, 0x00);
-    private static final Color ACCENT3       = new Color(0x9C, 0x27, 0xB0);
-    private static final Color ACCENT4       = new Color(0xF4, 0x43, 0x36);
-    private static final Color SURFACE       = new Color(0xF7, 0xF9, 0xFB);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color BORDER_COLOR  = new Color(0xE2, 0xE8, 0xF0);
-    private static final Color TEXT_DARK     = new Color(0x19, 0x1C, 0x1E);
-    private static final Color TEXT_MUTED    = new Color(0x64, 0x74, 0x8B);
-    private static final Color GRID_COLOR    = new Color(0xEE, 0xF2, 0xF7);
-    private static final Color EXPORT_START  = new Color(0x00, 0x6A, 0xA8);
-    private static final Color EXPORT_END    = new Color(0x00, 0x85, 0x7E);
+    private static final Color PRIMARY       = AppColors.PRIMARY_DARK;
+    private static final Color ACCENT1       = AppColors.PRIMARY;
+    private static final Color ACCENT2       = AppColors.WARNING;
+    private static final Color ACCENT3       = AppColors.PRIMARY_HOVER;
+    private static final Color ACCENT4       = AppColors.ERROR;
+    private static final Color SURFACE       = AppColors.BACKGROUND;
+    private static final Color CARD_BG       = AppColors.SURFACE;
+    private static final Color BORDER_COLOR  = AppColors.BORDER;
+    private static final Color TEXT_DARK     = AppColors.TEXT_PRIMARY;
+    private static final Color TEXT_MUTED    = AppColors.TEXT_SECONDARY;
+    private static final Color GRID_COLOR    = AppColors.BACKGROUND;
+    private static final Color EXPORT_START  = AppColors.PRIMARY;
+    private static final Color EXPORT_END    = AppColors.PRIMARY_HOVER;
     private static final int REPORT_CHART_TOP_ROW = 5;
     private static final int REPORT_CHART_HEIGHT = 15;
     private static final int REPORT_TABLE_GAP_ROWS = 2;
 
     private static final Color[] PALETTE = {
-        new Color(0x00, 0x5D, 0x90),
-        new Color(0x00, 0x96, 0x88),
-        new Color(0xFF, 0x65, 0x00),
-        new Color(0x9C, 0x27, 0xB0),
-        new Color(0xF4, 0x43, 0x36),
-        new Color(0xFF, 0xC1, 0x07),
-        new Color(0x4C, 0xAF, 0x50),
-        new Color(0x2B, 0x96, 0xCC),
+        AppColors.PRIMARY_DARK,
+        AppColors.PRIMARY,
+        AppColors.WARNING,
+        AppColors.PRIMARY_HOVER,
+        AppColors.ERROR,
+        AppColors.WARNING,
+        AppColors.SUCCESS,
+        AppColors.PRIMARY_LIGHT,
     };
 
     // ── Constructor ───────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ public class ThongKeModule extends JPanel implements AppModule {
 
     private JPanel buildHeaderPanel() {
         JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(Color.WHITE);
+        header.setBackground(AppColors.SURFACE);
         header.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR),
             new EmptyBorder(14, 24, 14, 24)
@@ -278,8 +278,8 @@ public class ThongKeModule extends JPanel implements AppModule {
                 Color c1;
                 Color c2;
                 if (!isEnabled()) {
-                    c1 = new Color(0xA8, 0xB6, 0xC4);
-                    c2 = new Color(0x93, 0xA2, 0xB2);
+                    c1 = AppColors.BORDER;
+                    c2 = AppColors.BORDER;
                 } else if (pressed) {
                     c1 = EXPORT_END.darker();
                     c2 = EXPORT_START.darker();
@@ -303,7 +303,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         button.setOpaque(false);
         button.setContentAreaFilled(false);
         button.setBorder(new EmptyBorder(8, 18, 8, 18));
-        button.setForeground(Color.WHITE);
+        button.setForeground(AppColors.SURFACE);
         button.setFont(new Font("Segoe UI", Font.BOLD, 12));
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -698,7 +698,7 @@ public class ThongKeModule extends JPanel implements AppModule {
 
     private void openExportReportDialog() {
         if (loadingData) {
-            JOptionPane.showMessageDialog(this,
+            NotionMessageDialog.showMessageDialog(this,
                 "Dữ liệu đang được cập nhật. Vui lòng đợi vài giây rồi thử lại.",
                 "Đang tải dữ liệu",
                 JOptionPane.INFORMATION_MESSAGE);
@@ -808,14 +808,14 @@ public class ThongKeModule extends JPanel implements AppModule {
                 chkDailyInvoices.isSelected()
             );
             if (!options.hasAnySection()) {
-                JOptionPane.showMessageDialog(dialog,
+                NotionMessageDialog.showMessageDialog(dialog,
                     "Vui lòng chọn ít nhất một nội dung để xuất báo cáo.",
                     "Thiếu nội dung",
                     JOptionPane.WARNING_MESSAGE);
                 return;
             }
             if (cboFormat.getSelectedIndex() != 0) {
-                JOptionPane.showMessageDialog(dialog,
+                NotionMessageDialog.showMessageDialog(dialog,
                     "Định dạng hiện tại chưa được hỗ trợ.",
                     "Thông báo",
                     JOptionPane.INFORMATION_MESSAGE);
@@ -851,7 +851,7 @@ public class ThongKeModule extends JPanel implements AppModule {
 
     private JPanel createExportOptionCard(JCheckBox checkBox, String title, String description) {
         JPanel card = new JPanel(new BorderLayout(10, 0));
-        card.setBackground(new Color(0xF8, 0xFA, 0xFD));
+        card.setBackground(AppColors.BACKGROUND);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(BORDER_COLOR, 1),
             new EmptyBorder(10, 10, 10, 10)
@@ -882,9 +882,9 @@ public class ThongKeModule extends JPanel implements AppModule {
         JButton button = new JButton(text);
         button.setFont(new Font("Segoe UI", Font.BOLD, 12));
         button.setForeground(PRIMARY);
-        button.setBackground(Color.WHITE);
+        button.setBackground(AppColors.SURFACE);
         button.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(0xC9, 0xD4, 0xE2), 1),
+            BorderFactory.createLineBorder(AppColors.BORDER, 1),
             new EmptyBorder(8, 16, 8, 16)
         ));
         button.setFocusPainted(false);
@@ -916,7 +916,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         }
 
         if (selected.exists()) {
-            int confirm = JOptionPane.showConfirmDialog(
+            int confirm = NotionMessageDialog.showConfirmDialog(
                 this,
                 "Tệp đã tồn tại. Bạn có muốn ghi đè không?",
                 "Xác nhận ghi đè",
@@ -964,7 +964,7 @@ public class ThongKeModule extends JPanel implements AppModule {
                 btnExport.setText("Xuất file");
 
                 if (exportError != null) {
-                    JOptionPane.showMessageDialog(dialog,
+                    NotionMessageDialog.showMessageDialog(dialog,
                         "Không thể xuất báo cáo:\n" + exportError.getMessage(),
                         "Xuất báo cáo thất bại",
                         JOptionPane.ERROR_MESSAGE);
@@ -972,7 +972,7 @@ public class ThongKeModule extends JPanel implements AppModule {
                 }
 
                 dialog.dispose();
-                JOptionPane.showMessageDialog(
+                NotionMessageDialog.showMessageDialog(
                     ThongKeModule.this,
                     "<html><b>Xuất báo cáo thành công.</b><br>Đã lưu tại:<br>"
                         + outputFile.getAbsolutePath() + "</html>",

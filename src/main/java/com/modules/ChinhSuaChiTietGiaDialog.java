@@ -1,103 +1,96 @@
 package com.modules;
 
 import com.dao.DAO_ChiTietGia;
+import com.dao.DAO_Gia;
 import com.dao.DAO_Tuyen;
 import com.entity.ChiTietGia;
 import com.entity.Gia;
 import com.entity.Tuyen;
 import com.enums.LoaiGhe;
+import com.util.MaTuDong;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.geom.RoundRectangle2D;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-public class ChinhSuaChiTietGiaDialog extends JDialog {
+public class ChinhSuaChiTietGiaDialog extends AbstractFormDialog<ChiTietGia> {
 
-    // ===== Design tokens =====
-    private static final Color PRIMARY      = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_FIXED = new Color(0xCD, 0xE5, 0xFF);
-    private static final Color CARD_BG      = Color.WHITE;
-    private static final Color ON_SURFACE   = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR  = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE      = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color INPUT_BG     = new Color(0xF1, 0xF5, 0xF9);
-    private static final Color READONLY_BG  = new Color(0xE8, 0xED, 0xF2);
-    private static final Color ERROR        = new Color(0xBA, 0x1A, 0x1A);
-    private static final Color HEADER_BG    = new Color(0xF1, 0xF5, 0xF9);
-    private static final Color FOOTER_BG    = new Color(0xF1, 0xF5, 0xF9);
-
-    private static final Font FONT_TITLE = new Font("Segoe UI", Font.BOLD, 18);
-    private static final Font FONT_DESC  = new Font("Segoe UI", Font.PLAIN, 12);
-    private static final Font FONT_LABEL = new Font("Segoe UI", Font.BOLD, 12);
-    private static final Font FONT_INPUT = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FONT_MONO  = new Font("Consolas", Font.BOLD, 13);
-    private static final Font FONT_BTN   = new Font("Segoe UI", Font.BOLD, 13);
-    private static final Font FONT_ERR   = new Font("Segoe UI", Font.PLAIN, 11);
-
-    // ===== Data =====
-    private final Gia        gia;
-    private final ChiTietGia ctg;        // null = ADD mode
-    private final Runnable   onSaved;
-    private final boolean    isAddMode;
-    private List<Tuyen>      tuyenList;
-
-    // ===== Formatting =====
+    private final Gia gia;
+    private final ChiTietGia ctg;
+    private final Runnable onSaved;
+    private final boolean isAddMode;
+    private List<Tuyen> tuyenList;
     private boolean isFormatting = false;
 
-    // ===== Form fields =====
-    private JTextField                     txtMaChiTiet;
-    private SearchableComboBox<Tuyen>      searchTuyen;
-    private JComboBox<String>              cboLoaiGhe;
-    private JTextField                     txtGiaNiemYet;
-
-    // ===== Error labels =====
-    private JLabel lblErrTuyen;
-    private JLabel lblErrGia;
+    private JTextField txtMaChiTiet;
+    private SearchableComboBox<Tuyen> searchTuyen;
+    private JComboBox<LoaiGhe> cboLoaiGhe;
+    private JTextField txtGiaNiemYet;
 
     public ChinhSuaChiTietGiaDialog(Window owner, Gia gia, ChiTietGia ctg, Runnable onSaved) {
-        super(owner, ctg == null ? "Thêm chi tiết giá" : "Chỉnh sửa chi tiết giá",
-                ModalityType.APPLICATION_MODAL);
-        this.gia       = gia;
-        this.ctg       = ctg;
-        this.onSaved   = onSaved;
+        super(owner, ctg == null ? "Thêm chi tiết giá" : "Chỉnh sửa chi tiết giá");
+        this.gia = gia;
+        this.ctg = ctg;
+        this.onSaved = onSaved;
         this.isAddMode = (ctg == null);
-        setUndecorated(true);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setResizable(false);
         loadTuyenList();
-        initUI();
+        installStandardLayout(owner);
         if (!isAddMode) populateFields();
-        pack();
-        setMinimumSize(new Dimension(560, getPreferredSize().height));
-        setLocationRelativeTo(owner);
     }
 
-    // =================================================================
-    //  INIT
-    // =================================================================
+    @Override
+    protected String dialogDescription() {
+        return "Cấu hình tuyến, loại ghế và giá niêm yết áp dụng.";
+    }
+
+    @Override
+    protected LineIcons.Name dialogIcon() {
+        return LineIcons.Name.MONEY;
+    }
+
+    @Override
+    protected String primaryButtonText() {
+        return isAddMode ? "Thêm chi tiết" : "Cập nhật chi tiết";
+    }
+
+    @Override
+    protected int preferredDialogWidth() {
+        return 620;
+    }
+
+    @Override
+    protected FormSchema buildFormSchema() {
+        txtMaChiTiet = createReadonlyField(isAddMode ? generateMaChiTiet() : ctg.getMaChiTietGia());
+        searchTuyen = createTuyenCombo();
+        searchTuyen.setItems(tuyenList);
+        cboLoaiGhe = createLoaiGheCombo();
+        txtGiaNiemYet = createMoneyField();
+
+        // Handoff: form chuan hoa layout, con chon tuyen/custom combo va format tien van doc qua field refs.
+        // Rui ro: money listener format lai text sau khi nguoi dung go, khong nen doc qua FormValues da normalize.
+        return FormSchema.builder()
+                .columns(2)
+                .gap(16, 14)
+                .field(FieldSpec.of("maChiTiet", "Mã chi tiết", txtMaChiTiet)
+                        .grid(0, 0).required(true).build())
+                .field(FieldSpec.of("giaNiemYet", "Giá niêm yết", txtGiaNiemYet)
+                        .grid(0, 1).required(true).hint("Nhập tối thiểu 1.000 VNĐ, hệ thống tự thêm dấu chấm.").build())
+                .field(FieldSpec.of("tuyen", "Tuyến đường", searchTuyen)
+                        .grid(1, 0).required(true).build())
+                .field(FieldSpec.of("loaiGhe", "Loại ghế", cboLoaiGhe)
+                        .grid(1, 1).required(true).build())
+                .build();
+    }
 
     private void loadTuyenList() {
         tuyenList = new DAO_Tuyen().getAll();
     }
 
-    private void initUI() {
-        setBackground(new Color(0, 0, 0, 0));
-
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(CARD_BG);
-        root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
-
-        root.add(buildHeader(), BorderLayout.NORTH);
-        root.add(buildForm(),   BorderLayout.CENTER);
-        root.add(buildFooter(), BorderLayout.SOUTH);
-
-        setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
-    }
-
     private void populateFields() {
-        // Pre-select tuyến
         if (ctg.getTuyen() != null) {
             String maTuyen = ctg.getTuyen().getMaTuyen();
             for (Tuyen t : tuyenList) {
@@ -107,280 +100,99 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
                 }
             }
         }
-        // Loại ghế
         if (ctg.getLoaiGhe() != null) {
-            for (int i = 0; i < LoaiGhe.values().length; i++) {
-                if (LoaiGhe.values()[i] == ctg.getLoaiGhe()) {
-                    cboLoaiGhe.setSelectedIndex(i);
-                    break;
-                }
-            }
+            cboLoaiGhe.setSelectedItem(ctg.getLoaiGhe());
         }
-        // Giá
-        String price = formatNumberWithDots(String.format("%.0f", ctg.getGiaNiemYet()));
-        txtGiaNiemYet.setText(price);
-        txtGiaNiemYet.setForeground(ON_SURFACE);
+        txtGiaNiemYet.setText(formatNumberWithDots(String.format("%.0f", ctg.getGiaNiemYet())));
     }
 
-    // =================================================================
-    //  BUILD HEADER
-    // =================================================================
-
-    private JPanel buildHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(HEADER_BG);
-        header.setBorder(new EmptyBorder(20, 28, 20, 28));
-
-        JPanel iconTitle = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        iconTitle.setOpaque(false);
-
-        JPanel icon = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(PRIMARY_FIXED);
-                g2.fillRoundRect(0, 0, 40, 40, 10, 10);
-                g2.setColor(PRIMARY);
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
-                FontMetrics fm = g2.getFontMetrics();
-                String s = isAddMode ? "+" : "S";
-                g2.drawString(s, (40 - fm.stringWidth(s)) / 2, 27);
-                g2.dispose();
-            }
-        };
-        icon.setOpaque(false);
-        icon.setPreferredSize(new Dimension(40, 40));
-
-        JPanel textArea = new JPanel();
-        textArea.setLayout(new BoxLayout(textArea, BoxLayout.Y_AXIS));
-        textArea.setOpaque(false);
-
-        JLabel lblTitle = new JLabel(isAddMode
-                ? "Thêm chi tiết biểu giá"
-                : "Cập nhật chi tiết biểu giá");
-        lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(ON_SURFACE);
-        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel lblDesc = new JLabel(isAddMode
-                ? "Thêm thông số cho tuyến đường và hạng ghế"
-                : "Chỉnh sửa thông số cho tuyến đường và hạng ghế");
-        lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(ON_SURF_VAR);
-        lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        textArea.add(lblTitle);
-        textArea.add(Box.createVerticalStrut(2));
-        textArea.add(lblDesc);
-
-        iconTitle.add(icon);
-        iconTitle.add(textArea);
-
-        JButton btnClose = new JButton("X");
-        btnClose.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        btnClose.setForeground(ON_SURF_VAR);
-        btnClose.setContentAreaFilled(false);
-        btnClose.setBorderPainted(false);
-        btnClose.setFocusPainted(false);
-        btnClose.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnClose.addActionListener(e -> dispose());
-
-        header.add(iconTitle, BorderLayout.WEST);
-        header.add(btnClose,  BorderLayout.EAST);
-        return header;
-    }
-
-    // =================================================================
-    //  BUILD FORM
-    // =================================================================
-
-    private JPanel buildForm() {
-        JPanel form = new JPanel();
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setBackground(CARD_BG);
-        form.setBorder(new EmptyBorder(24, 28, 8, 28));
-
-        // Mã chi tiết (readonly)
-        String codeValue = isAddMode
-                ? "CTG-" + gia.getMaGia() + "-" + String.format("%05d", (int)(System.currentTimeMillis() % 100000))
-                : ctg.getMaChiTietGia();
-        txtMaChiTiet = createReadonlyField(codeValue, FONT_MONO);
-        form.add(buildFieldRow("MÃ CHI TIẾT (Tự động)", txtMaChiTiet, null));
-        form.add(Box.createVerticalStrut(16));
-
-        // TUYẾN — searchable (full width)
-        searchTuyen = new SearchableComboBox<>(
-            t -> {
-                String gaDi  = t.getGaDi()  != null ? t.getGaDi().getTenGa()  : "?";
-                String gaDen = t.getGaDen() != null ? t.getGaDen().getTenGa() : "?";
-                return t.getMaTuyen() + "  |  " + gaDi + " → " + gaDen;
-            },
-            (t, q) -> {
-                String gaDiName  = t.getGaDi()  != null ? t.getGaDi().getTenGa().toLowerCase()  : "";
-                String gaDenName = t.getGaDen() != null ? t.getGaDen().getTenGa().toLowerCase() : "";
-                return t.getMaTuyen().toLowerCase().contains(q)
-                    || gaDiName.contains(q)
-                    || gaDenName.contains(q);
-            }
-        );
-        searchTuyen.setItems(tuyenList);
-        searchTuyen.setPlaceholder("Nhập mã tuyến, ga đi hoặc ga đến...");
-        lblErrTuyen = createErrLabel();
-        form.add(buildFieldRow("TUYẾN ĐƯỜNG", searchTuyen, lblErrTuyen));
-        form.add(Box.createVerticalStrut(16));
-
-        // Loại ghế (hàng riêng)
-        cboLoaiGhe = createStyledCombo();
-        for (LoaiGhe lg : LoaiGhe.values()) cboLoaiGhe.addItem(lg.toString());
-        form.add(buildFieldRow("LOẠI GHẾ", cboLoaiGhe, null));
-        form.add(Box.createVerticalStrut(16));
-
-        // Giá niêm yết
-        txtGiaNiemYet = createInputField("VD: 250.000");
-        lblErrGia = createErrLabel();
-        txtGiaNiemYet.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { formatMoneyField(); }
-            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { formatMoneyField(); }
-            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) {}
-        });
-        form.add(buildFieldRow("GIÁ NIÊM YẾT (VNĐ)", txtGiaNiemYet, lblErrGia));
-        form.add(Box.createVerticalStrut(8));
-
-        return form;
-    }
-
-    private JPanel buildFieldRow(String labelText, JComponent input, JLabel errLabel) {
-        JPanel row = new JPanel();
-        row.setLayout(new BoxLayout(row, BoxLayout.Y_AXIS));
-        row.setOpaque(false);
-        row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, errLabel != null ? 80 : 68));
-
-        JLabel lbl = new JLabel(labelText);
-        lbl.setFont(FONT_LABEL);
-        lbl.setForeground(ON_SURF_VAR);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        input.setAlignmentX(Component.LEFT_ALIGNMENT);
-        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-
-        row.add(lbl);
-        row.add(Box.createVerticalStrut(4));
-        row.add(input);
-        if (errLabel != null) {
-            errLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            row.add(errLabel);
+    @Override
+    protected List<ValidationError> validateForm(FormValues values) {
+        List<ValidationError> errors = new ArrayList<>();
+        if (searchTuyen.getSelectedItem() == null) {
+            errors.add(new ValidationError("tuyen", "Vui lòng chọn tuyến đường"));
         }
-        return row;
+        if (hasDuplicateTuyenLoaiGhe()) {
+            errors.add(new ValidationError("loaiGhe", "Tuyến và loại ghế này đã tồn tại trong kỳ giá"));
+        }
+        parseGiaNiemYet(errors);
+        return errors;
     }
 
-    // =================================================================
-    //  BUILD FOOTER
-    // =================================================================
-
-    private JPanel buildFooter() {
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 16));
-        footer.setBackground(FOOTER_BG);
-        footer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE));
-
-        JButton btnCancel = new JButton("Hủy bỏ");
-        btnCancel.setFont(FONT_BTN);
-        btnCancel.setForeground(ON_SURF_VAR);
-        btnCancel.setContentAreaFilled(false);
-        btnCancel.setBorderPainted(false);
-        btnCancel.setFocusPainted(false);
-        btnCancel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnCancel.addActionListener(e -> dispose());
-
-        String saveLabel = isAddMode ? "Thêm chi tiết" : "Cập nhật chi tiết";
-        JButton btnSave = new JButton(saveLabel) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color bg = getModel().isPressed() ? PRIMARY.darker()
-                        : getModel().isRollover() ? new Color(0x00, 0x4A, 0x73) : PRIMARY;
-                g2.setColor(bg);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 10, 10));
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnSave.setFont(FONT_BTN);
-        btnSave.setForeground(Color.WHITE);
-        btnSave.setContentAreaFilled(false);
-        btnSave.setBorderPainted(false);
-        btnSave.setFocusPainted(false);
-        btnSave.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnSave.setPreferredSize(new Dimension(160, 40));
-        btnSave.addActionListener(e -> doSave());
-
-        footer.add(btnCancel);
-        footer.add(btnSave);
-        return footer;
-    }
-
-    // =================================================================
-    //  SAVE LOGIC
-    // =================================================================
-
-    private void doSave() {
-        clearErrors();
-
-        // ── Validate tuyến ─────────────────────────────────────────────
+    private boolean hasDuplicateTuyenLoaiGhe() {
         Tuyen selectedTuyen = searchTuyen.getSelectedItem();
-        if (selectedTuyen == null) {
-            showError(lblErrTuyen, "Vui lòng chọn tuyến đượng");
-            return;
+        LoaiGhe selectedLoaiGhe = (LoaiGhe) cboLoaiGhe.getSelectedItem();
+        if (selectedTuyen == null || selectedLoaiGhe == null) return false;
+        for (ChiTietGia item : new DAO_ChiTietGia().findByGia(gia.getMaGia())) {
+            boolean sameRow = !isAddMode && Objects.equals(item.getMaChiTietGia(), ctg.getMaChiTietGia());
+            if (!sameRow
+                    && item.getTuyen() != null
+                    && item.getLoaiGhe() != null
+                    && Objects.equals(item.getTuyen().getMaTuyen(), selectedTuyen.getMaTuyen())
+                    && item.getLoaiGhe() == selectedLoaiGhe) return true;
         }
+        return false;
+    }
 
-        // ── Validate giá ──────────────────────────────────────────────
+    private double parseGiaNiemYet(List<ValidationError> errors) {
         String giaStr = txtGiaNiemYet.getText().trim();
         if (giaStr.isEmpty()) {
-            showError(lblErrGia, "Vui lòng nhập giá niêm yết");
-            return;
+            errors.add(new ValidationError("giaNiemYet", "Vui lòng nhập giá niêm yết"));
+            return 0;
         }
-        double giaNiemYet;
         try {
             long raw = Long.parseLong(giaStr.replaceAll("\\.", ""));
             if (raw <= 0) {
-                showError(lblErrGia, "Giá phải lớn hơn 0");
-                return;
+                errors.add(new ValidationError("giaNiemYet", "Giá phải lớn hơn 0"));
+            } else if (raw < 1_000) {
+                errors.add(new ValidationError("giaNiemYet", "Giá tối thiểu là 1.000 VNĐ"));
+            } else if (raw > 100_000_000) {
+                errors.add(new ValidationError("giaNiemYet", "Giá không được vượt quá 100.000.000 VNĐ"));
             }
-            if (raw < 1_000) {
-                showError(lblErrGia, "Giá tối thiểu là 1.000 VNĐ");
-                return;
-            }
-            if (raw > 100_000_000) {
-                showError(lblErrGia, "Giá không được vượt quá 100.000.000 VNĐ");
-                return;
-            }
-            giaNiemYet = (double) raw;
+            return raw;
         } catch (NumberFormatException ex) {
-            showError(lblErrGia, "Giá không hợp lệ, chỉ được nhập số");
-            return;
+            errors.add(new ValidationError("giaNiemYet", "Giá không hợp lệ, chỉ được nhập số"));
+            return 0;
         }
+    }
 
-        LoaiGhe loaiGhe = LoaiGhe.values()[Math.max(0, cboLoaiGhe.getSelectedIndex())];
+    @Override
+    protected ChiTietGia collectResult(FormValues values) {
+        double giaNiemYet = parseGiaNiemYet(new ArrayList<>());
+        Tuyen selectedTuyen = searchTuyen.getSelectedItem();
+        LoaiGhe loaiGhe = (LoaiGhe) cboLoaiGhe.getSelectedItem();
+        String maChiTiet = isAddMode ? txtMaChiTiet.getText().trim() : ctg.getMaChiTietGia();
+        return new ChiTietGia(maChiTiet, gia, selectedTuyen, loaiGhe, giaNiemYet);
+    }
 
-        // ── Persist ───────────────────────────────────────────────────
+    @Override
+    protected void onSubmit(ChiTietGia result) {
+        DAO_Gia daoGia = new DAO_Gia();
+        int soldTicketCount = daoGia.countSoldTicketsUsingGia(gia.getMaGia());
+        boolean activateClone = false;
+        List<String> conflictsToDeactivate = new ArrayList<>();
+        if (!isAddMode && soldTicketCount > 0) {
+            if (!confirmCloneUsedGiaDetail(soldTicketCount)) return;
+            activateClone = confirmActivateClonedGiaDetail();
+            if (activateClone) {
+                List<Gia> conflicts = daoGia.findOverlappingActive(gia.getMaGia(), gia.getThoiGianBatDau(), gia.getThoiGianKetThuc());
+                if (!conflicts.isEmpty()) {
+                    if (!confirmDeactivateConflicts(conflicts)) return;
+                    conflictsToDeactivate = conflicts.stream().map(Gia::getMaGia).toList();
+                }
+            }
+        }
+        final boolean shouldActivateClone = activateClone;
+        final List<String> deactivateIds = List.copyOf(conflictsToDeactivate);
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new SwingWorker<Boolean, Void>() {
             @Override
             protected Boolean doInBackground() {
                 DAO_ChiTietGia dao = new DAO_ChiTietGia();
-                if (isAddMode) {
-                    ChiTietGia newCtg = new ChiTietGia(
-                            txtMaChiTiet.getText().trim(), gia, selectedTuyen, loaiGhe, giaNiemYet);
-                    return dao.insert(newCtg);
-                } else {
-                    ctg.setGia(gia);
-                    ctg.setTuyen(selectedTuyen);
-                    ctg.setLoaiGhe(loaiGhe);
-                    ctg.setGiaNiemYet(giaNiemYet);
-                    return dao.update(ctg);
+                if (!isAddMode && soldTicketCount > 0) {
+                    return daoGia.cloneGiaWithDetailsReplacingDetail(gia, result, shouldActivateClone, deactivateIds) != null;
                 }
+                return isAddMode ? dao.insert(result) : dao.update(result);
             }
 
             @Override
@@ -389,30 +201,109 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
                 try {
                     if (get()) {
                         if (onSaved != null) onSaved.run();
+                        if (!isAddMode && soldTicketCount > 0) {
+                            NotionMessageDialog.showMessageDialog(ChinhSuaChiTietGiaDialog.this,
+                                    "Đã ngừng kỳ giá cũ và tạo kỳ giá mới với chỉnh sửa vừa nhập"
+                                            + (shouldActivateClone ? " (đang hoạt động)." : " (chưa hoạt động)."),
+                                    "Đã nhân bản kỳ giá", JOptionPane.INFORMATION_MESSAGE);
+                        }
                         dispose();
                     } else {
-                        JOptionPane.showMessageDialog(ChinhSuaChiTietGiaDialog.this,
-                                isAddMode ? "Không thể thêm chi tiết giá!"
-                                          : "Không thể cập nhật chi tiết giá!",
+                        NotionMessageDialog.showMessageDialog(ChinhSuaChiTietGiaDialog.this,
+                                isAddMode ? "Không thể thêm chi tiết giá!" : "Không thể cập nhật chi tiết giá!",
                                 "Lỗi", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(ChinhSuaChiTietGiaDialog.this,
+                    NotionMessageDialog.showMessageDialog(ChinhSuaChiTietGiaDialog.this,
                             "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();
+        // Handoff: sửa chi tiết của Gia đã bán sẽ clone Gia, tắt bản cũ; bật bản mới cần xác nhận riêng.
+        // Rủi ro: duplicate tuyến/loại ghế bị chặn sớm để Step2 không lấy nhầm dòng giá.
     }
 
-    // =================================================================
-    //  HELPERS
-    // =================================================================
+    private boolean confirmCloneUsedGiaDetail(int soldTicketCount) {
+        String message = "Chi tiết giá này thuộc kỳ giá đã được áp dụng trên " + soldTicketCount
+                + " vé đã bán nên không thể sửa trực tiếp.\n\n"
+                + "Bạn có muốn nhân bản kỳ giá này với chỉnh sửa bạn mong muốn không?\n"
+                + "Kỳ giá cũ sẽ ngừng hoạt động, còn kỳ giá mới sẽ hỏi xác nhận hoạt động ở bước tiếp theo.";
+        int choice = NotionMessageDialog.showConfirmDialog(this, message, "Chi tiết giá đã khóa",
+                JOptionPane.WARNING_MESSAGE, "Hủy", "Đồng ý");
+        return choice == JOptionPane.YES_OPTION;
+    }
 
-    // =================================================================
-    //  MONEY FORMAT HELPERS
-    // =================================================================
+    private boolean confirmActivateClonedGiaDetail() {
+        int choice = NotionMessageDialog.showConfirmDialog(this,
+                "Bạn có muốn bật hoạt động cho kỳ giá mới vừa nhân bản không?\n"
+                        + "Nếu hủy, kỳ giá mới vẫn được tạo nhưng ở trạng thái ngừng hoạt động.",
+                "Bật kỳ giá mới", JOptionPane.QUESTION_MESSAGE, "Không bật", "Bật hoạt động");
+        return choice == JOptionPane.YES_OPTION;
+    }
 
-    /** Chèn dấu chấm mỗi 3 chữ số (định dạng VNĐ). */
+    private boolean confirmDeactivateConflicts(List<Gia> conflicts) {
+        String ids = conflicts.stream().map(Gia::getMaGia).collect(java.util.stream.Collectors.joining(", "));
+        int choice = NotionMessageDialog.showConfirmDialog(this,
+                "Kỳ giá muốn bật bị trùng thời gian với: " + ids + "\n\n"
+                        + "Bạn có muốn ngừng hoạt động các kỳ giá này để bật kỳ giá mới không?",
+                "Trùng kỳ giá", JOptionPane.WARNING_MESSAGE, "Hủy", "Ngừng kỳ trùng");
+        return choice == JOptionPane.YES_OPTION;
+    }
+
+    private String generateMaChiTiet() {
+        return MaTuDong.generate("CTG");
+    }
+
+    private JTextField createTextField() {
+        JTextField field = new JTextField();
+        field.setFont(NotionTheme.BODY);
+        field.setForeground(NotionTheme.TEXT);
+        return field;
+    }
+
+    private JTextField createReadonlyField(String value) {
+        JTextField field = createTextField();
+        field.setText(value == null ? "" : value);
+        field.setEditable(false);
+        field.setFont(NotionTheme.BODY_BOLD);
+        return field;
+    }
+
+    private JTextField createMoneyField() {
+        JTextField field = createTextField();
+        field.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { formatMoneyField(); }
+            @Override public void removeUpdate(DocumentEvent e) { formatMoneyField(); }
+            @Override public void changedUpdate(DocumentEvent e) { formatMoneyField(); }
+        });
+        return field;
+    }
+
+    private SearchableComboBox<Tuyen> createTuyenCombo() {
+        SearchableComboBox<Tuyen> combo = new SearchableComboBox<>(
+                tuyen -> tuyen.getGaDi().getTenGa() + " \u2192 " + tuyen.getGaDen().getTenGa() + " (" + tuyen.getMaTuyen() + ")",
+                (tuyen, query) -> tuyen.getMaTuyen().toLowerCase().contains(query)
+                        || tuyen.getGaDi().getTenGa().toLowerCase().contains(query)
+                        || tuyen.getGaDen().getTenGa().toLowerCase().contains(query));
+        combo.setPlaceholder("Chọn tuyến đường");
+        combo.setPreferredSize(new Dimension(200, 42));
+        return combo;
+    }
+
+    private JComboBox<LoaiGhe> createLoaiGheCombo() {
+        JComboBox<LoaiGhe> combo = new JComboBox<>(LoaiGhe.values());
+        combo.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            JLabel label = new JLabel(value == null ? "" : value.toString());
+            label.setOpaque(true);
+            label.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
+            label.setFont(NotionTheme.BODY);
+            label.setBackground(isSelected ? NotionTheme.ACCENT_SOFT : NotionTheme.CARD);
+            label.setForeground(NotionTheme.TEXT);
+            return label;
+        });
+        return combo;
+    }
+
     private String formatNumberWithDots(String digits) {
         if (digits == null || digits.isEmpty()) return "";
         StringBuilder sb = new StringBuilder(digits);
@@ -420,9 +311,8 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
         return sb.toString();
     }
 
-    /** Tự động format ô giá niêm yết khi người dùng gõ. */
     private void formatMoneyField() {
-        if (isFormatting) return;
+        if (isFormatting || txtGiaNiemYet == null) return;
         isFormatting = true;
         SwingUtilities.invokeLater(() -> {
             try {
@@ -434,72 +324,5 @@ public class ChinhSuaChiTietGiaDialog extends JDialog {
                 isFormatting = false;
             }
         });
-    }
-
-    private void clearErrors() {
-        lblErrTuyen.setText("");
-        lblErrGia.setText("");
-    }
-
-    private void showError(JLabel lbl, String msg) {
-        lbl.setText(msg);
-        pack();
-    }
-
-    private JTextField createInputField(String placeholder) {
-        JTextField f = new JTextField() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                if (getText().isEmpty() && !hasFocus()) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setColor(new Color(0x9E, 0xA7, 0xB0));
-                    g2.setFont(FONT_INPUT);
-                    Insets ins = getInsets();
-                    g2.drawString(placeholder, ins.left, getHeight() / 2 + 5);
-                    g2.dispose();
-                }
-            }
-        };
-        f.setFont(FONT_INPUT);
-        f.setBackground(Color.WHITE);
-        f.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
-        f.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusGained(java.awt.event.FocusEvent e) { f.repaint(); }
-            public void focusLost(java.awt.event.FocusEvent e)   { f.repaint(); }
-        });
-        return f;
-    }
-
-    private JTextField createReadonlyField(String value, Font font) {
-        JTextField f = new JTextField(value);
-        f.setFont(font);
-        f.setEditable(false);
-        f.setBackground(READONLY_BG);
-        f.setForeground(ON_SURF_VAR);
-        f.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
-        return f;
-    }
-
-    private JComboBox<String> createStyledCombo() {
-        JComboBox<String> cbo = new JComboBox<>();
-        cbo.setFont(FONT_INPUT);
-        cbo.setBackground(Color.WHITE);
-        cbo.setPreferredSize(new Dimension(200, 42));
-        cbo.setMinimumSize(new Dimension(50, 42));
-        return cbo;
-    }
-
-    private JLabel createErrLabel() {
-        JLabel lbl = new JLabel("");
-        lbl.setFont(FONT_ERR);
-        lbl.setForeground(ERROR);
-        return lbl;
     }
 }

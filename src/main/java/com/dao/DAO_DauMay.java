@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.connectDB.ConnectDB;
 import com.entity.DauMay;
+import com.util.MaTuDong;
 
 public class DAO_DauMay {
     private static final String STATUS_ACTIVE      = "Đang hoạt động";
@@ -53,21 +54,7 @@ public class DAO_DauMay {
     }
 
     public String generateNextMaDauMay() {
-        Connection con = ConnectDB.getCon();
-        if (con == null) return "DM-001";
-
-        String sql = "SELECT MAX(CAST(SUBSTRING(maDauMay, 4, LEN(maDauMay)-3) AS INT)) " +
-                     "FROM DauMay WHERE maDauMay LIKE 'DM-%'";
-        try (PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                int maxNum = rs.getInt(1);
-                return String.format("DM-%03d", maxNum + 1);
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi sinh mã đầu máy: " + e.getMessage());
-        }
-        return "DM-001";
+        return MaTuDong.generate("DM");
     }
 
     public boolean insert(DauMay dm) {

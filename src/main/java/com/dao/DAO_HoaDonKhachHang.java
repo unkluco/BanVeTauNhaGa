@@ -11,6 +11,7 @@ import com.connectDB.ConnectDB;
 import com.entity.HoaDon;
 import com.entity.HoaDonKhachHang;
 import com.entity.KhachHang;
+import com.util.MaTuDong;
 
 public class DAO_HoaDonKhachHang {
 
@@ -76,23 +77,7 @@ public class DAO_HoaDonKhachHang {
         return ds;
     }
 
-    /**
-     * Sinh ma HDKH dang HDKH-NNNN (khong date-prefix, don gian).
-     */
     public String phatSinhMaHDKH() {
-        Connection con = ConnectDB.getCon();
-        if (con == null) return "HDKH-0001";
-
-        String sql = "SELECT MAX(CAST(SUBSTRING(maHDKH, 6, LEN(maHDKH)-5) AS INT)) FROM HoaDonKhachHang WHERE maHDKH LIKE 'HDKH-%'";
-        try (PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                int maxNum = rs.getInt(1);
-                return String.format("HDKH-%04d", maxNum + 1);
-            }
-        } catch (SQLException e) {
-            System.err.println("Loi khi sinh ma HDKH: " + e.getMessage());
-        }
-        return "HDKH-0001";
+        return MaTuDong.generate("HDKH");
     }
 }

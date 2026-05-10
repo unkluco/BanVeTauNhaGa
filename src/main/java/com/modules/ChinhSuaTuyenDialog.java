@@ -4,299 +4,171 @@ import com.dao.DAO_Ga;
 import com.dao.DAO_Tuyen;
 import com.entity.Ga;
 import com.entity.Tuyen;
+import com.util.MaTuDong;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.*;
-import java.awt.Insets;
-import java.awt.geom.RoundRectangle2D;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * Undecorated dialog for adding or editing a Tuyen (Route).
- * - Add mode: maTuyen auto-generated as "TUY-XXXXX", readonly.
- * - Edit mode: maTuyen fixed, readonly.
- * - Ga đi / Ga đến: SearchableComboBox<Ga>.
- * - Validation: both fields required, ga đi ≠ ga đến, duplicate check in add mode.
- */
-public class ChinhSuaTuyenDialog extends JDialog {
+public class ChinhSuaTuyenDialog extends AbstractFormDialog<Tuyen> {
+    private static final Color PRIMARY = AppColors.PRIMARY_DARK;
+    private static final Color CARD_BG = AppColors.SURFACE;
+    private static final Color ON_SURFACE = AppColors.TEXT_PRIMARY;
+    private static final Color OUTLINE = AppColors.BORDER;
+    private static final Color ERROR = AppColors.ERROR_DARK;
 
-    // ── Design tokens ───────────────────────────────────────────────────
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_HOVER = new Color(0x00, 0x4A, 0x73);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color ERROR         = new Color(0xBA, 0x1A, 0x1A);
-    private static final Color ERROR_BG      = new Color(0xFF, 0xDA, 0xD6);
-    private static final Color READONLY_BG   = new Color(0xF1, 0xF5, 0xF9);
-    private static final Color HEADER_BG     = new Color(0xF1, 0xF5, 0xF9);
-    private static final Color FOOTER_BG     = new Color(0xF1, 0xF5, 0xF9);
+    private static final Font FONT_INPUT = new Font("Segoe UI", Font.PLAIN, 13);
+    private static final Font FONT_MONO = new Font("Consolas", Font.BOLD, 13);
+    private static final Font FONT_ERR = new Font("Segoe UI", Font.PLAIN, 11);
 
-    private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 18);
-    private static final Font FONT_DESC   = new Font("Segoe UI", Font.PLAIN, 12);
-    private static final Font FONT_LABEL  = new Font("Segoe UI", Font.BOLD, 12);
-    private static final Font FONT_INPUT  = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FONT_MONO   = new Font("Consolas", Font.BOLD, 13);
-    private static final Font FONT_BTN    = new Font("Segoe UI", Font.BOLD, 13);
-    private static final Font FONT_ERR    = new Font("Segoe UI", Font.PLAIN, 11);
-
-    // ── DAOs ────────────────────────────────────────────────────────────
     private final DAO_Tuyen daoTuyen = new DAO_Tuyen();
-    private final DAO_Ga    daoGa    = new DAO_Ga();
+    private final DAO_Ga daoGa = new DAO_Ga();
+    private final boolean isEditMode;
+    private final Tuyen editTarget;
+    private Consumer<Tuyen> onSaved;
 
-    // ── State ───────────────────────────────────────────────────────────
-    private final boolean  isEditMode;
-    private final Tuyen    editTarget;   // null when adding
-    private       Consumer<Tuyen> onSaved;
-
-    // ── Widgets ─────────────────────────────────────────────────────────
-    private JTextField             txtMaTuyen;
-    private JTextField             txtKm;
+    private JTextField txtMaTuyen;
+    private JTextField txtKm;
     private SearchableComboBox<Ga> cboGaDi;
     private SearchableComboBox<Ga> cboGaDen;
-
+    private JComboBox<String> cboTrangThai;
     private JLabel lblErrKm;
     private JLabel lblErrGaDi;
     private JLabel lblErrGaDen;
     private JLabel lblErrGeneral;
 
-    // ── Constructor: ADD ─────────────────────────────────────────────────
     public ChinhSuaTuyenDialog(Frame owner) {
         this(owner, null);
     }
 
-    // ── Constructor: EDIT ────────────────────────────────────────────────
     public ChinhSuaTuyenDialog(Frame owner, Tuyen target) {
-        super(owner, true);
-        this.isEditMode = (target != null);
+        super(owner, target == null ? "Th\u00eam tuy\u1ebfn \u0111\u01b0\u1eddng" : "Ch\u1ec9nh s\u1eeda tuy\u1ebfn \u0111\u01b0\u1eddng");
+        this.isEditMode = target != null;
         this.editTarget = target;
-
-        setUndecorated(true);
-        setBackground(new Color(0, 0, 0, 0));
-
-        initUI();
+        installStandardLayout(owner);
         loadGaList();
         if (isEditMode) prefillFields();
-
-        pack();
-        setLocationRelativeTo(owner);
     }
 
-    public void setOnSaved(Consumer<Tuyen> cb) { this.onSaved = cb; }
-
-    // ====================================================================
-    //  UI BUILD
-    // ====================================================================
-
-    private void initUI() {
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(CARD_BG);
-        root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
-
-        root.add(buildHeader(), BorderLayout.NORTH);
-        root.add(buildForm(),   BorderLayout.CENTER);
-        root.add(buildFooter(), BorderLayout.SOUTH);
-
-        setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
+    public void setOnSaved(Consumer<Tuyen> callback) {
+        this.onSaved = callback;
     }
 
-    // ── Header ──────────────────────────────────────────────────────────
-    private JPanel buildHeader() {
-        JPanel hdr = new JPanel(new BorderLayout());
-        hdr.setBackground(HEADER_BG);
-        hdr.setBorder(new EmptyBorder(20, 24, 16, 24));
-
-        // Icon + title row
-        JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        titleRow.setOpaque(false);
-
-        // Route icon circle
-        JPanel iconCircle = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(PRIMARY_LIGHT);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        iconCircle.setOpaque(false);
-        iconCircle.setPreferredSize(new Dimension(44, 44));
-        iconCircle.setLayout(new GridBagLayout());
-        ImageIcon routeIcon = loadScaledIcon("bieuTuongTuyen.png", 22);
-        if (routeIcon != null) {
-            iconCircle.add(new JLabel(routeIcon));
-        } else {
-            JLabel iconLbl = new JLabel("TUY");
-            iconLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            iconLbl.setForeground(PRIMARY);
-            iconCircle.add(iconLbl);
-        }
-
-        JPanel textPanel = new JPanel();
-        textPanel.setOpaque(false);
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
-
-        JLabel lblTitle = new JLabel(isEditMode ? "Chỉnh sửa Tuyến đường" : "Thêm Tuyến đường mới");
-        lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(ON_SURFACE);
-
-        JLabel lblDesc = new JLabel(isEditMode
-                ? "Cập nhật thông tin chi tiết hành trình"
-                : "Nhập thông tin để tạo tuyến mới");
-        lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(ON_SURF_VAR);
-
-        textPanel.add(lblTitle);
-        textPanel.add(Box.createVerticalStrut(2));
-        textPanel.add(lblDesc);
-
-        titleRow.add(iconCircle);
-        titleRow.add(textPanel);
-        hdr.add(titleRow, BorderLayout.CENTER);
-
-        return hdr;
+    @Override
+    protected String dialogTitle() {
+        return isEditMode ? "Ch\u1ec9nh s\u1eeda tuy\u1ebfn \u0111\u01b0\u1eddng" : "Th\u00eam tuy\u1ebfn \u0111\u01b0\u1eddng m\u1edbi";
     }
 
-    // ── Form ─────────────────────────────────────────────────────────────
-    private JPanel buildForm() {
-        JPanel form = new JPanel(new GridBagLayout());
-        form.setBackground(CARD_BG);
-        form.setBorder(new EmptyBorder(20, 24, 16, 24));
+    @Override
+    protected String dialogDescription() {
+        return isEditMode ? "C\u1eadp nh\u1eadt th\u00f4ng tin chi ti\u1ebft h\u00e0nh tr\u00ecnh." : "Nh\u1eadp th\u00f4ng tin \u0111\u1ec3 t\u1ea1o tuy\u1ebfn m\u1edbi.";
+    }
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill    = GridBagConstraints.HORIZONTAL;
-        gbc.anchor  = GridBagConstraints.WEST;
-        gbc.weightx = 0.5;
+    @Override
+    protected LineIcons.Name dialogIcon() {
+        return LineIcons.Name.ROUTE;
+    }
 
-        // ─ Row 0: MÃ TUYẾN label (full width) ────────────────────────────
-        gbc.gridx = 0; gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        gbc.insets = new Insets(0, 0, 4, 0);
-        form.add(makeLabel("Mã Tuyến"), gbc);
+    @Override
+    protected String primaryButtonText() {
+        return isEditMode ? "C\u1eadp nh\u1eadt tuy\u1ebfn" : "Th\u00eam tuy\u1ebfn";
+    }
 
-        // ─ Row 1: MÃ TUYẾN field (full width) ────────────────────────────
-        String maTuyen = isEditMode ? editTarget.getMaTuyen() : generateMaTuyen();
-        txtMaTuyen = new JTextField(maTuyen);
-        txtMaTuyen.setFont(FONT_MONO);
-        txtMaTuyen.setEditable(false);
-        txtMaTuyen.setBackground(READONLY_BG);
-        txtMaTuyen.setForeground(ON_SURF_VAR);
-        txtMaTuyen.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1),
-                new EmptyBorder(9, 12, 9, 12)));
+    @Override
+    protected int preferredDialogWidth() {
+        return 680;
+    }
 
-        gbc.gridy  = 1;
-        gbc.insets = new Insets(0, 0, 12, 0);
-        form.add(txtMaTuyen, gbc);
+    @Override
+    protected AbstractFormDialog.FormSchema buildFormSchema() {
+        txtMaTuyen = createReadonlyField(isEditMode ? editTarget.getMaTuyen() : generateMaTuyen());
+        txtKm = createInputField(isEditMode ? String.valueOf(editTarget.getKm()) : "0");
+        lblErrKm = createErrorLabel();
+        cboGaDi = createGaCombo("T\u00ecm ga \u0111i...");
+        lblErrGaDi = createErrorLabel();
+        cboGaDen = createGaCombo("T\u00ecm ga \u0111\u1ebfn...");
+        lblErrGaDen = createErrorLabel();
+        cboTrangThai = new JComboBox<>(new String[]{"Ho\u1ea1t \u0111\u1ed9ng", "Ng\u1eebng ho\u1ea1t \u0111\u1ed9ng"});
+        lblErrGeneral = createErrorLabel();
 
-        // ─ Row 2: SỐ KM label (full width) ───────────────────────────────
-        gbc.gridy  = 2;
-        gbc.insets = new Insets(0, 0, 4, 0);
-        form.add(makeLabel("Số km"), gbc);
+        return AbstractFormDialog.FormSchema.builder()
+                .columns(2)
+                .gap(16, 14)
+                .field(AbstractFormDialog.FieldSpec.of("maTuyen", "M\u00e3 tuy\u1ebfn", txtMaTuyen)
+                        .grid(0, 0)
+                        .hint("* M\u00e3 tuy\u1ebfn t\u1ef1 \u0111\u1ed9ng, kh\u00f4ng th\u1ec3 thay \u0111\u1ed5i")
+                        .build())
+                .field(AbstractFormDialog.FieldSpec.of("km", "S\u1ed1 km", txtKm)
+                        .grid(0, 1)
+                        .required(true)
+                        .errorLabel(lblErrKm)
+                        .build())
+                .field(AbstractFormDialog.FieldSpec.of("gaDi", "Ga \u0111i", cboGaDi)
+                        .grid(1, 0)
+                        .required(true)
+                        .errorLabel(lblErrGaDi)
+                        .build())
+                .field(AbstractFormDialog.FieldSpec.of("gaDen", "Ga \u0111\u1ebfn", cboGaDen)
+                        .grid(1, 1)
+                        .required(true)
+                        .errorLabel(lblErrGaDen)
+                        .build())
+                .field(AbstractFormDialog.FieldSpec.of("trangThai", "Tr\u1ea1ng th\u00e1i", cboTrangThai)
+                        .grid(2, 0)
+                        .fullWidth()
+                        .build())
+                .field(AbstractFormDialog.FieldSpec.of("general", " ", lblErrGeneral)
+                        .grid(3, 0)
+                        .fullWidth()
+                        .preferredHeight(28)
+                        .build())
+                .build();
+        // Handoff: route form now uses shared shell; DAO validation remains inside subclass.
+        // Risk: keep SearchableComboBox references because FormValues cannot read custom combo values.
+    }
 
-        // ─ Row 3: SỐ KM field (full width) ───────────────────────────────
-        txtKm = new JTextField(isEditMode ? String.valueOf(editTarget.getKm()) : "0");
-        txtKm.setFont(FONT_INPUT);
-        txtKm.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1),
-                new EmptyBorder(9, 12, 9, 12)));
-
-        gbc.gridy  = 3;
-        gbc.insets = new Insets(0, 0, 2, 0);
-        form.add(txtKm, gbc);
-
-        lblErrKm = makeErrLabel();
-        gbc.gridy  = 4;
-        gbc.insets = new Insets(0, 0, 12, 0);
-        form.add(lblErrKm, gbc);
-
-        // ─ Row 5: GA ĐI label | GA ĐẾN label ─────────────────────────────
-        gbc.gridwidth = 1;
-        gbc.gridy  = 5;
-        gbc.gridx  = 0;
-        gbc.insets = new Insets(0, 0, 4, 8);
-        form.add(makeLabel("Ga đi"), gbc);
-
-        gbc.gridx  = 1;
-        gbc.insets = new Insets(0, 0, 4, 0);
-        form.add(makeLabel("Ga đến"), gbc);
-
-        // ─ Row 6: GA ĐI combo | GA ĐẾN combo ─────────────────────────────
-        cboGaDi = new SearchableComboBox<>(
+    private SearchableComboBox<Ga> createGaCombo(String placeholder) {
+        SearchableComboBox<Ga> combo = new SearchableComboBox<>(
                 ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
-                (ga, q) -> ga.getTenGa().toLowerCase().contains(q)
-                        || ga.getMaGa().toLowerCase().contains(q));
-        cboGaDi.setPlaceholder("Tìm ga đi...");
-        cboGaDi.setPreferredSize(new Dimension(200, 42));
-
-        gbc.gridy  = 6;
-        gbc.gridx  = 0;
-        gbc.insets = new Insets(0, 0, 2, 8);
-        form.add(cboGaDi, gbc);
-
-        cboGaDen = new SearchableComboBox<>(
-                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
-                (ga, q) -> ga.getTenGa().toLowerCase().contains(q)
-                        || ga.getMaGa().toLowerCase().contains(q));
-        cboGaDen.setPlaceholder("Tìm ga đến...");
-        cboGaDen.setPreferredSize(new Dimension(200, 42));
-
-        gbc.gridx  = 1;
-        gbc.insets = new Insets(0, 0, 2, 0);
-        form.add(cboGaDen, gbc);
-
-        // ─ Row 7: error labels ────────────────────────────────────────────
-        lblErrGaDi  = makeErrLabel();
-        lblErrGaDen = makeErrLabel();
-
-        gbc.gridy  = 7;
-        gbc.gridx  = 0;
-        gbc.insets = new Insets(0, 0, 0, 8);
-        form.add(lblErrGaDi, gbc);
-
-        gbc.gridx  = 1;
-        gbc.insets = new Insets(0, 0, 0, 0);
-        form.add(lblErrGaDen, gbc);
-
-        // ─ Row 8: general error (full width) ─────────────────────────────
-        lblErrGeneral = makeErrLabel();
-        gbc.gridy     = 8;
-        gbc.gridx     = 0;
-        gbc.gridwidth = 2;
-        gbc.insets    = new Insets(6, 0, 0, 0);
-        form.add(lblErrGeneral, gbc);
-
-        return form;
+                (ga, query) -> ga.getTenGa().toLowerCase().contains(query)
+                        || ga.getMaGa().toLowerCase().contains(query));
+        combo.setPlaceholder(placeholder);
+        combo.setPreferredSize(new Dimension(200, 42));
+        return combo;
     }
 
-    // ── Footer ────────────────────────────────────────────────────────────
-    private JPanel buildFooter() {
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        footer.setBackground(FOOTER_BG);
-        footer.setBorder(new EmptyBorder(16, 24, 20, 24));
-
-        JButton btnCancel = makeButton("Hủy bỏ", false);
-        btnCancel.addActionListener(e -> dispose());
-
-        JButton btnSave = makeButton(isEditMode ? "Cập nhật Tuyến" : "Thêm Tuyến", true);
-        btnSave.addActionListener(e -> doSave());
-
-        footer.add(btnCancel);
-        footer.add(btnSave);
-        return footer;
+    private JTextField createInputField(String value) {
+        JTextField field = new JTextField(value == null ? "" : value);
+        field.setFont(FONT_INPUT);
+        field.setForeground(ON_SURFACE);
+        field.setBackground(CARD_BG);
+        field.setPreferredSize(new Dimension(0, 40));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1),
+                new EmptyBorder(8, 10, 8, 10)
+        ));
+        return field;
     }
 
-    // ====================================================================
-    //  DATA
-    // ====================================================================
+    private JTextField createReadonlyField(String value) {
+        JTextField field = createInputField(value);
+        field.setEditable(false);
+        field.setFont(FONT_MONO);
+        field.setForeground(PRIMARY);
+        field.setBackground(AppColors.BACKGROUND);
+        return field;
+    }
+
+    private JLabel createErrorLabel() {
+        JLabel label = new JLabel(" ");
+        label.setFont(FONT_ERR);
+        label.setForeground(ERROR);
+        return label;
+    }
 
     private void loadGaList() {
         List<Ga> gaList = daoGa.getAll();
@@ -305,138 +177,85 @@ public class ChinhSuaTuyenDialog extends JDialog {
     }
 
     private void prefillFields() {
-        if (editTarget.getGaDi() != null)  cboGaDi.selectItem(editTarget.getGaDi());
+        if (editTarget.getGaDi() != null) cboGaDi.selectItem(editTarget.getGaDi());
         if (editTarget.getGaDen() != null) cboGaDen.selectItem(editTarget.getGaDen());
+        cboTrangThai.setSelectedItem(editTarget.isHoatDong() ? "Ho\u1ea1t \u0111\u1ed9ng" : "Ng\u1eebng ho\u1ea1t \u0111\u1ed9ng");
     }
 
-    // ====================================================================
-    //  SAVE LOGIC
-    // ====================================================================
-
-    private void doSave() {
+    @Override
+    protected List<ValidationError> validateForm(FormValues values) {
         clearErrors();
-
-        // Validate km
-        int km = 0;
-        String kmStr = txtKm.getText().trim();
-        try {
-            km = Integer.parseInt(kmStr);
-            if (km < 0) {
-                lblErrKm.setText("Số km không được âm");
-                return;
-            }
-        } catch (NumberFormatException ex) {
-            lblErrKm.setText("Số km phải là số nguyên");
-            return;
-        }
-
-        Ga gaDi  = cboGaDi.getSelectedItem();
+        List<ValidationError> errors = new ArrayList<>();
+        int km = parseKm(errors);
+        Ga gaDi = cboGaDi.getSelectedItem();
         Ga gaDen = cboGaDen.getSelectedItem();
-        boolean valid = true;
 
         if (gaDi == null) {
-            lblErrGaDi.setText("Vui lòng chọn ga đi");
-            valid = false;
+            lblErrGaDi.setText("Vui l\u00f2ng ch\u1ecdn ga \u0111i");
+            errors.add(new ValidationError("gaDi", "Vui l\u00f2ng ch\u1ecdn ga \u0111i"));
         }
         if (gaDen == null) {
-            lblErrGaDen.setText("Vui lòng chọn ga đến");
-            valid = false;
+            lblErrGaDen.setText("Vui l\u00f2ng ch\u1ecdn ga \u0111\u1ebfn");
+            errors.add(new ValidationError("gaDen", "Vui l\u00f2ng ch\u1ecdn ga \u0111\u1ebfn"));
         }
         if (gaDi != null && gaDen != null && gaDi.getMaGa().equals(gaDen.getMaGa())) {
-            lblErrGaDen.setText("Ga đến phải khác ga đi");
-            valid = false;
+            lblErrGaDen.setText("Ga \u0111\u1ebfn ph\u1ea3i kh\u00e1c ga \u0111i");
+            errors.add(new ValidationError("gaDen", "Ga \u0111\u1ebfn ph\u1ea3i kh\u00e1c ga \u0111i"));
         }
-
-        if (!valid) return;
-
-        // Duplicate check for add mode
-        if (!isEditMode) {
+        if (errors.isEmpty() && !isEditMode) {
             List<Tuyen> existing = daoTuyen.findByGaDiGaDen(gaDi.getMaGa(), gaDen.getMaGa());
             if (!existing.isEmpty()) {
-                lblErrGeneral.setText("Tuyến " + gaDi.getTenGa() + " → " + gaDen.getTenGa() + " đã tồn tại (Mã: " + existing.get(0).getMaTuyen() + ")");
-                return;
+                lblErrGeneral.setText("Tuy\u1ebfn " + gaDi.getTenGa() + " \u2192 " + gaDen.getTenGa()
+                        + " \u0111\u00e3 t\u1ed3n t\u1ea1i (M\u00e3: " + existing.get(0).getMaTuyen() + ")");
+                errors.add(new ValidationError("general", lblErrGeneral.getText()));
             }
         }
+        return errors;
+    }
 
-        String maTuyen = txtMaTuyen.getText().trim();
-        Tuyen tuyen = new Tuyen(maTuyen, gaDi, gaDen, km);
-
-        boolean ok = isEditMode ? daoTuyen.update(tuyen) : daoTuyen.insert(tuyen);
-        if (ok) {
-            if (onSaved != null) onSaved.accept(tuyen);
-            dispose();
-        } else {
-            lblErrGeneral.setText("Có lỗi xảy ra khi lưu, vui lòng thử lại.");
+    private int parseKm(List<ValidationError> errors) {
+        try {
+            int km = Integer.parseInt(txtKm.getText().trim());
+            if (km < 0) {
+                lblErrKm.setText("S\u1ed1 km kh\u00f4ng \u0111\u01b0\u1ee3c \u00e2m");
+                errors.add(new ValidationError("km", "S\u1ed1 km kh\u00f4ng \u0111\u01b0\u1ee3c \u00e2m"));
+            }
+            return km;
+        } catch (NumberFormatException ex) {
+            lblErrKm.setText("S\u1ed1 km ph\u1ea3i l\u00e0 s\u1ed1 nguy\u00ean");
+            errors.add(new ValidationError("km", "S\u1ed1 km ph\u1ea3i l\u00e0 s\u1ed1 nguy\u00ean"));
+            return 0;
         }
     }
 
     private void clearErrors() {
-        lblErrKm.setText("");
-        lblErrGaDi.setText("");
-        lblErrGaDen.setText("");
-        lblErrGeneral.setText("");
+        lblErrKm.setText(" ");
+        lblErrGaDi.setText(" ");
+        lblErrGaDen.setText(" ");
+        lblErrGeneral.setText(" ");
     }
 
-    // ====================================================================
-    //  HELPERS
-    // ====================================================================
+    @Override
+    protected Tuyen collectResult(FormValues values) {
+        Ga gaDi = cboGaDi.getSelectedItem();
+        Ga gaDen = cboGaDen.getSelectedItem();
+        Tuyen tuyen = new Tuyen(txtMaTuyen.getText().trim(), gaDi, gaDen, Integer.parseInt(txtKm.getText().trim()));
+        tuyen.setHoatDong(cboTrangThai.getSelectedIndex() == 0);
+        return tuyen;
+    }
+
+    @Override
+    protected void onSubmit(Tuyen result) {
+        boolean ok = isEditMode ? daoTuyen.update(result) : daoTuyen.insert(result);
+        if (ok) {
+            if (onSaved != null) onSaved.accept(result);
+            dispose();
+        } else {
+            lblErrGeneral.setText("C\u00f3 l\u1ed7i x\u1ea3y ra khi l\u01b0u, vui l\u00f2ng th\u1eed l\u1ea1i.");
+        }
+    }
 
     private String generateMaTuyen() {
-        // Use timestamp-based suffix to ensure uniqueness
-        long suffix = System.currentTimeMillis() % 100000L;
-        return "TUY-" + String.format("%05d", suffix);
-    }
-
-    private JLabel makeLabel(String text) {
-        JLabel lbl = new JLabel(text.toUpperCase());
-        lbl.setFont(FONT_LABEL);
-        lbl.setForeground(ON_SURF_VAR);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return lbl;
-    }
-
-    private JLabel makeErrLabel() {
-        JLabel lbl = new JLabel(" ");
-        lbl.setFont(FONT_ERR);
-        lbl.setForeground(ERROR);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return lbl;
-    }
-
-    private JButton makeButton(String text, boolean primary) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (primary) {
-                    g2.setColor(getModel().isRollover() ? PRIMARY_HOVER : PRIMARY);
-                } else {
-                    g2.setColor(getModel().isRollover() ? OUTLINE.darker() : OUTLINE);
-                }
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_BTN);
-        btn.setForeground(primary ? Color.WHITE : ON_SURFACE);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(primary ? 160 : 100, 40));
-        return btn;
-    }
-
-    private ImageIcon loadScaledIcon(String name, int size) {
-        try {
-            java.net.URL url = getClass().getResource("/icons/" + name);
-            if (url != null) {
-                Image img = new ImageIcon(url).getImage()
-                    .getScaledInstance(size, size, Image.SCALE_SMOOTH);
-                return new ImageIcon(img);
-            }
-        } catch (Exception ignored) {}
-        return null;
+        return MaTuDong.generate("TUY");
     }
 }

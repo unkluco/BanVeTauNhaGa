@@ -2,6 +2,7 @@ package com.modules;
 
 import com.entity.NhanVien;
 import com.enums.VaiTro;
+import com.modules.AppColors;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -9,7 +10,9 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class MenuModule extends JPanel implements AppModule {
@@ -23,19 +26,21 @@ public class MenuModule extends JPanel implements AppModule {
     private JLabel lblPageTitle;
 
     private final List<NavItem> menuItems = new ArrayList<>();
+    private final List<MenuGroup> menuGroups = new ArrayList<>();
+    private final Map<NavItem, MenuGroup> itemGroups = new HashMap<>();
     private NavItem activeMenuItem = null;
 
     // Colors
-    private static final Color PRIMARY        = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT  = new Color(0xCF, 0xE6, 0xF2);
-    private static final Color SIDEBAR_BG     = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color SIDEBAR_BORDER = new Color(0xE2, 0xE8, 0xF0);
-    private static final Color TEXT_DARK      = new Color(0x19, 0x1C, 0x1E);
-    private static final Color TEXT_MUTED     = new Color(0x64, 0x74, 0x8B);
-    private static final Color TEXT_DISABLED  = new Color(0xA0, 0xAE, 0xBA);
-    private static final Color SURFACE        = new Color(0xF7, 0xF9, 0xFB);
-    private static final Color HOVER_BG       = new Color(0xE4, 0xF0, 0xF8);
-    private static final Color ACTIVE_BG      = new Color(0xE8, 0xF2, 0xFA);
+    private static final Color PRIMARY        = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT  = NotionTheme.ACCENT_SOFT;
+    private static final Color SIDEBAR_BG     = NotionTheme.SIDEBAR;
+    private static final Color SIDEBAR_BORDER = NotionTheme.BORDER;
+    private static final Color TEXT_DARK      = NotionTheme.TEXT;
+    private static final Color TEXT_MUTED     = NotionTheme.TEXT_MUTED;
+    private static final Color TEXT_DISABLED  = NotionTheme.TEXT_FAINT;
+    private static final Color SURFACE        = NotionTheme.PAGE;
+    private static final Color HOVER_BG       = NotionTheme.ROW_HOVER;
+    private static final Color ACTIVE_BG      = NotionTheme.ACCENT_SOFT;
 
     public MenuModule(NhanVien user) {
         this.currentUser = user;
@@ -47,7 +52,7 @@ public class MenuModule extends JPanel implements AppModule {
     private void buildUI() {
         // ============ SIDEBAR ============
         JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setPreferredSize(new Dimension(270, 0));
+        sidebar.setPreferredSize(new Dimension(282, 0));
         sidebar.setBackground(SIDEBAR_BG);
         sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, SIDEBAR_BORDER));
 
@@ -55,11 +60,11 @@ public class MenuModule extends JPanel implements AppModule {
         JPanel sidebarHeader = new JPanel();
         sidebarHeader.setLayout(new BoxLayout(sidebarHeader, BoxLayout.Y_AXIS));
         sidebarHeader.setBackground(SIDEBAR_BG);
-        sidebarHeader.setBorder(new EmptyBorder(24, 24, 24, 24));
+        sidebarHeader.setBorder(new EmptyBorder(26, 24, 22, 24));
 
         JLabel lblBrand = new JLabel("Azure Rail");
-        lblBrand.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblBrand.setForeground(PRIMARY);
+        lblBrand.setFont(new Font("Segoe UI", Font.BOLD, 21));
+        lblBrand.setForeground(TEXT_DARK);
         lblBrand.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel lblSub = new JLabel("Hệ thống Quản lý");
@@ -96,27 +101,27 @@ public class MenuModule extends JPanel implements AppModule {
         nav.add(btnDatVe);
         nav.add(Box.createVerticalStrut(16));
 
-        // Menu items — grouped by domain
-        addMenuGroup(nav, "Tổng quan");
-        addMenuItem(nav, "Tổng quan",                                              "TONG_QUAN");
-        addMenuItem(nav, "Thống kê",                                           "THONG_KE");
+        // Menu groups — accordion cha đẩy các subtab bên dưới theo đúng BoxLayout.
+        MenuGroup overviewGroup = addAccordionGroup(nav, "Tổng quan", true);
+        addMenuItem(overviewGroup, "Tổng quan", "TONG_QUAN");
+        addMenuItem(overviewGroup, "Thống kê", "THONG_KE");
 
-        addMenuGroup(nav, "Nghiệp vụ");
-        addMenuItem(nav, "Quản lý giá",                                  "QL_GIA");
-        addMenuItem(nav, "Quản lý khuyến mãi",                      "QL_KHUYEN_MAI");
-        addMenuItem(nav, "Quản lý vé",                                    "QL_VE_HOA_DON");
-        addMenuItem(nav, "Quản lý hóa đơn",                    "QL_HOA_DON");
+        MenuGroup businessGroup = addAccordionGroup(nav, "Nghiệp vụ", false);
+        addMenuItem(businessGroup, "Quản lý giá", "QL_GIA");
+        addMenuItem(businessGroup, "Quản lý khuyến mãi", "QL_KHUYEN_MAI");
+        addMenuItem(businessGroup, "Quản lý vé", "QL_VE_HOA_DON");
+        addMenuItem(businessGroup, "Quản lý hóa đơn", "QL_HOA_DON");
 
-        addMenuGroup(nav, "Dữ liệu tàu");
-        addMenuItem(nav, "Quản lý đoàn tàu",                   "QL_DOAN_TAU");
-        addMenuItem(nav, "Quản lý Toa tàu",        "QL_TOA");
-        addMenuItem(nav, "Quản lý Đầu máy",        "QL_DAU_MAY");
-        addMenuItem(nav, "Quản lý tuyến",                                "QL_TUYEN");
-        addMenuItem(nav, "Quản lý lịch chạy",                       "QL_LICH_CHAY");
+        MenuGroup trainGroup = addAccordionGroup(nav, "Dữ liệu tàu", false);
+        addMenuItem(trainGroup, "Quản lý đoàn tàu", "QL_DOAN_TAU");
+        addMenuItem(trainGroup, "Quản lý Toa tàu", "QL_TOA");
+        addMenuItem(trainGroup, "Quản lý Đầu máy", "QL_DAU_MAY");
+        addMenuItem(trainGroup, "Quản lý tuyến", "QL_TUYEN");
+        addMenuItem(trainGroup, "Quản lý lịch chạy", "QL_LICH_CHAY");
 
-        addMenuGroup(nav, "Hệ thống");
-        addMenuItem(nav, "Quản lý nhân viên",                       "QL_NHAN_VIEN");
-        addMenuItem(nav, "Quản lý khách hàng",                      "QL_KHACH_HANG");
+        MenuGroup systemGroup = addAccordionGroup(nav, "Hệ thống", false);
+        addMenuItem(systemGroup, "Quản lý nhân viên", "QL_NHAN_VIEN");
+        addMenuItem(systemGroup, "Quản lý khách hàng", "QL_KHACH_HANG");
 
         applyRoleRestrictions();
 
@@ -137,7 +142,6 @@ public class MenuModule extends JPanel implements AppModule {
         });
         sidebarFooter.add(btnThongTinCaNhan);
         sidebarFooter.add(Box.createVerticalStrut(2));
-
 
         NavItem btnDangXuat = createNavItem("Đăng xuất");
         btnDangXuat.addMouseListener(new MouseAdapter() {
@@ -170,16 +174,16 @@ public class MenuModule extends JPanel implements AppModule {
 
         // ============ HEADER ============
         JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(Color.WHITE);
-        header.setPreferredSize(new Dimension(0, 60));
+        header.setBackground(NotionTheme.CARD);
+        header.setPreferredSize(new Dimension(0, 64));
         header.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(0xF1, 0xF5, 0xF9)),
+                BorderFactory.createMatteBorder(0, 0, 1, 0, SIDEBAR_BORDER),
                 new EmptyBorder(0, 32, 0, 32)
         ));
 
         lblPageTitle = new JLabel("Quản lý Bán vé");
-        lblPageTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblPageTitle.setForeground(PRIMARY);
+        lblPageTitle.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        lblPageTitle.setForeground(TEXT_DARK);
 
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
         userPanel.setOpaque(false);
@@ -207,9 +211,9 @@ public class MenuModule extends JPanel implements AppModule {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(PRIMARY);
+                g2.setColor(PRIMARY_LIGHT);
                 g2.fillOval(0, 0, 36, 36);
-                g2.setColor(Color.WHITE);
+                g2.setColor(PRIMARY);
                 g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
                 String initials = getInitials(currentUser.getHoTen());
                 FontMetrics fm = g2.getFontMetrics();
@@ -294,14 +298,14 @@ public class MenuModule extends JPanel implements AppModule {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             if (locked) {
-                g2.setColor(new Color(0xF2, 0xF1, 0xF0));
+                g2.setColor(NotionTheme.CARD_MUTED);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
             } else if (bgColor != null) {
                 g2.setColor(bgColor);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 if (rightBorder) {
                     g2.setColor(PRIMARY);
-                    g2.fillRoundRect(getWidth() - 3, 4, 3, getHeight() - 8, 3, 3);
+                    g2.fillRoundRect(8, 10, 3, getHeight() - 20, 3, 3);
                 }
             }
             g2.dispose();
@@ -309,11 +313,33 @@ public class MenuModule extends JPanel implements AppModule {
         }
     }
 
+    private static class MenuGroup {
+        private final NavItem header;
+        private final JPanel children;
+        private final JLabel arrow;
+        private boolean expanded;
+
+        private MenuGroup(NavItem header, JPanel children, JLabel arrow, boolean expanded) {
+            this.header = header;
+            this.children = children;
+            this.arrow = arrow;
+            this.expanded = expanded;
+        }
+
+        private void setExpanded(boolean expanded) {
+            this.expanded = expanded;
+            children.setVisible(expanded);
+            arrow.setIcon(LineIcons.of(expanded ? LineIcons.Name.CHEVRON_DOWN : LineIcons.Name.CHEVRON_RIGHT, 14, TEXT_MUTED, 2.1f));
+            // Handoff: accordion chỉ ẩn/hiện panel con, không rebuild menu để giữ listener/role state.
+            // Risk: nếu thêm animation sau này, vẫn phải để BoxLayout tự đẩy footer/nút dưới xuống.
+        }
+    }
+
     // =====================================================================
     //  MENU ITEMS
     // =====================================================================
 
-    private void addMenuItem(JPanel nav, String label, String actionKey) {
+    private void addMenuItem(MenuGroup group, String label, String actionKey) {
         NavItem item = createNavItem(label);
         item.setName(actionKey);
 
@@ -321,65 +347,93 @@ public class MenuModule extends JPanel implements AppModule {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (!item.isEnabled()) return;
+                expandGroup(group, true);
                 setActive(item);
                 handleMenuAction(actionKey, label);
             }
         });
 
         menuItems.add(item);
-        nav.add(item);
-        nav.add(Box.createVerticalStrut(2));
+        itemGroups.put(item, group);
+        group.children.add(item);
+        group.children.add(Box.createVerticalStrut(2));
     }
 
-    private void addMenuGroup(JPanel nav, String label) {
-        nav.add(Box.createVerticalStrut(10));
+    private MenuGroup addAccordionGroup(JPanel nav, String label, boolean expanded) {
+        nav.add(Box.createVerticalStrut(6));
+        NavItem header = createGroupHeader(label);
+        JPanel children = new JPanel();
+        children.setLayout(new BoxLayout(children, BoxLayout.Y_AXIS));
+        children.setOpaque(false);
+        children.setBorder(new EmptyBorder(4, 8, 0, 0));
 
-        JPanel header = new JPanel(new BorderLayout(6, 0));
-        header.setOpaque(false);
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
-        header.setBorder(new EmptyBorder(0, 16, 0, 16));
-
-        JLabel lbl = new JLabel(label.toUpperCase());
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 9));
-        lbl.setForeground(TEXT_MUTED);
-        header.add(lbl, BorderLayout.WEST);
-
-        JPanel line = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setColor(SIDEBAR_BORDER);
-                g2.fillRect(0, getHeight() / 2, getWidth(), 1);
-                g2.dispose();
+        JLabel arrow = findGroupArrow(header);
+        MenuGroup group = new MenuGroup(header, children, arrow, expanded);
+        header.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                expandGroup(group, !group.expanded);
             }
-        };
-        line.setOpaque(false);
-        header.add(line, BorderLayout.CENTER);
-
+        });
+        menuGroups.add(group);
+        group.setExpanded(expanded);
         nav.add(header);
-        nav.add(Box.createVerticalStrut(4));
+        nav.add(children);
+        return group;
+        // Handoff: nhóm cha là tab thật; click chỉ xổ/thu subtab, không tự mở module.
+        // Risk: nếu muốn chỉ một nhóm mở tại một thời điểm, đổi expandGroup để collapse nhóm khác.
+    }
+
+    private void expandGroup(MenuGroup group, boolean expanded) {
+        group.setExpanded(expanded);
+        group.header.revalidate();
+        group.children.revalidate();
+        group.children.repaint();
+    }
+
+    private NavItem createGroupHeader(String label) {
+        NavItem panel = new NavItem();
+        panel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        panel.setPreferredSize(new Dimension(250, 38));
+        panel.setBorder(new EmptyBorder(0, 16, 0, 10));
+
+        JLabel lblText = new JLabel(label);
+        lblText.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblText.setForeground(TEXT_DARK);
+        panel.add(lblText, BorderLayout.CENTER);
+
+        JLabel arrow = new JLabel(LineIcons.of(LineIcons.Name.CHEVRON_RIGHT, 14, TEXT_MUTED, 2.1f), SwingConstants.CENTER);
+        arrow.setPreferredSize(new Dimension(22, 22));
+        panel.add(arrow, BorderLayout.EAST);
+
+        panel.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) { panel.setHighlight(HOVER_BG, false); lblText.setForeground(PRIMARY); }
+            @Override public void mouseExited(MouseEvent e) { panel.clearHighlight(); lblText.setForeground(TEXT_DARK); }
+        });
+        return panel;
+    }
+
+    private JLabel findGroupArrow(NavItem header) {
+        Component east = ((BorderLayout) header.getLayout()).getLayoutComponent(BorderLayout.EAST);
+        return east instanceof JLabel label ? label : new JLabel(LineIcons.of(LineIcons.Name.CHEVRON_RIGHT, 14, TEXT_MUTED, 2.1f));
     }
 
     private NavItem createNavItem(String label) {
         NavItem panel = new NavItem();
         panel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-        panel.setPreferredSize(new Dimension(240, 44));
-        panel.setBorder(new EmptyBorder(0, 16, 0, 8));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        panel.setPreferredSize(new Dimension(250, 40));
+        panel.setBorder(new EmptyBorder(0, 18, 0, 8));
 
         JLabel lblText = new JLabel(label);
-        lblText.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblText.setForeground(TEXT_MUTED);
         panel.add(lblText, BorderLayout.CENTER);
 
         // Lock icon (hidden until disabled) — dùng icon từ resources
         JLabel lockIcon = new JLabel();
         try {
-            java.net.URL url = getClass().getResource("/icons/bieuTuongTuChoi.png");
-            if (url != null) {
-                Image img = new ImageIcon(url).getImage().getScaledInstance(12, 12, Image.SCALE_SMOOTH);
-                lockIcon.setIcon(new ImageIcon(img));
-            }
+            lockIcon.setIcon(LineIcons.image(LineIcons.Name.CLOSE, 12));
         } catch (Exception ignored) {}
         lockIcon.setVisible(false);
         lockIcon.setBorder(new EmptyBorder(0, 2, 0, 6));
@@ -413,15 +467,15 @@ public class MenuModule extends JPanel implements AppModule {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(PRIMARY);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
         panel.setOpaque(false);
         panel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-        panel.setPreferredSize(new Dimension(240, 48));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        panel.setPreferredSize(new Dimension(250, 44));
         panel.setBorder(new EmptyBorder(0, 20, 0, 8));
 
         JLabel lblText = new JLabel(label);
@@ -447,6 +501,8 @@ public class MenuModule extends JPanel implements AppModule {
         activeMenuItem = item;
 
         if (item != null) {
+            MenuGroup group = itemGroups.get(item);
+            if (group != null) expandGroup(group, true);
             item.setHighlight(ACTIVE_BG, true);
             for (Component c : item.getComponents()) {
                 if (c instanceof JLabel lbl) {
@@ -761,6 +817,18 @@ public class MenuModule extends JPanel implements AppModule {
         setActive(null);
         lblPageTitle.setText("Thông tin cá nhân");
         ThongTinCaNhanModule module = new ThongTinCaNhanModule(currentUser);
+        module.reset();
+        module.setOnResult(null);
+        contentPanel.removeAll();
+        contentPanel.add(module.getView(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    private void openDebugMauHeThong() {
+        setActive(null);
+        lblPageTitle.setText("Debug màu hệ thống");
+        MauHeThongDebugModule module = new MauHeThongDebugModule();
         module.reset();
         module.setOnResult(null);
         contentPanel.removeAll();

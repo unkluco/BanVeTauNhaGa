@@ -26,12 +26,12 @@ import java.util.function.Function;
 public class SearchableComboBox<T> extends JPanel {
 
     // ===== Design tokens (matches the rest of the app) =====
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color PLACEHOLDER   = new Color(0x9E, 0xA7, 0xB0);
+    private static final Color OUTLINE       = AppColors.BORDER;
+    private static final Color PRIMARY       = AppColors.PRIMARY_DARK;
+    private static final Color PRIMARY_LIGHT = AppColors.PRIMARY_LIGHT;
+    private static final Color ON_SURFACE    = AppColors.TEXT_PRIMARY;
+    private static final Color ON_SURF_VAR   = AppColors.TEXT_SECONDARY;
+    private static final Color PLACEHOLDER   = AppColors.BORDER;
 
     private static final Font FONT_INPUT = new Font("Segoe UI", Font.PLAIN, 13);
     private static final Font FONT_ITEM  = new Font("Segoe UI", Font.PLAIN, 13);
@@ -90,7 +90,7 @@ public class SearchableComboBox<T> extends JPanel {
             }
         };
         txtSearch.setFont(FONT_INPUT);
-        txtSearch.setBackground(Color.WHITE);
+        txtSearch.setBackground(AppColors.SURFACE);
         txtSearch.setForeground(ON_SURFACE);
         applyNormalBorder();
 
@@ -102,7 +102,7 @@ public class SearchableComboBox<T> extends JPanel {
         listWidget.setFixedCellHeight(ROW_HEIGHT);
         listWidget.setCellRenderer(new ItemRenderer());
         listWidget.setFocusable(false);
-        listWidget.setBackground(Color.WHITE);
+        listWidget.setBackground(AppColors.SURFACE);
 
         JScrollPane scroll = new JScrollPane(listWidget);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -300,7 +300,7 @@ public class SearchableComboBox<T> extends JPanel {
                 lbl.setBackground(PRIMARY_LIGHT);
                 lbl.setForeground(PRIMARY);
             } else {
-                lbl.setBackground(Color.WHITE);
+                lbl.setBackground(AppColors.SURFACE);
                 lbl.setForeground(ON_SURFACE);
             }
             return lbl;

@@ -61,23 +61,23 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     private JLabel lblStatTyLeHuy;
 
     // --- Design tokens ---
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color ROW_ALT       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color ROW_HOVER     = new Color(0xEE, 0xF5, 0xFB);
-    private static final Color ERROR         = new Color(0xBA, 0x1A, 0x1A);
-    private static final Color ERROR_BG      = new Color(0xFF, 0xDA, 0xD6);
-    private static final Color ERROR_FG      = new Color(0xB9, 0x1C, 0x1C);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color ROW_ALT       = NotionTheme.PAGE;
+    private static final Color ROW_HOVER     = NotionTheme.ACCENT_SOFT;
+    private static final Color ERROR         = AppColors.ERROR_DARK;
+    private static final Color ERROR_BG      = AppColors.ERROR_LIGHT;
+    private static final Color ERROR_FG      = AppColors.ERROR_DARK;
 
-    private static final Color STATUS_GREEN_BG  = new Color(0xDC, 0xFA, 0xE6);
-    private static final Color STATUS_GREEN_FG  = new Color(0x16, 0x6B, 0x3A);
-    private static final Color STATUS_GRAY_BG   = new Color(0xF1, 0xF5, 0xF9);
-    private static final Color STATUS_GRAY_FG   = new Color(0x64, 0x74, 0x8B);
+    private static final Color STATUS_GREEN_BG  = AppColors.SUCCESS_LIGHT;
+    private static final Color STATUS_GREEN_FG  = AppColors.SUCCESS_DARK;
+    private static final Color STATUS_GRAY_BG   = NotionTheme.PAGE;
+    private static final Color STATUS_GRAY_FG   = NotionTheme.TEXT_MUTED;
 
     private static final Font FONT_TITLE   = new Font("Segoe UI", Font.BOLD, 24);
     private static final Font FONT_DESC    = new Font("Segoe UI", Font.PLAIN, 13);
@@ -122,7 +122,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
 
         JPanel header = buildHeader();
         header.setAlignmentX(Component.LEFT_ALIGNMENT);
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
 
         JPanel stats = buildStatsRow();
         stats.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -130,7 +130,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
 
         JPanel search = buildSearchSection();
         search.setAlignmentX(Component.LEFT_ALIGNMENT);
-        search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 112));
 
         mainContent.add(header);
         mainContent.add(Box.createVerticalStrut(20));
@@ -144,28 +144,53 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     }
 
     private JPanel buildHeader() {
-        JPanel header = new JPanel(new BorderLayout());
+        JPanel header = new JPanel(new BorderLayout(24, 0)) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                GradientPaint gp = new GradientPaint(0, 0, NotionTheme.NAVY, getWidth(), getHeight(), new Color(0x00, 0x75, 0xDE));
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+                g2.setColor(AppColors.withAlpha(NotionTheme.SKY, 118));
+                g2.fillOval(getWidth() - 185, 12, 142, 142);
+                g2.setColor(AppColors.withAlpha(NotionTheme.MINT, 112));
+                g2.fillRoundRect(getWidth() - 330, 100, 174, 42, 20, 20);
+                g2.setColor(AppColors.withAlpha(Color.WHITE, 38));
+                g2.fillOval(getWidth() - 286, 36, 64, 64);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         header.setOpaque(false);
+        header.setBorder(new EmptyBorder(24, 28, 24, 28));
+        header.setPreferredSize(new Dimension(10, 150));
 
         JPanel left = new JPanel();
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
 
+        JLabel eyebrow = new JLabel("WORKSPACE / NGHIỆP VỤ");
+        eyebrow.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        eyebrow.setForeground(AppColors.withAlpha(Color.WHITE, 190));
         JLabel lblTitle = new JLabel("Quản lý vé");
-        lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(ON_SURFACE);
-        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        lblTitle.setForeground(Color.WHITE);
+        JLabel lblDesc = new JLabel("Theo dõi giao dịch, tra cứu vé và xử lý hoàn trả khách hàng.");
+        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblDesc.setForeground(AppColors.withAlpha(Color.WHITE, 210));
 
-        JLabel lblDesc = new JLabel("Theo dõi giao dịch, xuất hóa đơn và xử lý hoàn trả khách hàng.");
-        lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(ON_SURF_VAR);
-        lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
-
+        left.add(eyebrow);
+        left.add(Box.createVerticalStrut(8));
         left.add(lblTitle);
-        left.add(Box.createVerticalStrut(4));
+        left.add(Box.createVerticalStrut(8));
         left.add(lblDesc);
 
+        JPanel right = new JPanel(new GridBagLayout());
+        right.setOpaque(false);
+        right.add(createHeroBadge("Tra cứu & hoàn vé"));
+
         header.add(left, BorderLayout.CENTER);
+        header.add(right, BorderLayout.EAST);
         return header;
     }
 
@@ -181,41 +206,55 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         lblStatDoanhThu = new JLabel("0");
         lblStatTyLeHuy = new JLabel("0%");
 
-        row.add(buildStatCard("TỔNG VÉ", lblStatTongHoaDon, PRIMARY));
-        row.add(buildStatCard("ĐÃ BÁN", lblStatDoanhThu, PRIMARY));
-        row.add(buildStatCard("TỶ LỆ HỦY VÉ", lblStatTyLeHuy, ERROR));
+        row.add(buildStatCard("Tổng vé", lblStatTongHoaDon, PRIMARY, NotionTheme.ACCENT_SOFT));
+        row.add(buildStatCard("Đã bán", lblStatDoanhThu, new Color(0x1A, 0xAE, 0x39), NotionTheme.MINT));
+        row.add(buildStatCard("Tỷ lệ hủy vé", lblStatTyLeHuy, ERROR, NotionTheme.ROSE));
 
         return row;
     }
 
-    private JPanel buildStatCard(String label, JLabel valueLbl, Color valueColor) {
-        JPanel card = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
+    private JPanel buildStatCard(String label, JLabel valueLbl, Color accent, Color tint) {
+        JPanel card = new JPanel(new BorderLayout(10, 0)) {
+            @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(0xF2, 0xF4, 0xF6));
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 16, 16));
+                g2.setColor(tint);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.setColor(AppColors.withAlpha(accent, 80));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
                 g2.dispose();
+                super.paintComponent(g);
             }
         };
         card.setOpaque(false);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(20, 24, 20, 24));
+        card.setBorder(new EmptyBorder(14, 18, 14, 18));
 
+        JPanel marker = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(accent);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+            }
+        };
+        marker.setOpaque(false);
+        marker.setPreferredSize(new Dimension(8, 48));
+
+        JPanel text = new JPanel();
+        text.setOpaque(false);
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+        valueLbl.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        valueLbl.setForeground(accent);
         JLabel lblLabel = new JLabel(label);
-        lblLabel.setFont(FONT_STAT_LBL);
+        lblLabel.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblLabel.setForeground(ON_SURF_VAR);
-        lblLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        text.add(valueLbl);
+        text.add(Box.createVerticalStrut(2));
+        text.add(lblLabel);
 
-        valueLbl.setFont(FONT_STAT_NUM);
-        valueLbl.setForeground(valueColor);
-        valueLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        card.add(lblLabel);
-        card.add(Box.createVerticalStrut(8));
-        card.add(valueLbl);
-
+        card.add(marker, BorderLayout.WEST);
+        card.add(text, BorderLayout.CENTER);
         return card;
     }
 
@@ -224,51 +263,36 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     // =================================================================
 
     private JPanel buildSearchSection() {
-        JPanel wrapper = new JPanel();
-        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
-        wrapper.setOpaque(false);
-
-        // --- Unified Boxed Container ---
-        JPanel bgPanel = new JPanel(new GridBagLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
+        JPanel wrapper = new JPanel(new BorderLayout(0, 12)) {
+            @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Shadow
-                g2.setColor(new Color(0, 0, 0, 10));
-                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 20, 20);
-                
-                // Background
-                g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
-                
-                // Border
-                g2.setColor(OUTLINE);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 20, 20);
+                NotionTheme.paintCard(g2, this, CARD_BG, OUTLINE, 16);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
+        wrapper.setOpaque(false);
+        wrapper.setBorder(new EmptyBorder(18, 22, 18, 22));
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        JLabel title = new JLabel("Bộ lọc vé");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        title.setForeground(ON_SURFACE);
+        JLabel subtitle = new JLabel("Tra cứu theo mã hóa đơn hoặc mã vé");
+        subtitle.setFont(FONT_SMALL);
+        subtitle.setForeground(ON_SURF_VAR);
+        header.add(title, BorderLayout.WEST);
+        header.add(subtitle, BorderLayout.EAST);
+
+        JPanel bgPanel = new JPanel(new GridBagLayout());
         bgPanel.setOpaque(false);
-        bgPanel.setBorder(new EmptyBorder(12, 20, 16, 20));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(0, 0, 0, 20);
         gbc.fill = GridBagConstraints.VERTICAL;
         gbc.anchor = GridBagConstraints.WEST;
-
-        // Custom search icon
-        JLabel iconSearch = new JLabel();
-        try {
-            java.net.URL url = getClass().getResource("/icons/nutTimKiem.png");
-            if (url != null) {
-                Image img = new ImageIcon(url).getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
-                iconSearch.setIcon(new ImageIcon(img));
-            }
-        } catch (Exception ignored) {}
-        bgPanel.add(iconSearch, gbc);
 
         // Listeners for real-time search
         javax.swing.event.DocumentListener liveSearch = new javax.swing.event.DocumentListener() {
@@ -286,9 +310,9 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         txtSearchHoaDon = createSearchField("Ví dụ: HD001");
         txtSearchHoaDon.getDocument().addDocumentListener(liveSearch);
         p1.add(l1, BorderLayout.NORTH);
-        p1.add(txtSearchHoaDon, BorderLayout.CENTER);
+        p1.add(createSearchBox(txtSearchHoaDon), BorderLayout.CENTER);
 
-        gbc.gridx = 1;
+        gbc.gridx = 0;
         gbc.weightx = 0.5;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         bgPanel.add(p1, gbc);
@@ -302,46 +326,16 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         txtSearchVe = createSearchField("Ví dụ: V001");
         txtSearchVe.getDocument().addDocumentListener(liveSearch);
         p2.add(l2, BorderLayout.NORTH);
-        p2.add(txtSearchVe, BorderLayout.CENTER);
+        p2.add(createSearchBox(txtSearchVe), BorderLayout.CENTER);
 
-        gbc.gridx = 2;
+        gbc.gridx = 1;
         bgPanel.add(p2, gbc);
 
-        // Bo loc / Reset button
-        JButton btnReset = new JButton("Làm mới") {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(OUTLINE);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnReset.setFont(FONT_BOLD);
-        btnReset.setForeground(ON_SURF_VAR);
-        btnReset.setContentAreaFilled(false);
-        btnReset.setBorderPainted(false);
-        btnReset.setFocusPainted(false);
-        btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnReset.setPreferredSize(new Dimension(100, 42));
-        btnReset.addActionListener(e -> {
-            txtSearchHoaDon.setText("");
-            txtSearchVe.setText("");
-            applyFilter();
-        });
+        // Handoff: module vé hiện chỉ có tìm kiếm nên không đặt nút Bỏ lọc cạnh search.
+        // Cảnh báo: nếu thêm filter thật, đưa Bỏ lọc xuống grid filter riêng và không clear search.
 
-        gbc.weightx = 0;
-        gbc.gridx = 3;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.anchor = GridBagConstraints.SOUTH;
-        gbc.insets = new Insets(0, 0, 4, 0); // Align with input field area
-        bgPanel.add(btnReset, gbc);
-
-        wrapper.add(bgPanel);
+        wrapper.add(header, BorderLayout.NORTH);
+        wrapper.add(bgPanel, BorderLayout.CENTER);
         return wrapper;
     }
 
@@ -355,12 +349,9 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(CARD_BG);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 16, 16));
-                g2.setColor(OUTLINE);
-                g2.setStroke(new BasicStroke(1f));
-                g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1, getHeight() - 1, 16, 16));
+                NotionTheme.paintCard(g2, this, CARD_BG, OUTLINE, 16);
                 g2.dispose();
+                super.paintComponent(g);
             }
         };
         card.setOpaque(false);
@@ -390,7 +381,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(0xE6, 0xE8, 0xEA));
+                g2.setColor(NotionTheme.BORDER);
                 g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
                 g2.dispose();
             }
@@ -457,12 +448,13 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     private JScrollPane buildTableSection() {
         tableModel = new VeTableModel();
         table = new JTable(tableModel);
+        NotionTheme.styleTable(table);
         table.setRowHeight(56);
         table.setShowGrid(false);
         table.setShowHorizontalLines(true);
         table.setGridColor(OUTLINE);
         table.setIntercellSpacing(new Dimension(0, 0));
-        table.setSelectionBackground(PRIMARY_LIGHT);
+        table.setSelectionBackground(NotionTheme.TABLE_SELECTION);
         table.setSelectionForeground(ON_SURFACE);
         table.setFont(FONT_BODY);
         table.setFillsViewportHeight(true);
@@ -493,7 +485,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                 JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 lbl.setFont(FONT_HEADER);
                 lbl.setForeground(ON_SURF_VAR);
-                lbl.setBackground(new Color(0xF8, 0xFA, 0xFC));
+                lbl.setBackground(NotionTheme.PAGE);
                 lbl.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
                         new EmptyBorder(0, 20, 0, 8)
@@ -581,6 +573,23 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     //  HELPERS
     // =================================================================
 
+    private JLabel createHeroBadge(String text) {
+        JLabel badge = new JLabel(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(AppColors.withAlpha(Color.WHITE, 235));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        badge.setForeground(NotionTheme.NAVY);
+        badge.setBorder(new EmptyBorder(10, 16, 10, 16));
+        return badge;
+    }
+
     private JTextField createSearchField(String placeholder) {
         JTextField field = new JTextField() {
             @Override
@@ -589,10 +598,10 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                 if (getText().isEmpty() && !hasFocus()) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                    g2.setColor(new Color(0x9E, 0xA7, 0xB0));
+                    g2.setColor(NotionTheme.BORDER);
                     g2.setFont(FONT_BODY);
                     Insets ins = getInsets();
-                    g2.drawString(placeholder, ins.left, getHeight() / 2 + 5);
+                    g2.drawString(placeholder, Math.max(ins.left, 2), getHeight() / 2 + 5);
                     g2.dispose();
                 }
             }
@@ -607,6 +616,24 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             public void focusLost(java.awt.event.FocusEvent e) { field.repaint(); }
         });
         return field;
+    }
+
+    private JPanel createSearchBox(JTextField field) {
+        field.setBorder(BorderFactory.createEmptyBorder());
+        field.setOpaque(false);
+
+        JPanel searchBox = new JPanel(new BorderLayout(10, 0));
+        searchBox.setOpaque(false);
+        searchBox.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(6, 12, 6, 12)
+        ));
+        searchBox.add(new JLabel(LineIcons.image(LineIcons.Name.SEARCH, 18, 18)), BorderLayout.WEST);
+        searchBox.add(field, BorderLayout.CENTER);
+        SearchFieldClearButton.install(searchBox, field, this::applyFilter);
+        return searchBox;
+        // Handoff: chỉ bọc field tra cứu thật để kính lúp nằm trong thanh tìm kiếm, không gắn vào filter khác.
+        // Cảnh báo: placeholder tự vẽ nên x bắt đầu gần 2px trong field, không cộng lại padding wrapper.
     }
 
     private JButton createSearchButton() {
@@ -937,14 +964,20 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     private class TrangThaiBadgeRenderer extends JPanel implements TableCellRenderer {
         private final JLabel badge = new JLabel();
         private Color badgeBg = OUTLINE;
+        private static final int BADGE_HEIGHT = 24;
+        private static final int BADGE_MARGIN_X = 28;
 
         TrangThaiBadgeRenderer() {
-            setLayout(new GridBagLayout());
+            setLayout(new BorderLayout());
             setOpaque(true);
+            setBorder(new EmptyBorder(0, BADGE_MARGIN_X, 0, BADGE_MARGIN_X));
             badge.setFont(FONT_BADGE);
             badge.setHorizontalAlignment(SwingConstants.CENTER);
             badge.setOpaque(false);
-            add(badge);
+            badge.setPreferredSize(new Dimension(10, BADGE_HEIGHT));
+            add(badge, BorderLayout.CENTER);
+            // Handoff: badge trạng thái vé bám gần full ô, giữ dot như trạng thái phụ bên trái.
+            // Nếu cột hẹp làm text chật, giảm BADGE_MARGIN_X hoặc nới cột trạng thái.
         }
 
         @Override
@@ -970,14 +1003,14 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             Rectangle r = badge.getBounds();
-            int px = 10, py = 3;
             g2.setColor(badgeBg);
-            g2.fillRoundRect(r.x - px, r.y - py, r.width + 2 * px, r.height + 2 * py, 20, 20);
+            int y = r.y + Math.max(0, (r.height - BADGE_HEIGHT) / 2);
+            g2.fillRoundRect(r.x, y, r.width, BADGE_HEIGHT, 20, 20);
             // dot
             Color dotColor = (badgeBg == STATUS_GREEN_BG) ? STATUS_GREEN_FG : STATUS_GRAY_FG;
             g2.setColor(dotColor);
-            int dotX = r.x - px + 8;
-            int dotY = r.y + r.height / 2 - 2;
+            int dotX = r.x + 10;
+            int dotY = y + BADGE_HEIGHT / 2 - 2;
             g2.fillOval(dotX, dotY, 5, 5);
             g2.dispose();
             super.paintChildren(g);
@@ -995,8 +1028,8 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             setOpaque(true);
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.insets = new Insets(0, 5, 0, 5);
-            configLabel(lblDetail, PRIMARY,   new Dimension(52, 28));
-            configLabel(lblRefund, ERROR_FG,  new Dimension(72, 28));
+            configLabel(lblDetail, AppColors.ACTION_SOFT_FG, new Dimension(52, 28));
+            configLabel(lblRefund, ERROR_FG,                 new Dimension(72, 28));
             add(lblDetail, gbc);
             add(lblRefund, gbc);
         }
@@ -1023,10 +1056,10 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             Rectangle rd = lblDetail.getBounds();
-            g2.setColor(PRIMARY_LIGHT);
+            g2.setColor(AppColors.ACTION_SOFT_BG);
             g2.fillRoundRect(rd.x, rd.y, rd.width, rd.height, 8, 8);
             Rectangle rr = lblRefund.getBounds();
-            g2.setColor(isCancelled ? new Color(0xF1, 0xF5, 0xF9) : ERROR_BG);
+            g2.setColor(isCancelled ? NotionTheme.PAGE : ERROR_BG);
             g2.fillRoundRect(rr.x, rr.y, rr.width, rr.height, 8, 8);
             g2.dispose();
             super.paintChildren(g);
@@ -1045,8 +1078,8 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             gbc.insets = new Insets(0, 5, 0, 5);
 
             btnDetail.setFont(FONT_BADGE);
-            btnDetail.setForeground(PRIMARY);
-            btnDetail.setBackground(PRIMARY_LIGHT);
+            btnDetail.setForeground(AppColors.ACTION_SOFT_FG);
+            btnDetail.setBackground(AppColors.ACTION_SOFT_BG);
             btnDetail.setBorderPainted(false);
             btnDetail.setFocusPainted(false);
             btnDetail.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -1079,7 +1112,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                 if (veRow != null) {
                     Ve ve = veRow.ve();
                     if (ve.getTrangThai() == TrangThaiVe.DA_HUY) {
-                        JOptionPane.showMessageDialog(QuanLyVeModule.this,
+                        NotionMessageDialog.showMessageDialog(QuanLyVeModule.this,
                                 "Vé này đã được hủy trước đó.",
                                 "Thông báo", JOptionPane.WARNING_MESSAGE);
                         return;
@@ -1094,11 +1127,11 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                     if (dialog.isConfirmed()) {
                         boolean ok = new DAO_Ve().huyVe(ve.getMaVe(), dialog.getLyDo());
                         if (ok) {
-                            JOptionPane.showMessageDialog(QuanLyVeModule.this,
+                            NotionMessageDialog.showMessageDialog(QuanLyVeModule.this,
                                     "Hoàn vé thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
                             loadData();
                         } else {
-                            JOptionPane.showMessageDialog(QuanLyVeModule.this,
+                            NotionMessageDialog.showMessageDialog(QuanLyVeModule.this,
                                     "Không thể hoàn vé. Vui lòng thử lại.",
                                     "Hoàn vé thất bại", JOptionPane.ERROR_MESSAGE);
                         }
@@ -1115,7 +1148,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             boolean isCancelled = (value instanceof TrangThaiVe tt && tt == TrangThaiVe.DA_HUY);
             btnRefund.setEnabled(!isCancelled);
             btnRefund.setForeground(isCancelled ? ON_SURF_VAR : ERROR_FG);
-            btnRefund.setBackground(isCancelled ? new Color(0xF1, 0xF5, 0xF9) : ERROR_BG);
+            btnRefund.setBackground(isCancelled ? NotionTheme.PAGE : ERROR_BG);
             return panel;
         }
 
@@ -1124,7 +1157,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     }
 
     private Color getRowBg(boolean isSel, int row) {
-        if (isSel) return PRIMARY_LIGHT;
+        if (isSel) return NotionTheme.TABLE_SELECTION;
         if (row == hoveredRow) return ROW_HOVER;
         return row % 2 == 0 ? CARD_BG : ROW_ALT;
     }
@@ -1213,7 +1246,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         fields.put("Ngày hủy", ngayHuy);
 
         EntityDetailModule detail = new EntityDetailModule(
-                "Vé", new Color(0xEA, 0x58, 0x0C),
+                "Vé", AppColors.WARNING,
                 "Chi tiết vé", ve.getMaVe(), fields
         );
 
@@ -1242,3 +1275,4 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         loadData();
     }
 }
+

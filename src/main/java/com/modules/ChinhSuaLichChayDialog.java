@@ -8,356 +8,205 @@ import com.entity.Lich;
 import com.entity.Tuyen;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.awt.geom.RoundRectangle2D;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Calendar;
 import java.util.List;
 
-public class ChinhSuaLichChayDialog extends JDialog {
-
-    // === Design tokens ===
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_HOVER = new Color(0x00, 0x4A, 0x73);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color ERROR         = new Color(0xBA, 0x1A, 0x1A);
-    private static final Color HEADER_BG     = new Color(0xF1, 0xF5, 0xF9);
-    private static final Color FOOTER_BG     = new Color(0xF1, 0xF5, 0xF9);
-
-    private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 18);
-    private static final Font FONT_DESC   = new Font("Segoe UI", Font.PLAIN, 12);
-    private static final Font FONT_LABEL  = new Font("Segoe UI", Font.BOLD, 12);
-    private static final Font FONT_INPUT  = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FONT_MONO   = new Font("Consolas", Font.BOLD, 13);
-    private static final Font FONT_BTN    = new Font("Segoe UI", Font.BOLD, 13);
-    private static final Font FONT_HINT   = new Font("Segoe UI", Font.ITALIC, 10);
-    private static final Font FONT_ERR    = new Font("Segoe UI", Font.PLAIN, 11);
-
-    // === Mode ===
+public class ChinhSuaLichChayDialog extends AbstractFormDialog<Lich> {
     private final boolean isEditMode;
-    private final Lich    original;
+    private final Lich original;
     private final Runnable onSaved;
 
-    // === DAOs ===
-    private final DAO_Lich    daoLich   = new DAO_Lich();
-    private final DAO_Tuyen   daoTuyen  = new DAO_Tuyen();
+    private final DAO_Lich daoLich = new DAO_Lich();
+    private final DAO_Tuyen daoTuyen = new DAO_Tuyen();
     private final DAO_DoanTau daoDoanTau = new DAO_DoanTau();
 
-    // === Form fields ===
-    private JTextField         txtMaLich;
-    private JComboBox<Tuyen>   cboTuyen;
+    private JTextField txtMaLich;
+    private JComboBox<Tuyen> cboTuyen;
     private JComboBox<DoanTau> cboDoanTau;
-    private DatePickerField     dpBatDau;
-    private JSpinner           timePickerBatDau;
-    private JPanel             dateTimePanel;
-    private JTextField         txtThoiGianChay;
-
-    // === Error labels ===
-    private JLabel lblErrMaLich;
-    private JLabel lblErrTuyen;
-    private JLabel lblErrDoanTau;
-    private JLabel lblErrBatDau;
-    private JLabel lblErrChay;
-
-    // =====================================================================
+    private DatePickerField dpBatDau;
+    private JSpinner timePickerBatDau;
+    private JTextField txtThoiGianChay;
+    private JComboBox<String> cboTrangThai;
 
     public ChinhSuaLichChayDialog(Window owner, Lich lich, Runnable onSaved) {
-        super(owner, lich == null ? "Thêm lịch chạy" : "Chỉnh sửa lịch chạy",
-                ModalityType.APPLICATION_MODAL);
-        this.original    = lich;
-        this.isEditMode  = (lich != null);
-        this.onSaved     = onSaved;
-
-        setUndecorated(true);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setResizable(false);
-        initUI();
-        pack();
-        setMinimumSize(new Dimension(680, getPreferredSize().height));
-        setLocationRelativeTo(owner);
+        super(owner, lich == null ? "Th\u00eam l\u1ecbch ch\u1ea1y" : "Ch\u1ec9nh s\u1eeda l\u1ecbch ch\u1ea1y");
+        this.original = lich;
+        this.isEditMode = lich != null;
+        this.onSaved = onSaved;
+        installStandardLayout(owner);
     }
 
-    private void initUI() {
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(CARD_BG);
-        root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
-
-        root.add(buildHeader(), BorderLayout.NORTH);
-        root.add(buildForm(),   BorderLayout.CENTER);
-        root.add(buildFooter(), BorderLayout.SOUTH);
-
-        setContentPane(buildShadowWrapper(root));
+    @Override
+    protected String dialogTitle() {
+        return isEditMode ? "Ch\u1ec9nh s\u1eeda l\u1ecbch ch\u1ea1y" : "Th\u00eam l\u1ecbch ch\u1ea1y";
     }
 
-    // ========================= SHADOW =========================
-
-    private JPanel buildShadowWrapper(JPanel inner) {
-        JPanel wrapper = new JPanel(new BorderLayout()) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                int pad = 8;
-                for (int i = pad; i > 0; i--) {
-                    float alpha = 0.04f * (pad - i + 1);
-                    g2.setColor(new Color(0, 0, 0, (int)(alpha * 255)));
-                    g2.fill(new RoundRectangle2D.Float(i, i, getWidth()-2*i, getHeight()-2*i, 12, 12));
-                }
-                g2.dispose();
-            }
-        };
-        wrapper.setOpaque(false);
-        wrapper.setBorder(new EmptyBorder(8, 8, 8, 8));
-        wrapper.add(inner, BorderLayout.CENTER);
-        return wrapper;
+    @Override
+    protected String dialogDescription() {
+        return isEditMode
+                ? "C\u1eadp nh\u1eadt tuy\u1ebfn, \u0111o\u00e0n t\u00e0u v\u00e0 th\u1eddi gian kh\u1edfi h\u00e0nh."
+                : "T\u1ea1o l\u1ecbch ch\u1ea1y m\u1edbi cho tuy\u1ebfn v\u00e0 \u0111o\u00e0n t\u00e0u.";
     }
 
-    // ========================= HEADER =========================
-
-    private JPanel buildHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(HEADER_BG);
-        header.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
-                new EmptyBorder(20, 28, 16, 28)));
-
-        JPanel left = new JPanel(new BorderLayout(14, 0));
-        left.setOpaque(false);
-
-        // Icon
-        ImageIcon ico = loadScaledIcon("bieuTuongLich.png", 36);
-        if (ico != null) {
-            JLabel lblIco = new JLabel(ico);
-            lblIco.setVerticalAlignment(SwingConstants.TOP);
-            left.add(lblIco, BorderLayout.WEST);
-        }
-
-        JPanel textPart = new JPanel();
-        textPart.setLayout(new BoxLayout(textPart, BoxLayout.Y_AXIS));
-        textPart.setOpaque(false);
-
-        String titleStr = isEditMode
-                ? "Chỉnh sửa lịch chạy"
-                : "Thêm lịch chạy mới";
-        JLabel lblTitle = new JLabel(titleStr);
-        lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(PRIMARY);
-
-        String descStr = isEditMode
-                ? "Cập nhật thông tin lịch chạy " + original.getMaLich() + "."
-                : "Nhập thông tin để tạo lịch chạy mới.";
-        JLabel lblDesc = new JLabel(descStr);
-        lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(ON_SURF_VAR);
-
-        textPart.add(lblTitle);
-        textPart.add(Box.createVerticalStrut(4));
-        textPart.add(lblDesc);
-        left.add(textPart, BorderLayout.CENTER);
-
-        header.add(left, BorderLayout.CENTER);
-        return header;
+    @Override
+    protected LineIcons.Name dialogIcon() {
+        return LineIcons.Name.CALENDAR;
     }
 
-    // ========================= FORM =========================
+    @Override
+    protected String primaryButtonText() {
+        return isEditMode ? "C\u1eadp nh\u1eadt l\u1ecbch" : "Th\u00eam l\u1ecbch";
+    }
 
-    private JPanel buildForm() {
-        // Load combo data
-        List<Tuyen>   dsTuyen   = daoTuyen.getAll();
-        List<DoanTau> dsDoanTau = daoDoanTau.getAll();
+    @Override
+    protected int preferredDialogWidth() {
+        return 760;
+    }
 
-        cboTuyen = new JComboBox<>();
-        cboTuyen.setFont(FONT_INPUT); cboTuyen.setBackground(CARD_BG);
-        cboTuyen.setPreferredSize(new Dimension(0, 36));
-        cboTuyen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        cboTuyen.setRenderer(buildTuyenRenderer());
-        for (Tuyen t : dsTuyen) cboTuyen.addItem(t);
-
-        cboDoanTau = new JComboBox<>();
-        cboDoanTau.setFont(FONT_INPUT); cboDoanTau.setBackground(CARD_BG);
-        cboDoanTau.setPreferredSize(new Dimension(0, 36));
-        cboDoanTau.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        cboDoanTau.setRenderer(buildDoanTauRenderer());
-        for (DoanTau d : dsDoanTau) cboDoanTau.addItem(d);
-
-        // Pre-fill if editing
-        if (isEditMode) {
-            if (original.getTuyen() != null) {
-                for (int i = 0; i < cboTuyen.getItemCount(); i++) {
-                    if (cboTuyen.getItemAt(i).getMaTuyen().equals(original.getTuyen().getMaTuyen())) {
-                        cboTuyen.setSelectedIndex(i); break;
-                    }
-                }
-            }
-            if (original.getDoanTau() != null) {
-                for (int i = 0; i < cboDoanTau.getItemCount(); i++) {
-                    if (cboDoanTau.getItemAt(i).getMaDoanTau().equals(original.getDoanTau().getMaDoanTau())) {
-                        cboDoanTau.setSelectedIndex(i); break;
-                    }
-                }
-            }
-        }
-
-        // Build form
-        JPanel form = new JPanel();
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setBackground(CARD_BG);
-        form.setBorder(new EmptyBorder(24, 28, 16, 28));
-
-        // Row 1: Mã lịch (full width)
+    @Override
+    protected FormSchema buildFormSchema() {
         txtMaLich = createTextField();
-        txtMaLich.setFont(FONT_MONO);
-        lblErrMaLich = createErrorLabel();
         if (isEditMode) {
             txtMaLich.setText(original.getMaLich());
             txtMaLich.setEditable(false);
-            txtMaLich.setBackground(new Color(0xF8, 0xFA, 0xFC));
-            txtMaLich.setForeground(PRIMARY);
+            txtMaLich.setFont(NotionTheme.BODY_BOLD);
         }
-        JPanel row1 = buildRow(1, 1, Integer.MAX_VALUE, 80);
-        row1.add(buildFieldGroup("Mã lịch chạy", txtMaLich,
-                isEditMode ? "* Không thể thay đổi" : null, !isEditMode, lblErrMaLich));
-        form.add(row1); form.add(Box.createVerticalStrut(12));
 
-        // Row 2: Tuyến | Đoàn tàu
-        lblErrTuyen   = createErrorLabel();
-        lblErrDoanTau = createErrorLabel();
-        JPanel row2 = buildRow(1, 2, Integer.MAX_VALUE, 90);
-        row2.add(buildFieldGroup("Tuyến đường", cboTuyen, null, true, lblErrTuyen));
-        row2.add(buildFieldGroup("Đoàn tàu", cboDoanTau, null, true, lblErrDoanTau));
-        form.add(row2); form.add(Box.createVerticalStrut(12));
-
-        // Row 3: Thời gian bắt đầu (DatePickerField + JSpinner) | Thời gian chạy
+        cboTuyen = createTuyenCombo();
+        cboDoanTau = createDoanTauCombo();
         dpBatDau = new DatePickerField();
-        dpBatDau.setPreferredSize(new Dimension(0, 40));
-
-        SpinnerDateModel timeModel = new SpinnerDateModel();
-        timePickerBatDau = new JSpinner(timeModel);
-        JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(timePickerBatDau, "HH:mm");
-        timePickerBatDau.setEditor(timeEditor);
-        timePickerBatDau.setFont(FONT_INPUT);
-        timePickerBatDau.setPreferredSize(new Dimension(75, 36));
-
-        dateTimePanel = new JPanel(new BorderLayout(6, 0));
-        dateTimePanel.setOpaque(false);
-        dateTimePanel.setPreferredSize(new Dimension(0, 40));
-        dateTimePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        dateTimePanel.add(dpBatDau, BorderLayout.CENTER);
-        dateTimePanel.add(timePickerBatDau, BorderLayout.EAST);
-        lblErrBatDau = createErrorLabel();
-
+        timePickerBatDau = createTimeSpinner();
         txtThoiGianChay = createTextField();
-        txtThoiGianChay.setPreferredSize(new Dimension(0, 36));
-        txtThoiGianChay.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        lblErrChay = createErrorLabel();
+        cboTrangThai = new JComboBox<>(new String[]{"Ho\u1ea1t \u0111\u1ed9ng", "Ng\u1eebng ho\u1ea1t \u0111\u1ed9ng"});
 
-        if (isEditMode && original.getThoiGianBatDau() != null) {
-            LocalDateTime ldt = original.getThoiGianBatDau();
-            dpBatDau.setValue(LocalDate.of(ldt.getYear(), ldt.getMonthValue(), ldt.getDayOfMonth()));
-            Calendar timeCal = Calendar.getInstance();
-            timeCal.set(Calendar.HOUR_OF_DAY, ldt.getHour());
-            timeCal.set(Calendar.MINUTE, ldt.getMinute());
-            timePickerBatDau.setValue(timeCal.getTime());
+        loadComboData();
+        if (isEditMode) prefillFields();
+
+        // Handoff: schedule dialog now uses shared form chrome; route/train/date business logic remains here.
+        // Risk: DatePickerField and JSpinner are custom components, so validate/collect read direct refs.
+        return FormSchema.builder()
+                .columns(2)
+                .gap(16, 14)
+                .field(FieldSpec.of("maLich", "M\u00e3 l\u1ecbch ch\u1ea1y", txtMaLich)
+                        .grid(0, 0).required(!isEditMode)
+                        .hint(isEditMode ? "Kh\u00f4ng th\u1ec3 thay \u0111\u1ed5i m\u00e3 l\u1ecbch." : null)
+                        .build())
+                .field(FieldSpec.of("trangThai", "Tr\u1ea1ng th\u00e1i", cboTrangThai)
+                        .grid(0, 1).build())
+                .field(FieldSpec.of("tuyen", "Tuy\u1ebfn \u0111\u01b0\u1eddng", cboTuyen)
+                        .grid(1, 0).required(true).build())
+                .field(FieldSpec.of("doanTau", "\u0110o\u00e0n t\u00e0u", cboDoanTau)
+                        .grid(1, 1).required(true).build())
+                .field(FieldSpec.of("batDau", "Th\u1eddi gian b\u1eaft \u0111\u1ea7u", buildDateTimePanel())
+                        .grid(2, 0).required(true).build())
+                .field(FieldSpec.of("thoiGianChay", "Th\u1eddi gian ch\u1ea1y", txtThoiGianChay)
+                        .grid(2, 1).required(true).hint("Nh\u1eadp s\u1ed1 ph\u00fat ch\u1ea1y.").build())
+                .build();
+    }
+
+    private void loadComboData() {
+        List<Tuyen> dsTuyen = daoTuyen.getAll();
+        List<DoanTau> dsDoanTau = daoDoanTau.getAllActive();
+        for (Tuyen tuyen : dsTuyen) cboTuyen.addItem(tuyen);
+        for (DoanTau doanTau : dsDoanTau) cboDoanTau.addItem(doanTau);
+    }
+
+    private void prefillFields() {
+        if (original.getTuyen() != null) {
+            boolean found = false;
+            for (int i = 0; i < cboTuyen.getItemCount(); i++) {
+                if (cboTuyen.getItemAt(i).getMaTuyen().equals(original.getTuyen().getMaTuyen())) {
+                    cboTuyen.setSelectedIndex(i);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                Tuyen originalTuyen = daoTuyen.findById(original.getTuyen().getMaTuyen());
+                if (originalTuyen == null) originalTuyen = original.getTuyen();
+                cboTuyen.addItem(originalTuyen);
+                cboTuyen.setSelectedItem(originalTuyen);
+            }
         }
-        if (isEditMode && original.getThoiGianChay() != null)
-            txtThoiGianChay.setText(original.getThoiGianChay());
-
-        JPanel row3 = buildRow(1, 2, Integer.MAX_VALUE, 90);
-        row3.add(buildFieldGroup("Thời gian bắt đầu", dateTimePanel, null, true, lblErrBatDau));
-        row3.add(buildFieldGroup("Thời gian chạy (phút)",
-                txtThoiGianChay, "Số phút toàn hành trình", true, lblErrChay));
-        form.add(row3);
-
-        return form;
+        if (original.getDoanTau() != null) {
+            boolean found = false;
+            for (int i = 0; i < cboDoanTau.getItemCount(); i++) {
+                if (cboDoanTau.getItemAt(i).getMaDoanTau().equals(original.getDoanTau().getMaDoanTau())) {
+                    cboDoanTau.setSelectedIndex(i);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                DoanTau originalDoanTau = daoDoanTau.findById(original.getDoanTau().getMaDoanTau());
+                if (originalDoanTau == null) originalDoanTau = original.getDoanTau();
+                cboDoanTau.addItem(originalDoanTau);
+                cboDoanTau.setSelectedItem(originalDoanTau);
+            }
+        }
+        if (original.getThoiGianBatDau() != null) {
+            LocalDateTime batDau = original.getThoiGianBatDau();
+            dpBatDau.setValue(batDau.toLocalDate());
+            setSpinnerTime(timePickerBatDau, batDau.getHour(), batDau.getMinute());
+        }
+        txtThoiGianChay.setText(original.getThoiGianChay() == null ? "" : original.getThoiGianChay());
+        cboTrangThai.setSelectedIndex(original.isHoatDong() ? 0 : 1);
     }
 
-    private JPanel buildRow(int rows, int cols, int maxW, int maxH) {
-        JPanel row = new JPanel(new GridLayout(rows, cols, 16, 0));
-        row.setOpaque(false);
-        row.setMaximumSize(new Dimension(maxW, maxH));
-        row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return row;
-    }
-
-    // ========================= FOOTER =========================
-
-    private JPanel buildFooter() {
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
-        footer.setBackground(FOOTER_BG);
-        footer.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE),
-                new EmptyBorder(16, 28, 16, 28)));
-
-        JButton btnCancel = createOutlineButton("Hủy bỏ");
-        ImageIcon icoHuy = loadScaledIcon("nutThoat.png", 15);
-        if (icoHuy != null) { btnCancel.setIcon(icoHuy); btnCancel.setIconTextGap(6); }
-        btnCancel.addActionListener(e -> dispose());
-
-        JButton btnSave = createPrimaryButton(isEditMode ? "Lưu thay đổi" : "Tạo lịch");
-        ImageIcon icoLuu = loadScaledIcon("nutLuu.png", 15);
-        if (icoLuu != null) { btnSave.setIcon(icoLuu); btnSave.setIconTextGap(6); }
-        btnSave.addActionListener(e -> doSave());
-
-        footer.add(btnCancel);
-        footer.add(btnSave);
-        return footer;
-    }
-
-    // ========================= SAVE LOGIC =========================
-
-    private void doSave() {
-        clearAllErrors();
-
-        String maLich  = txtMaLich.getText().trim();
-        String chayStr = txtThoiGianChay.getText().trim();
-
-        // Validate
-        if (!isEditMode && maLich.isEmpty()) {
-            showFieldError(txtMaLich, lblErrMaLich, "Vui lòng nhập mã lịch"); return;
+    @Override
+    protected List<ValidationError> validateForm(FormValues values) {
+        java.util.ArrayList<ValidationError> errors = new java.util.ArrayList<>();
+        if (!isEditMode && txtMaLich.getText().trim().isEmpty()) {
+            errors.add(new ValidationError("maLich", "Vui l\u00f2ng nh\u1eadp m\u00e3 l\u1ecbch"));
         }
         if (cboTuyen.getSelectedItem() == null) {
-            lblErrTuyen.setText("Vui lòng chọn tuyến"); lblErrTuyen.setVisible(true); return;
+            errors.add(new ValidationError("tuyen", "Vui l\u00f2ng ch\u1ecdn tuy\u1ebfn"));
         }
         if (cboDoanTau.getSelectedItem() == null) {
-            lblErrDoanTau.setText("Vui lòng chọn đoàn tàu"); lblErrDoanTau.setVisible(true); return;
+            errors.add(new ValidationError("doanTau", "Vui l\u00f2ng ch\u1ecdn \u0111o\u00e0n t\u00e0u"));
         }
-        LocalDate dateVal = dpBatDau.getValue();
-        if (dateVal == null) {
-            lblErrBatDau.setText("Vui lòng chọn ngày bắt đầu"); lblErrBatDau.setVisible(true); return;
+        if (dpBatDau.getValue() == null) {
+            errors.add(new ValidationError("batDau", "Vui l\u00f2ng ch\u1ecdn ng\u00e0y b\u1eaft \u0111\u1ea7u"));
         }
-
-        java.util.Date timeVal = (java.util.Date) timePickerBatDau.getValue();
-        Calendar timeCal = Calendar.getInstance(); timeCal.setTime(timeVal);
-        LocalDateTime batDau = LocalDateTime.of(dateVal,
-                java.time.LocalTime.of(timeCal.get(Calendar.HOUR_OF_DAY), timeCal.get(Calendar.MINUTE)));
-
+        String chayStr = txtThoiGianChay.getText().trim();
         if (chayStr.isEmpty()) {
-            showFieldError(txtThoiGianChay, lblErrChay, "Vui lòng nhập thời gian chạy"); return;
+            errors.add(new ValidationError("thoiGianChay", "Vui l\u00f2ng nh\u1eadp th\u1eddi gian ch\u1ea1y"));
+        } else {
+            try {
+                int mins = Integer.parseInt(chayStr);
+                if (mins <= 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                errors.add(new ValidationError("thoiGianChay", "Vui l\u00f2ng nh\u1eadp s\u1ed1 ph\u00fat h\u1ee3p l\u1ec7 (> 0)"));
+            }
         }
-        try {
-            int mins = Integer.parseInt(chayStr);
-            if (mins <= 0) throw new NumberFormatException();
-        } catch (NumberFormatException ex) {
-            showFieldError(txtThoiGianChay, lblErrChay, "Vui lòng nhập số phút hợp lệ (> 0)"); return;
-        }
+        return errors;
+    }
 
-        Tuyen   tuyen   = (Tuyen)   cboTuyen.getSelectedItem();
-        DoanTau doanTau = (DoanTau) cboDoanTau.getSelectedItem();
-        Lich lich = new Lich(isEditMode ? original.getMaLich() : maLich,
-                tuyen, doanTau, batDau, chayStr);
+    @Override
+    protected Lich collectResult(FormValues values) {
+        LocalDate dateVal = dpBatDau.getValue();
+        LocalDateTime batDau = LocalDateTime.of(dateVal, readTime(timePickerBatDau));
+        Lich lich = new Lich(isEditMode ? original.getMaLich() : txtMaLich.getText().trim(),
+                (Tuyen) cboTuyen.getSelectedItem(),
+                (DoanTau) cboDoanTau.getSelectedItem(),
+                batDau,
+                txtThoiGianChay.getText().trim());
+        lich.setHoatDong(cboTrangThai.getSelectedIndex() == 0);
+        return lich;
+    }
 
+    @Override
+    protected void onSubmit(Lich lich) {
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new SwingWorker<Boolean, Void>() {
             @Override protected Boolean doInBackground() {
                 return isEditMode ? daoLich.update(lich) : daoLich.insert(lich);
             }
+
             @Override protected void done() {
                 setCursor(Cursor.getDefaultCursor());
                 try {
@@ -365,19 +214,69 @@ public class ChinhSuaLichChayDialog extends JDialog {
                         if (onSaved != null) onSaved.run();
                         dispose();
                     } else {
-                        JOptionPane.showMessageDialog(ChinhSuaLichChayDialog.this,
-                                "Không thể lưu lịch. Kiểm tra mã có bị trùng không.",
-                                "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        NotionMessageDialog.showMessageDialog(ChinhSuaLichChayDialog.this,
+                                "Kh\u00f4ng th\u1ec3 l\u01b0u l\u1ecbch. Ki\u1ec3m tra m\u00e3 c\u00f3 b\u1ecb tr\u00f9ng kh\u00f4ng.",
+                                "L\u1ed7i", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(ChinhSuaLichChayDialog.this,
-                            "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    NotionMessageDialog.showMessageDialog(ChinhSuaLichChayDialog.this,
+                            "L\u1ed7i: " + ex.getMessage(), "L\u1ed7i", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();
+        // Handoff: insert/update still runs through DAO_Lich inside SwingWorker as before.
+        // Risk: no schedule-conflict validation is added here; this preserves prior behavior exactly.
     }
 
-    // ========================= COMBO RENDERERS =========================
+    private JComboBox<Tuyen> createTuyenCombo() {
+        JComboBox<Tuyen> combo = new JComboBox<>();
+        combo.setRenderer(buildTuyenRenderer());
+        return combo;
+    }
+
+    private JComboBox<DoanTau> createDoanTauCombo() {
+        JComboBox<DoanTau> combo = new JComboBox<>();
+        combo.setRenderer(buildDoanTauRenderer());
+        return combo;
+    }
+
+    private JPanel buildDateTimePanel() {
+        JPanel panel = new JPanel(new BorderLayout(6, 0));
+        panel.setOpaque(false);
+        panel.add(dpBatDau, BorderLayout.CENTER);
+        panel.add(timePickerBatDau, BorderLayout.EAST);
+        return panel;
+    }
+
+    private JSpinner createTimeSpinner() {
+        SpinnerDateModel model = new SpinnerDateModel();
+        JSpinner spinner = new JSpinner(model);
+        spinner.setEditor(new JSpinner.DateEditor(spinner, "HH:mm"));
+        spinner.setFont(NotionTheme.BODY);
+        spinner.setPreferredSize(new Dimension(82, 40));
+        return spinner;
+    }
+
+    private void setSpinnerTime(JSpinner spinner, int hour, int minute) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
+        spinner.setValue(calendar.getTime());
+    }
+
+    private LocalTime readTime(JSpinner spinner) {
+        try { spinner.commitEdit(); } catch (java.text.ParseException ignored) {}
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime((java.util.Date) spinner.getValue());
+        return LocalTime.of(calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE));
+    }
+
+    private JTextField createTextField() {
+        JTextField field = new JTextField();
+        field.setFont(NotionTheme.BODY);
+        field.setForeground(NotionTheme.TEXT);
+        return field;
+    }
 
     private DefaultListCellRenderer buildTuyenRenderer() {
         return new DefaultListCellRenderer() {
@@ -385,10 +284,9 @@ public class ChinhSuaLichChayDialog extends JDialog {
                     int idx, boolean sel, boolean focus) {
                 super.getListCellRendererComponent(list, val, idx, sel, focus);
                 if (val instanceof Tuyen t) {
-                    String gaDi  = t.getGaDi()  != null ? t.getGaDi().getTenGa()  : t.getMaTuyen();
+                    String gaDi = t.getGaDi() != null ? t.getGaDi().getTenGa() : t.getMaTuyen();
                     String gaDen = t.getGaDen() != null ? t.getGaDen().getTenGa() : "";
-                    setText(t.getMaTuyen() + "  —  " + gaDi
-                            + (gaDen.isEmpty() ? "" : " → " + gaDen));
+                    setText(t.getMaTuyen() + "  \u2014  " + gaDi + (gaDen.isEmpty() ? "" : " \u2192 " + gaDen));
                 }
                 return this;
             }
@@ -402,145 +300,10 @@ public class ChinhSuaLichChayDialog extends JDialog {
                 super.getListCellRendererComponent(list, val, idx, sel, focus);
                 if (val instanceof DoanTau d) {
                     String ten = d.getTenDoanTau() != null ? d.getTenDoanTau() : "";
-                    setText(d.getMaDoanTau() + (ten.isEmpty() ? "" : "  —  " + ten));
+                    setText(d.getMaDoanTau() + (ten.isEmpty() ? "" : "  \u2014  " + ten));
                 }
                 return this;
             }
         };
-    }
-
-    // ========================= INLINE ERROR =========================
-
-    private void showFieldError(JComponent field, JLabel errLbl, String msg) {
-        errLbl.setText(msg); errLbl.setVisible(true);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ERROR, 2, true),
-                new EmptyBorder(7, 11, 7, 11)));
-        field.requestFocusInWindow();
-    }
-
-    private void clearAllErrors() {
-        JLabel[] errs = {lblErrMaLich, lblErrTuyen, lblErrDoanTau, lblErrBatDau, lblErrChay};
-        for (JLabel lbl : errs) { if (lbl != null) { lbl.setText(""); lbl.setVisible(false); } }
-        for (JTextField tf : new JTextField[]{txtMaLich, txtThoiGianChay}) {
-            if (tf != null && tf.isEditable()) {
-                tf.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(OUTLINE, 1, true), new EmptyBorder(8, 12, 8, 12)));
-            }
-        }
-    }
-
-    // ========================= UI HELPERS =========================
-
-    private JPanel buildFieldGroup(String label, JComponent input, String hint,
-                                   boolean required, JLabel errLabel) {
-        JPanel group = new JPanel();
-        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
-        group.setOpaque(false);
-
-        // Label row
-        JPanel lblRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        lblRow.setOpaque(false);
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(FONT_LABEL); lbl.setForeground(ON_SURF_VAR);
-        lblRow.add(lbl);
-        if (required) {
-            JLabel star = new JLabel(" *");
-            star.setFont(FONT_LABEL); star.setForeground(ERROR);
-            lblRow.add(star);
-        }
-        lblRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
-        group.add(lblRow);
-        group.add(Box.createVerticalStrut(6));
-
-        input.setAlignmentX(Component.LEFT_ALIGNMENT);
-        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        group.add(input);
-
-        if (hint != null) {
-            group.add(Box.createVerticalStrut(3));
-            JLabel lblHint = new JLabel(hint);
-            lblHint.setFont(FONT_HINT); lblHint.setForeground(ON_SURF_VAR);
-            lblHint.setAlignmentX(Component.LEFT_ALIGNMENT);
-            group.add(lblHint);
-        }
-        if (errLabel != null) {
-            group.add(Box.createVerticalStrut(3));
-            group.add(errLabel);
-        }
-        return group;
-    }
-
-    private JLabel createErrorLabel() {
-        JLabel lbl = new JLabel();
-        lbl.setFont(FONT_ERR); lbl.setForeground(ERROR);
-        lbl.setVisible(false); lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return lbl;
-    }
-
-    private JTextField createTextField() {
-        JTextField f = new JTextField();
-        f.setFont(FONT_INPUT); f.setForeground(ON_SURFACE);
-        f.setPreferredSize(new Dimension(0, 36));
-        f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        f.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true), new EmptyBorder(8, 12, 8, 12)));
-        f.addFocusListener(new FocusAdapter() {
-            @Override public void focusGained(FocusEvent e) {
-                f.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(PRIMARY, 2, true), new EmptyBorder(7, 11, 7, 11)));
-            }
-            @Override public void focusLost(FocusEvent e) {
-                f.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(OUTLINE, 1, true), new EmptyBorder(8, 12, 8, 12)));
-            }
-        });
-        return f;
-    }
-
-    private JButton createPrimaryButton(String text) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? PRIMARY_HOVER : PRIMARY);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
-                g2.dispose(); super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_BTN); btn.setForeground(Color.WHITE);
-        btn.setContentAreaFilled(false); btn.setBorderPainted(false);
-        btn.setFocusPainted(false); btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(150, 40));
-        return btn;
-    }
-
-    private JButton createOutlineButton(String text) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isRollover()) {
-                    g2.setColor(new Color(0xF1, 0xF5, 0xF9));
-                    g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
-                }
-                g2.dispose(); super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_BTN); btn.setForeground(ON_SURF_VAR);
-        btn.setContentAreaFilled(false); btn.setBorderPainted(false);
-        btn.setFocusPainted(false); btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(120, 40));
-        return btn;
-    }
-
-    private ImageIcon loadScaledIcon(String name, int size) {
-        try {
-            java.net.URL url = getClass().getResource("/icons/" + name);
-            if (url != null) return new ImageIcon(new ImageIcon(url).getImage()
-                    .getScaledInstance(size, size, Image.SCALE_SMOOTH));
-        } catch (Exception ignored) {}
-        return null;
     }
 }

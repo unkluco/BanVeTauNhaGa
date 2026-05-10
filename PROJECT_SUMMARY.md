@@ -66,7 +66,7 @@ src/main/java/com/
 - Validation form: hiển thị lỗi inline (JLabel đỏ dưới ô) + viền đỏ + auto-focus. KHÔNG dùng JOptionPane.
 - Nút action trong bảng: bọc JButton trong JPanel(GridBagLayout) để click area chính xác.
 - Canh giữa dọc: dùng GridBagLayout hoặc FlowLayout có vgap, tránh FlowLayout(..., 0).
-- Icons: `src/main/resources/icons/` (placeholder, cần thay ảnh thật). Ảnh lớn: `src/main/resources/images/`.
+- Icons: `LineIcons` Java2D trong `src/main/java/com/modules/LineIcons.java`. ?nh l?n: `src/main/resources/images/`.
 
 ## Cập nhật gần nhất
 - **2026-03-26**: Thêm SuaNhanVienDialog (sửa nhân viên). Sửa ThemNhanVienDialog: bỏ nút X (đã có nút Hủy), thêm inline validation. Fix canh giữa dọc header/filter bar. Fix edit button click area chỉ trigger trên nút. Tạo thư mục placeholder icons/images. Tăng kích thước nút "Bỏ lọc".

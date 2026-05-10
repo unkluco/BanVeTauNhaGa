@@ -77,12 +77,13 @@ public class DAO_Tuyen {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO Tuyen (maTuyen, gaDi, gaDen, km, hoatDong) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, tuyen.getMaTuyen());
             ps.setString(2, tuyen.getGaDi().getMaGa());
             ps.setString(3, tuyen.getGaDen().getMaGa());
             ps.setInt(4, tuyen.getKm());
+            ps.setBoolean(5, tuyen.isHoatDong());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi thêm tuyến: " + e.getMessage());
@@ -94,12 +95,13 @@ public class DAO_Tuyen {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "UPDATE Tuyen SET gaDi = ?, gaDen = ?, km = ? WHERE maTuyen = ?";
+        String sql = "UPDATE Tuyen SET gaDi = ?, gaDen = ?, km = ?, hoatDong = ? WHERE maTuyen = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, tuyen.getGaDi().getMaGa());
             ps.setString(2, tuyen.getGaDen().getMaGa());
             ps.setInt(3, tuyen.getKm());
-            ps.setString(4, tuyen.getMaTuyen());
+            ps.setBoolean(4, tuyen.isHoatDong());
+            ps.setString(5, tuyen.getMaTuyen());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi cập nhật tuyến: " + e.getMessage());

@@ -47,16 +47,16 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
     private final DAO_ChiTietKhuyenMai daoCTKM = new DAO_ChiTietKhuyenMai();
 
     // Design tokens
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color PROMO_BG      = new Color(0xFF, 0xF8, 0xE1);
-    private static final Color PROMO_BORDER  = new Color(0xFF, 0xB3, 0x00);
-    private static final Color PROMO_FG      = new Color(0xE6, 0x52, 0x00);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = AppColors.SURFACE;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color PROMO_BG      = AppColors.WARNING_LIGHT;
+    private static final Color PROMO_BORDER  = AppColors.WARNING;
+    private static final Color PROMO_FG      = AppColors.WARNING_DARK;
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final NumberFormat VND_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
@@ -154,9 +154,7 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
         styleBtn(btnCancel, false);
         btnCancel.addActionListener(e -> { if (callback != null) callback.accept(null); });
 
-        btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
-        btnPanel.setBackground(SURFACE);
-        btnPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE));
+        btnPanel = BookingStepUi.createFooter();
         btnPanel.add(btnCancel);
         btnPanel.add(btnSubmit);
         btnPanel.setVisible(false);
@@ -507,19 +505,7 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
     }
 
     private void styleBtn(JButton btn, boolean primary) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(10, 24, 10, 24));
-        if (primary) {
-            btn.setBackground(PRIMARY);
-            btn.setForeground(Color.WHITE);
-            btn.setOpaque(true);
-        } else {
-            btn.setBackground(CARD_BG);
-            btn.setForeground(ON_SURF_VAR);
-            btn.setOpaque(true);
-        }
+        BookingStepUi.styleActionButton(btn, primary);
     }
 
     @Override public String getTitle() { return "Bước 5b – Khuyến mãi"; }

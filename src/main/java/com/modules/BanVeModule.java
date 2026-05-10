@@ -1,21 +1,18 @@
 package com.modules;
 
-import com.connectDB.ConnectDB;
 import com.dao.*;
 import com.entity.*;
 import com.enums.LoaiGhe;
 import com.enums.TrangThaiVe;
 import com.entity.ChiTietKhuyenMai;
 import com.entity.ApDungKM;
+import com.util.MaTuDong;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -43,10 +40,12 @@ public class BanVeModule extends JPanel implements AppModule {
     private LocalDate ctxNgayDiFrom, ctxNgayDiTo;
     private Lich      ctxLich;
     private final Map<LoaiGhe, Double> ctxPriceMap = new EnumMap<>(LoaiGhe.class);
+    private final Map<LoaiGhe, ChiTietGia> ctxPriceDetailMap = new EnumMap<>(LoaiGhe.class);
     private final List<Ghe> ctxGhes = new ArrayList<>();
     private final List<KhachHang> ctxKhachHangs = new ArrayList<>();
     private final Map<String, List<ChiTietKhuyenMai>> ctxChiTietKMsBySeat = new LinkedHashMap<>();
     private String    ctxPaymentType;
+    private HoaDon    ctxSavedHoaDon;
 
     // --- Navigation stack ---
     private final Deque<String> stepHistory = new ArrayDeque<>();
@@ -70,15 +69,16 @@ public class BanVeModule extends JPanel implements AppModule {
     };
 
     // --- Design tokens ---
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color STEP_DONE     = new Color(0x2E, 0x7D, 0x32);
-    private static final Color STEP_INACTIVE = new Color(0xB0, 0xBE, 0xC5);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
+    private static final Color STEP_DONE     = AppColors.SUCCESS_DARK;
+    private static final Color STEP_DONE_BG  = AppColors.SUCCESS_LIGHT;
+    private static final Color STEP_INACTIVE = NotionTheme.TEXT_FAINT;
 
     // --- DAOs for final save ---
     private final DAO_Ve               daoVe    = new DAO_Ve();
@@ -113,11 +113,11 @@ public class BanVeModule extends JPanel implements AppModule {
         // Center: gray surface with stage card inside
         JPanel centerWrap = new JPanel(new GridBagLayout());
         centerWrap.setBackground(SURFACE);
-        centerWrap.setBorder(new EmptyBorder(16, 16, 16, 16));
+        centerWrap.setBorder(new EmptyBorder(22, 24, 24, 24));
 
-        stagePanel = new JPanel(new BorderLayout());
+        stagePanel = NotionTheme.cardPanel(new BorderLayout());
         stagePanel.setBackground(CARD_BG);
-        stagePanel.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
+        stagePanel.setBorder(BorderFactory.createEmptyBorder());
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
@@ -153,15 +153,8 @@ public class BanVeModule extends JPanel implements AppModule {
         left.setBackground(CARD_BG);
 
         btnBack = new JButton("← Quay lại");
-        btnBack.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnBack.setForeground(PRIMARY);
-        btnBack.setBackground(PRIMARY_LIGHT);
-        btnBack.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(0xBB, 0xDE, 0xFB), 1),
-            new EmptyBorder(5, 14, 5, 14)
-        ));
-        btnBack.setFocusPainted(false);
-        btnBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        NotionTheme.styleSecondaryButton(btnBack);
+        btnBack.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnBack.setVisible(false);
         btnBack.addActionListener(e -> goBack());
 
@@ -172,8 +165,8 @@ public class BanVeModule extends JPanel implements AppModule {
         left.add(btnBack);
         left.add(lblPageTitle);
 
-        // Center: step progress bar
-        stepBarPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 0));
+        // Center: step progress blocks
+        stepBarPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         stepBarPanel.setBackground(CARD_BG);
 
         header.add(left, BorderLayout.WEST);
@@ -186,50 +179,42 @@ public class BanVeModule extends JPanel implements AppModule {
         int activeIdx = stepToIndex(currentStep);
 
         for (int i = 0; i < STEP_LABELS.length; i++) {
-            // Connector
-            if (i > 0) {
-                JLabel conn = new JLabel("—");
-                conn.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-                conn.setForeground(i <= activeIdx ? STEP_DONE : STEP_INACTIVE);
-                stepBarPanel.add(conn);
-            }
-
             final boolean done   = i < activeIdx;
             final boolean active = i == activeIdx;
-            final Color   bgClr  = done ? STEP_DONE : (active ? PRIMARY : STEP_INACTIVE);
+            final Color bgClr = active ? PRIMARY : (done ? STEP_DONE_BG : NotionTheme.CARD_MUTED);
+            final Color borderClr = active ? PRIMARY : (done ? AppColors.SUCCESS_LIGHT : OUTLINE);
+            final Color textClr = active ? Color.WHITE : (done ? STEP_DONE : ON_SURF_VAR);
 
-            JPanel chip = new JPanel(new FlowLayout(FlowLayout.CENTER, 3, 1));
-            chip.setOpaque(false);
-
-            String badgeStr = done ? "V" : String.valueOf(i + 1);
-            JLabel badge = new JLabel(badgeStr) {
+            JPanel chip = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0)) {
                 @Override
                 protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     g2.setColor(bgClr);
-                    g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
+                    g2.fill(new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, 12, 12));
+                    g2.setColor(borderClr);
+                    g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 2, getHeight() - 2, 12, 12));
                     g2.dispose();
                     super.paintComponent(g);
                 }
             };
-            badge.setOpaque(false);
-            badge.setForeground(Color.WHITE);
-            badge.setFont(new Font("Segoe UI", Font.BOLD, 10));
-            badge.setHorizontalAlignment(SwingConstants.CENTER);
-            badge.setPreferredSize(new Dimension(20, 20));
+            chip.setOpaque(false);
+            chip.setBorder(new EmptyBorder(6, 10, 6, 10));
+            chip.setPreferredSize(new Dimension(116, 32));
 
-            JLabel stepLbl = new JLabel(STEP_LABELS[i]);
+            JLabel stepLbl = new JLabel((i + 1) + ". " + STEP_LABELS[i]);
             stepLbl.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 11));
-            stepLbl.setForeground(active ? PRIMARY : (done ? STEP_DONE : STEP_INACTIVE));
+            stepLbl.setForeground(textClr);
+            stepLbl.setHorizontalAlignment(SwingConstants.CENTER);
 
-            chip.add(badge);
             chip.add(stepLbl);
             stepBarPanel.add(chip);
         }
 
         stepBarPanel.revalidate();
         stepBarPanel.repaint();
+        // Handoff: stepper dùng block có chữ để đọc nhanh trong menu full window.
+        // Risk: nếu thêm bước mới, kiểm tra lại chiều rộng 116px để không bị cắt chữ.
     }
 
     private int stepToIndex(String step) {
@@ -308,6 +293,8 @@ public class BanVeModule extends JPanel implements AppModule {
                         ctxLich = (Lich) arr[0];
                         ctxPriceMap.clear();
                         ctxPriceMap.putAll((Map<LoaiGhe, Double>) arr[1]);
+                        ctxPriceDetailMap.clear();
+                        if (arr.length > 2) ctxPriceDetailMap.putAll((Map<LoaiGhe, ChiTietGia>) arr[2]);
                         navigateTo(STEP_3, true);
                     }
                 });
@@ -315,7 +302,7 @@ public class BanVeModule extends JPanel implements AppModule {
             }
 
             case STEP_3 -> {
-                BanVeStep3Module m = new BanVeStep3Module(ctxLich);
+                BanVeStep3Module m = new BanVeStep3Module(ctxLich, ctxPriceMap);
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     if (result instanceof List<?> ghes) {
@@ -328,7 +315,7 @@ public class BanVeModule extends JPanel implements AppModule {
             }
 
             case STEP_5 -> {
-                BanVeStep5Module m = new BanVeStep5Module();
+                BanVeStep5Module m = new BanVeStep5Module(Collections.unmodifiableList(ctxGhes));
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     if (result instanceof List<?> list && !list.isEmpty()) {
@@ -408,7 +395,7 @@ public class BanVeModule extends JPanel implements AppModule {
             }
 
             case STEP_8 -> {
-                BanVeStep8Module m = new BanVeStep8Module();
+                BanVeStep8Module m = new BanVeStep8Module(ctxSavedHoaDon);
                 m.setOnResult(result -> reset());
                 yield m.getView();
             }
@@ -425,6 +412,11 @@ public class BanVeModule extends JPanel implements AppModule {
     private double unitPriceFor(Ghe g) {
         if (g == null || g.getToaTau() == null) return 0.0;
         return ctxPriceMap.getOrDefault(g.getToaTau().getLoaiGhe(), 0.0);
+    }
+
+    private ChiTietGia priceDetailForSeat(Ghe ghe) {
+        if (ghe == null || ghe.getToaTau() == null) return null;
+        return ctxPriceDetailMap.get(ghe.getToaTau().getLoaiGhe());
     }
 
     /** Tổng đơn giá gốc (chưa giảm) của tất cả ghế đã chọn. */
@@ -479,8 +471,9 @@ public class BanVeModule extends JPanel implements AppModule {
             // 0. Kiểm tra giá hợp lệ trước khi ghi DB — DB có CHECK giaTien > 0.
             for (Ghe g : ctxGhes) {
                 double finalPrice = finalPriceForSeat(g);
-                if (finalPrice <= 0.0) {
-                    JOptionPane.showMessageDialog(this,
+                ChiTietGia priceDetail = priceDetailForSeat(g);
+                if (finalPrice <= 0.0 || priceDetail == null) {
+                    NotionMessageDialog.showMessageDialog(this,
                         "Không tìm được giá hợp lệ cho ghế " + (g != null ? g.getMaGhe() : "?") +
                         ".\nVui lòng kiểm tra bảng giá tuyến cho loại ghế này trước khi bán vé.",
                         "Lỗi dữ liệu giá", JOptionPane.ERROR_MESSAGE);
@@ -504,6 +497,7 @@ public class BanVeModule extends JPanel implements AppModule {
             String maHD = daoHD.phatSinhMaHoaDon();
             HoaDon hd   = new HoaDon(maHD, currentUser, LocalDateTime.now());
             daoHD.insert(hd);
+            ctxSavedHoaDon = hd;
 
             // 3. Link HoaDon ↔ từng KhachHang qua bảng junction
             for (KhachHang kh : savedKHs) {
@@ -515,13 +509,14 @@ public class BanVeModule extends JPanel implements AppModule {
             // 4. Tạo Ve + ChiTietHoaDon (+ ApDungKM) — giá tính riêng cho từng ghế
             for (Ghe ghe : ctxGhes) {
                 double finalPrice = finalPriceForSeat(ghe);
+                ChiTietGia priceDetail = priceDetailForSeat(ghe);
                 List<ChiTietKhuyenMai> appliedPromos = selectedPromotionsForSeat(ghe);
 
                 Ve ve = new Ve(genId("VE"), ctxLich, ghe, TrangThaiVe.DA_BAN, null, null);
                 daoVe.insert(ve);
 
                 ChiTietHoaDon cthd = new ChiTietHoaDon(
-                    genId("CTHD"), hd, ve, BigDecimal.valueOf(finalPrice));
+                    genId("CTHD"), hd, ve, priceDetail, BigDecimal.valueOf(finalPrice));
                 daoCTHD.insert(cthd);
 
                 for (ChiTietKhuyenMai km : appliedPromos) {
@@ -532,56 +527,14 @@ public class BanVeModule extends JPanel implements AppModule {
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this,
+            NotionMessageDialog.showMessageDialog(this,
                 "Lỗi khi lưu giao dịch: " + ex.getMessage(),
                 "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    /**
-     * Tạo ID an toàn cho đa luồng bằng cách đếm số bản ghi hiện có trong DB.
-     * Giữ nguyên format: PREFIX-ddMMyyyy-NNN
-     * Không dùng UUID — tránh birthday paradox khi nhiều nhân viên bán vé cùng lúc.
-     */
     private String genId(String prefix) {
-        LocalDate now = LocalDate.now();
-        String datePrefix = String.format("%s-%02d%02d%04d",
-            prefix, now.getDayOfMonth(), now.getMonthValue(), now.getYear());
-
-        Connection con = ConnectDB.getCon();
-        if (con == null) return datePrefix + "-001";
-
-        String tableColumn = switch (prefix) {
-            case "VE"   -> "maVe";
-            case "KH"   -> "maKhachHang";
-            case "CTHD" -> "maChiTietHD";
-            case "ADKM" -> "maApDung";
-            default     -> "maVe";
-        };
-
-        String sql = "SELECT COUNT(*) FROM " + getTableName(prefix) + " WHERE " + tableColumn + " LIKE ?";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, datePrefix + "%");
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    int count = rs.getInt(1) + 1;
-                    return datePrefix + "-" + String.format("%03d", count);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi phát sinh ID: " + e.getMessage());
-        }
-        return datePrefix + "-001";
-    }
-
-    private String getTableName(String prefix) {
-        return switch (prefix) {
-            case "VE"   -> "Ve";
-            case "KH"   -> "KhachHang";
-            case "CTHD" -> "ChiTietHoaDon";
-            case "ADKM" -> "ApDungKM";
-            default     -> "Ve";
-        };
+        return MaTuDong.generate(prefix);
     }
 
     private String seatKey(Ghe ghe) {
@@ -623,11 +576,12 @@ public class BanVeModule extends JPanel implements AppModule {
     @Override
     public void reset() {
         ctxGaDi   = null; ctxGaDen = null; ctxNgayDiFrom = null; ctxNgayDiTo = null;
-        ctxLich   = null; ctxPriceMap.clear();
+        ctxLich   = null; ctxPriceMap.clear(); ctxPriceDetailMap.clear();
         ctxGhes.clear();
         ctxKhachHangs.clear();
         ctxChiTietKMsBySeat.clear();
         ctxPaymentType = null;
+        ctxSavedHoaDon = null;
         stepHistory.clear();
         stepCache.clear();
         navigateTo(STEP_1, false);

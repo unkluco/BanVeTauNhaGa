@@ -17,18 +17,19 @@ import java.util.function.Consumer;
 public class QuanLyTuyenModule extends JPanel implements AppModule {
 
     // ── Design tokens ────────────────────────────────────────────────────
-    private static final Color PRIMARY       = new Color(13, 110, 253);   // Modern Blue
-    private static final Color PRIMARY_HOVER = new Color(11, 94, 215);
-    private static final Color PRIMARY_LIGHT = new Color(231, 241, 255);
-    private static final Color SURFACE       = new Color(248, 249, 250);  // Very light gray
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color TEXT_MAIN     = new Color(33, 37, 41);
-    private static final Color TEXT_MUTED    = new Color(108, 117, 125);
-    private static final Color OUTLINE       = new Color(222, 226, 230);
-    private static final Color DANGER        = new Color(220, 53, 69);
-    private static final Color DANGER_LIGHT  = new Color(254, 226, 226);
-    private static final Color WARN_BG       = new Color(0xFF, 0xF3, 0xCD);
-    private static final Color WARN_FG       = new Color(0x92, 0x60, 0x10);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_HOVER = AppColors.PRIMARY_HOVER;
+    private static final Color PRIMARY_LIGHT = AppColors.PRIMARY_LIGHT;
+    private static final Color SURFACE       = AppColors.BACKGROUND;  // Very light gray
+    private static final Color CARD_BG       = AppColors.SURFACE;
+    private static final Color TEXT_MAIN     = AppColors.TEXT_PRIMARY;
+    private static final Color TEXT_MUTED    = AppColors.TEXT_SECONDARY;
+    private static final Color OUTLINE       = AppColors.BORDER;
+    private static final Color DANGER        = AppColors.ERROR;
+    private static final Color DANGER_LIGHT  = AppColors.ERROR_LIGHT;
+    private static final Color WARN_BG       = AppColors.WARNING_LIGHT;
+    private static final Color WARN_FG       = AppColors.WARNING_DARK;
+    private static final Color ACTIVE_GREEN  = new Color(0x1A, 0xAE, 0x39);
 
     private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 26);
     private static final Font FONT_DESC   = new Font("Segoe UI", Font.PLAIN, 14);
@@ -53,9 +54,13 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     // ── Widgets ───────────────────────────────────────────────────────────
     private SearchableComboBox<Ga> filterGaDi;
     private SearchableComboBox<Ga> filterGaDen;
+    private JComboBox<String>      filterTrangThai;
     private JPanel                 cardsPanel;
     private JScrollPane            scrollPane;
     private JPanel                 paginationPanel;
+    private JLabel                 lblStatTotal;
+    private JLabel                 lblStatActive;
+    private JLabel                 lblStatInactive;
 
     // ====================================================================
     //  AppModule interface
@@ -75,6 +80,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     public void reset() {
         if (filterGaDi  != null) filterGaDi.clearSelection();
         if (filterGaDen != null) filterGaDen.clearSelection();
+        if (filterTrangThai != null) filterTrangThai.setSelectedIndex(0);
         if (cardsPanel != null) applyFilter();
     }
 
@@ -85,10 +91,29 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     private void buildUI() {
         setLayout(new BorderLayout());
         setBackground(SURFACE);
-        setBorder(new EmptyBorder(30, 40, 30, 40));
+        setBorder(new EmptyBorder(28, 36, 28, 36));
 
-        add(buildHeader(),    BorderLayout.NORTH);
-        add(buildContent(),   BorderLayout.CENTER);
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setOpaque(false);
+        JPanel header = buildHeader();
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
+        JPanel stats = buildStatsRow();
+        stats.setAlignmentX(Component.LEFT_ALIGNMENT);
+        stats.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
+        JPanel filterCard = buildFilterBar();
+        filterCard.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filterCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 132));
+        top.add(header);
+        top.add(Box.createVerticalStrut(16));
+        top.add(stats);
+        top.add(Box.createVerticalStrut(16));
+        top.add(filterCard);
+        top.add(Box.createVerticalStrut(16));
+
+        add(top, BorderLayout.NORTH);
+        add(buildContent(), BorderLayout.CENTER);
 
         loadGaFilters();
         loadData();
@@ -96,66 +121,130 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
 
     // ── Header ────────────────────────────────────────────────────────────
     private JPanel buildHeader() {
-        JPanel hdr = new JPanel(new BorderLayout());
+        // Header đổi sang hero card Notion để đồng bộ nhóm Dữ liệu tàu, giữ nguyên ticket card tuyến bên dưới.
+        // Rủi ro: tuyến có title dài hơn nên không nhồi icon vào title để tránh cắt chữ khi resize.
+        JPanel hdr = new JPanel(new BorderLayout(24, 0)) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                GradientPaint gp = new GradientPaint(0, 0, NotionTheme.NAVY,
+                        getWidth(), getHeight(), new Color(0x00, 0x75, 0xDE));
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+                g2.setColor(AppColors.withAlpha(NotionTheme.MINT, 145));
+                g2.fillRoundRect(getWidth() - 230, -36, 170, 170, 42, 42);
+                g2.setColor(AppColors.withAlpha(NotionTheme.PEACH, 120));
+                g2.fillOval(getWidth() - 390, 76, 160, 160);
+                g2.setColor(AppColors.withAlpha(Color.WHITE, 45));
+                g2.fillRoundRect(getWidth() - 325, 44, 150, 14, 14, 14);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         hdr.setOpaque(false);
-        hdr.setBorder(new EmptyBorder(0, 0, 24, 0));
+        hdr.setBorder(new EmptyBorder(24, 28, 24, 28));
 
         JPanel left = new JPanel();
         left.setOpaque(false);
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
 
-        JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        titleRow.setOpaque(false);
-        titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        // Icon header
-        JLabel iconLbl = new JLabel();
-        ImageIcon ico = loadScaledIcon("bieuTuongTuyen.png", 32);
-        if (ico != null) iconLbl.setIcon(ico);
-        JLabel lblTitle = new JLabel("Quản lý Tuyến đường");
-        lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(TEXT_MAIN);
+        JLabel lblEyebrow = new JLabel("WORKSPACE / DỮ LIỆU TÀU");
+        lblEyebrow.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblEyebrow.setForeground(AppColors.withAlpha(Color.WHITE, 175));
+        lblEyebrow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        titleRow.add(iconLbl);
-        titleRow.add(lblTitle);
+        JLabel lblTitle = new JLabel("Quản lý tuyến đường");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel lblDesc = new JLabel("Quản lý và thiết lập lộ trình các ga tàu một cách trực quan.");
         lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(TEXT_MUTED);
+        lblDesc.setForeground(AppColors.withAlpha(Color.WHITE, 205));
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        left.add(titleRow);
-        left.add(Box.createVerticalStrut(6));
+        left.add(lblEyebrow);
+        left.add(Box.createVerticalStrut(8));
+        left.add(lblTitle);
+        left.add(Box.createVerticalStrut(8));
         left.add(lblDesc);
 
-        // Add Button
-        JButton btnAdd = new JButton("  Tạo tuyến mới") {
+        JButton btnAdd = new JButton("+ Tạo tuyến mới");
+        NotionTheme.stylePrimaryButton(btnAdd);
+        btnAdd.setPreferredSize(new Dimension(180, 42));
+        btnAdd.addActionListener(e -> openAddDialog());
+
+        JPanel rightBox = new JPanel(new GridBagLayout());
+        rightBox.setOpaque(false);
+        rightBox.add(btnAdd);
+        hdr.add(left, BorderLayout.CENTER);
+        hdr.add(rightBox, BorderLayout.EAST);
+        return hdr;
+    }
+
+    private JPanel buildStatsRow() {
+        JPanel row = new JPanel(new GridLayout(1, 3, 12, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
+
+        lblStatTotal = new JLabel("0");
+        lblStatActive = new JLabel("0");
+        lblStatInactive = new JLabel("0");
+
+        row.add(buildStatCard("Tuyến hiện tại", lblStatTotal, PRIMARY, NotionTheme.ACCENT_SOFT));
+        row.add(buildStatCard("Đang hoạt động", lblStatActive, ACTIVE_GREEN, NotionTheme.MINT));
+        row.add(buildStatCard("Tạm ngưng", lblStatInactive, AppColors.ERROR_DARK, NotionTheme.ROSE));
+        return row;
+    }
+
+    private JPanel buildStatCard(String label, JLabel value, Color accent, Color tint) {
+        // Stat card copy pattern Khách hàng: nền pastel toàn thẻ, marker dọc và số lớn ở trên.
+        // Rủi ro: giữ 3 thẻ cố định cao 92px nên label tuyến cần ngắn để không cắt chữ.
+        JPanel card = new JPanel(new BorderLayout(10, 0)) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isPressed()) g2.setColor(PRIMARY_HOVER.darker());
-                else if (getModel().isRollover()) g2.setColor(PRIMARY_HOVER);
-                else g2.setColor(PRIMARY);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.setColor(tint);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.setColor(AppColors.withAlpha(accent, 80));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        ImageIcon icoAdd = loadScaledIcon("nutThem.png", 18);
-        if (icoAdd != null) btnAdd.setIcon(icoAdd);
-        btnAdd.setFont(FONT_BOLD);
-        btnAdd.setForeground(Color.WHITE);
-        btnAdd.setFocusPainted(false);
-        btnAdd.setBorderPainted(false);
-        btnAdd.setContentAreaFilled(false);
-        btnAdd.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnAdd.setPreferredSize(new Dimension(200, 45));
-        btnAdd.addActionListener(e -> openAddDialog());
+        card.setOpaque(false);
+        card.setBorder(new EmptyBorder(14, 18, 14, 18));
 
-        hdr.add(left,   BorderLayout.CENTER);
-        hdr.add(btnAdd, BorderLayout.EAST);
-        return hdr;
+        JPanel marker = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(accent);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+            }
+        };
+        marker.setOpaque(false);
+        marker.setPreferredSize(new Dimension(8, 48));
+
+        JPanel text = new JPanel();
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+        text.setOpaque(false);
+        value.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        value.setForeground(accent);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lbl.setForeground(TEXT_MUTED);
+        text.add(value);
+        text.add(Box.createVerticalStrut(2));
+        text.add(lbl);
+
+        card.add(marker, BorderLayout.WEST);
+        card.add(text, BorderLayout.CENTER);
+        return card;
     }
 
     // ── Content ──────────────────────────────────────────────────────────
@@ -164,8 +253,6 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         content.setOpaque(true);
         content.setBackground(SURFACE);
 
-        content.add(buildFilterBar(), BorderLayout.NORTH);
-        
         cardsPanel = new JPanel();
         cardsPanel.setOpaque(true);
         cardsPanel.setBackground(SURFACE);
@@ -203,105 +290,126 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
 
     // ── Filter Bar ────────────────────────────────────────────────────────
     private JPanel buildFilterBar() {
-        JPanel bar = new JPanel(new BorderLayout());
-        bar.setOpaque(false);
-        
-        JPanel bgPanel = new JPanel(new GridBagLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
+        // Filter card tuyến giữ hai combo ga trên một hàng rõ ràng, không chỉnh ticket card bên dưới.
+        // Rủi ro: SearchableComboBox có popup riêng nên không ép custom renderer trong đợt restyle header/filter.
+        JPanel wrapper = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Shadow
-                g2.setColor(new Color(0, 0, 0, 10));
-                g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 5, 24, 24);
-                
-                // Background
-                g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 24, 24);
-                
-                // Border
-                g2.setColor(OUTLINE);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 24, 24);
+                NotionTheme.paintCard(g2, this, CARD_BG, OUTLINE, 16);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        bgPanel.setOpaque(false);
-        bgPanel.setBorder(new EmptyBorder(8, 20, 12, 20));
+        wrapper.setLayout(new BorderLayout(0, 12));
+        wrapper.setOpaque(false);
+        wrapper.setBorder(new EmptyBorder(18, 22, 18, 22));
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        JLabel title = new JLabel("Bộ lọc tuyến đường");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        title.setForeground(TEXT_MAIN);
+        JLabel subtitle = new JLabel("Chọn ga đi và ga đến để thu hẹp danh sách tuyến");
+        subtitle.setFont(FONT_SMALL);
+        subtitle.setForeground(TEXT_MUTED);
+        header.add(title, BorderLayout.WEST);
+        header.add(subtitle, BorderLayout.EAST);
+        wrapper.add(header, BorderLayout.NORTH);
+
+        JPanel searchRow = new JPanel(new BorderLayout(10, 0));
+        searchRow.setOpaque(false);
+        searchRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        searchRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        JPanel routeBox = new JPanel(new GridBagLayout());
+        routeBox.setOpaque(false);
+        routeBox.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(OUTLINE, 1, true),
+                new EmptyBorder(9, 14, 9, 14)
+        ));
 
         GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(0, 0, 0, 15);
+        gbc.insets = new Insets(0, 0, 0, 12);
 
-        // Icon
-        JLabel iconSearch = new JLabel();
-        ImageIcon icoSearch = loadScaledIcon("nutTimKiem.png", 22);
-        if (icoSearch!=null) iconSearch.setIcon(icoSearch);
-        bgPanel.add(iconSearch, gbc);
-
-        // Station Di
         filterGaDi = createGaCombo("Tìm ga đi...");
-        gbc.weightx = 0.45;
-        bgPanel.add(filterGaDi, gbc);
+        filterGaDi.setPreferredSize(new Dimension(360, 38));
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
+        routeBox.add(filterGaDi, gbc);
 
-        // Arrow
-        JLabel arrow = new JLabel(" → ");
-        arrow.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        JLabel arrow = new JLabel("→", SwingConstants.CENTER);
+        arrow.setFont(new Font("Segoe UI", Font.BOLD, 16));
         arrow.setForeground(TEXT_MUTED);
+        arrow.setPreferredSize(new Dimension(32, 38));
+        gbc.gridx = 1;
         gbc.weightx = 0;
-        bgPanel.add(arrow, gbc);
+        routeBox.add(arrow, gbc);
 
-        // Station Den
         filterGaDen = createGaCombo("Tìm ga đến...");
-        gbc.weightx = 0.45;
-        bgPanel.add(filterGaDen, gbc);
+        filterGaDen.setPreferredSize(new Dimension(360, 38));
+        gbc.gridx = 2;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 12);
+        routeBox.add(filterGaDen, gbc);
 
-        // Bo loc button
-        JButton btnClear = new JButton("Bỏ lọc") {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? SURFACE : Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                g2.setColor(OUTLINE);
-                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnClear.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnClear.setForeground(TEXT_MUTED);
-        btnClear.setContentAreaFilled(false);
-        btnClear.setBorderPainted(false);
-        btnClear.setFocusPainted(false);
-        btnClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnClear.setPreferredSize(new Dimension(100, 42));
+        filterTrangThai = createStatusFilterCombo();
+        gbc.gridx = 3;
+        gbc.weightx = 0;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        routeBox.add(filterTrangThai, gbc);
+
+        JButton btnClear = createSecondaryButton("Bỏ lọc", 104, 38);
         btnClear.addActionListener(e -> {
             filterGaDi.clearSelection();
             filterGaDen.clearSelection();
+            filterTrangThai.setSelectedIndex(0);
             applyFilter();
         });
-        
-        gbc.weightx = 0;
-        gbc.insets = new Insets(0, 10, 0, 0);
-        bgPanel.add(btnClear, gbc);
 
-        bar.add(bgPanel, BorderLayout.CENTER);
-        return bar;
+        searchRow.add(routeBox, BorderLayout.CENTER);
+        searchRow.add(btnClear, BorderLayout.EAST);
+        wrapper.add(searchRow, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private JPanel buildFilterGroup(String labelText, JComponent field) {
+        JPanel group = new JPanel();
+        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
+        group.setOpaque(false);
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(FONT_SMALL);
+        lbl.setForeground(TEXT_MUTED);
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        group.add(lbl);
+        group.add(Box.createVerticalStrut(4));
+        group.add(field);
+        return group;
     }
 
     private SearchableComboBox<Ga> createGaCombo(String placeholder) {
         SearchableComboBox<Ga> cb = new SearchableComboBox<>(
                 ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
-                (ga, q) -> ga.getTenGa().toLowerCase().contains(q.toLowerCase()) || 
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q.toLowerCase()) ||
                            ga.getMaGa().toLowerCase().contains(q.toLowerCase()));
         cb.setPlaceholder(placeholder);
         cb.setPreferredSize(new Dimension(250, 40));
         cb.setOnChanged(this::applyFilter);
         return cb;
+    }
+
+    private JComboBox<String> createStatusFilterCombo() {
+        JComboBox<String> combo = new JComboBox<>(new String[]{"Tất cả trạng thái", "Đang hoạt động", "Tạm ngưng"});
+        combo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        combo.setForeground(TEXT_MAIN);
+        combo.setBackground(CARD_BG);
+        combo.setPreferredSize(new Dimension(170, 38));
+        combo.setFocusable(false);
+        combo.addActionListener(e -> applyFilter());
+        return combo;
     }
 
     // ====================================================================
@@ -322,12 +430,21 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     private void applyFilter() {
         Ga selGaDi  = filterGaDi.getSelectedItem();
         Ga selGaDen = filterGaDen.getSelectedItem();
+        String selectedStatus = filterTrangThai == null ? "Tất cả trạng thái" : (String) filterTrangThai.getSelectedItem();
+        boolean filterStatus = selectedStatus != null && !"Tất cả trạng thái".equals(selectedStatus);
 
         filteredData = new ArrayList<>();
         for (Tuyen t : allData) {
             boolean okDi  = (selGaDi  == null) || (t.getGaDi()  != null && t.getGaDi().getMaGa().equals(selGaDi.getMaGa()));
             boolean okDen = (selGaDen == null) || (t.getGaDen() != null && t.getGaDen().getMaGa().equals(selGaDen.getMaGa()));
-            if (okDi && okDen) filteredData.add(t);
+            boolean okStatus = !filterStatus || selectedStatus.equals(t.isHoatDong() ? "Đang hoạt động" : "Tạm ngưng");
+            if (okDi && okDen && okStatus) filteredData.add(t);
+        }
+
+        if (lblStatTotal != null) {
+            lblStatTotal.setText(String.valueOf(filteredData.size()));
+            lblStatActive.setText(String.valueOf(filteredData.stream().filter(Tuyen::isHoatDong).count()));
+            lblStatInactive.setText(String.valueOf(filteredData.stream().filter(t -> !t.isHoatDong()).count()));
         }
 
         currentPage = 1;
@@ -369,7 +486,8 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
 
     private JPanel buildTicketCard(Tuyen tuyen) {
         final boolean isActive = tuyen.isHoatDong();
-        final Color stripColor = isActive ? PRIMARY : WARN_FG;
+        final Color stripColor = isActive ? ACTIVE_GREEN : AppColors.ERROR_DARK;
+        final Color stripAccent = AppColors.withAlpha(stripColor, 145);
 
         JPanel card = new JPanel(new BorderLayout()) {
             boolean isHovered = false;
@@ -377,6 +495,9 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
                 addMouseListener(new MouseAdapter() {
                     @Override public void mouseEntered(MouseEvent e) { isHovered = true; repaint(); }
                     @Override public void mouseExited(MouseEvent e)  { isHovered = false; repaint(); }
+                    @Override public void mouseClicked(MouseEvent e) {
+                        if (SwingUtilities.isLeftMouseButton(e)) openEditDialog(tuyen);
+                    }
                 });
             }
             @Override
@@ -392,17 +513,17 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
                 g2.fillRoundRect(3, 4, w - 6, h - 5, 20, 20);
 
                 // Card Background
-                g2.setColor(isActive ? CARD_BG : new Color(0xFF, 0xFD, 0xF5));
+                g2.setColor(CARD_BG);
                 g2.fillRoundRect(2, 0, w - 6, h - 6, 20, 20);
 
                 // Border
-                g2.setColor(isHovered ? stripColor.brighter() : OUTLINE);
+                g2.setColor(isHovered ? AppColors.withAlpha(stripColor, 150) : OUTLINE);
                 g2.setStroke(new BasicStroke(1.2f));
                 g2.drawRoundRect(2, 0, w - 6, h - 6, 20, 20);
 
                 // Left accent strip
                 g2.clip(new RoundRectangle2D.Float(2, 0, w - 6, h - 6, 20, 20));
-                g2.setColor(stripColor);
+                g2.setColor(stripAccent);
                 g2.fillRect(2, 0, 8, h);
 
                 g2.dispose();
@@ -414,103 +535,98 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         card.setBorder(new EmptyBorder(15, 30, 15, 20));
 
         // ── Main Content Container ─────────────────────────────────────
-        JPanel content = new JPanel(new GridBagLayout());
+        JPanel content = new JPanel(new BorderLayout(24, 0));
         content.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
 
-        // ── Row 0: Badge 
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 3; 
-        gbc.anchor = GridBagConstraints.NORTHWEST;
-        gbc.weighty = 0;
-        gbc.insets = new Insets(0, 0, 5, 0);
+        JPanel leftColumn = new JPanel(new BorderLayout());
+        leftColumn.setOpaque(false);
+        leftColumn.setPreferredSize(new Dimension(420, 0));
 
         JPanel badgeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         badgeRow.setOpaque(false);
 
-        JLabel lblCode = new JLabel(" #" + tuyen.getMaTuyen() + " ") {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(PRIMARY_LIGHT);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        lblCode.setFont(new Font("Consolas", Font.BOLD, 13));
-        lblCode.setForeground(PRIMARY);
-        lblCode.setBorder(new EmptyBorder(4, 6, 4, 6));
+        JLabel lblCode = createCodeChip(tuyen.getMaTuyen());
         badgeRow.add(lblCode);
 
-        if (!isActive) {
-            JLabel lblInactive = new JLabel(" Ngưng hoạt động ") {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(WARN_BG);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            lblInactive.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            lblInactive.setForeground(WARN_FG);
-            lblInactive.setBorder(new EmptyBorder(4, 6, 4, 6));
-            badgeRow.add(lblInactive);
-        }
+        JLabel lblStatus = createStatusBadge(isActive ? "Đang hoạt động" : "Tạm ngưng", isActive ? NotionTheme.MINT : NotionTheme.ROSE, stripColor);
+        badgeRow.add(lblStatus);
 
-        content.add(badgeRow, gbc);
+        leftColumn.add(badgeRow, BorderLayout.NORTH);
+        leftColumn.add(buildGaInfo(tuyen.getGaDi(), "Ga Đi", true), BorderLayout.CENTER);
 
-        // ── Row 1: Stations & Track
-        gbc.gridy = 1; gbc.gridwidth = 1;
-        gbc.weighty = 1.0;
-        gbc.fill = GridBagConstraints.BOTH;
-        gbc.insets = new Insets(0, 0, 0, 0);
-
-        // ── Left: Ga Di ────────────────────────────────────────────────
-        JPanel leftGa = buildGaInfo(tuyen.getGaDi(), "Ga Đi", "bieuTuongGaDi.png", true);
-        gbc.gridx = 0; gbc.weightx = 0.35; gbc.anchor = GridBagConstraints.WEST;
-        content.add(leftGa, gbc);
-
-        // ── Middle: Track graphic ──────────────────────────────────────
         JPanel middle = buildTrackUI(tuyen);
-        gbc.gridx = 1; gbc.weightx = 0.3; gbc.anchor = GridBagConstraints.CENTER;
-        content.add(middle, gbc);
+        middle.setPreferredSize(new Dimension(480, 90));
+        middle.setMinimumSize(new Dimension(420, 90));
 
-        // ── Right: Ga Den ──────────────────────────────────────────────
-        JPanel rightGa = buildGaInfo(tuyen.getGaDen(), "Ga Đến", "bieuTuongGaDen.png", false);
-        gbc.gridx = 2; gbc.weightx = 0.35; gbc.anchor = GridBagConstraints.EAST;
-        content.add(rightGa, gbc);
+        JPanel rightColumn = new JPanel(new BorderLayout());
+        rightColumn.setOpaque(false);
+        rightColumn.setPreferredSize(new Dimension(420, 0));
+        rightColumn.add(buildGaInfo(tuyen.getGaDen(), "Ga Đến", false), BorderLayout.CENTER);
+
+        // Ticket card dùng 3 vùng cố định để track/km luôn nằm cùng trục giữa mọi dòng.
+        // Rủi ro: nếu cửa sổ rất hẹp, hai cột ga co trước nhưng vùng track vẫn giữ tối thiểu để không lệch km.
+        content.add(leftColumn, BorderLayout.WEST);
+        content.add(middle, BorderLayout.CENTER);
+        content.add(rightColumn, BorderLayout.EAST);
 
         card.add(content, BorderLayout.CENTER);
 
         // ── Actions Panel (Right edge) ──────────────────────────────────
-        JPanel actions = new JPanel();
+        JPanel actions = new JPanel(new GridBagLayout());
         actions.setOpaque(false);
-        actions.setLayout(new BoxLayout(actions, BoxLayout.Y_AXIS));
         actions.setBorder(new EmptyBorder(0, 15, 0, 0));
 
-        JButton btnEdit = buildIconButton("nutSua.png", PRIMARY_LIGHT, PRIMARY);
-        btnEdit.setToolTipText("Chỉnh sửa tuyến");
+        JButton btnEdit = buildTextActionButton("Chỉnh sửa", stripColor, isActive ? NotionTheme.MINT : NotionTheme.ROSE);
         btnEdit.addActionListener(e -> openEditDialog(tuyen));
-
-        JButton btnToggle = buildIconButton(isActive ? "nutXoa.png" : "nutSua.png",
-                isActive ? DANGER_LIGHT : WARN_BG, isActive ? DANGER : WARN_FG);
-        btnToggle.setToolTipText(isActive ? "Ngưng hoạt động" : "Kích hoạt lại");
-        btnToggle.addActionListener(e -> toggleHoatDong(tuyen));
-
-        actions.add(Box.createVerticalGlue());
+        btnEdit.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { e.consume(); }
+        });
         actions.add(btnEdit);
-        actions.add(Box.createVerticalStrut(15));
-        actions.add(btnToggle);
-        actions.add(Box.createVerticalGlue());
 
         card.add(actions, BorderLayout.EAST);
 
         return card;
     }
 
-    private JPanel buildGaInfo(Ga ga, String typeLabel, String iconName, boolean leftAlign) {
+    private JLabel createCodeChip(String text) {
+        JLabel chip = new JLabel(text == null || text.isBlank() ? "--" : " " + text + " ") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(NotionTheme.CARD_MUTED);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        chip.setFont(new Font("Consolas", Font.BOLD, 14));
+        chip.setForeground(TEXT_MUTED);
+        chip.setBorder(new EmptyBorder(4, 8, 4, 8));
+        return chip;
+    }
+
+    private JLabel createStatusBadge(String text, Color bg, Color fg) {
+        JLabel badge = new JLabel(" " + text + " ") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.setColor(AppColors.withAlpha(fg, 60));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        badge.setForeground(fg);
+        badge.setBorder(new EmptyBorder(4, 6, 4, 6));
+        return badge;
+    }
+
+    private JPanel buildGaInfo(Ga ga, String typeLabel, boolean leftAlign) {
         JPanel pnl = new JPanel();
         pnl.setOpaque(false);
         pnl.setLayout(new BoxLayout(pnl, BoxLayout.Y_AXIS));
@@ -535,20 +651,18 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         JPanel locPanel = new JPanel(new FlowLayout(leftAlign ? FlowLayout.LEFT : FlowLayout.RIGHT, 0, 0));
         locPanel.setOpaque(false);
         locPanel.setAlignmentX(alignX);
-        JLabel lblIcon = new JLabel();
-        ImageIcon idx = loadScaledIcon(iconName, 14);
-        if(idx!=null) lblIcon.setIcon(idx);
+        JComponent stationIcon = new StationDotIcon(14, TEXT_MUTED);
         
         JLabel lblAddr = new JLabel(" " + diaChi + " ");
         lblAddr.setFont(FONT_SMALL);
         lblAddr.setForeground(TEXT_MUTED);
         
         if (leftAlign) {
-            locPanel.add(lblIcon);
+            locPanel.add(stationIcon);
             locPanel.add(lblAddr);
         } else {
             locPanel.add(lblAddr);
-            locPanel.add(lblIcon);
+            locPanel.add(stationIcon);
         }
 
         pnl.add(Box.createVerticalGlue());
@@ -580,18 +694,12 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
                 g2.setColor(OUTLINE.darker());
                 g2.drawLine(20, midY, w - 20, midY);
 
-                // Draw Train Icon in middle
-                ImageIcon trainIcon = loadScaledIcon("bieuTuongTau.png", 24);
-                if (trainIcon != null) {
-                    int ix = (w - 24) / 2;
-                    int iy = midY - 12;
-                    
-                    // Clear background behind icon
-                    g2.setColor(CARD_BG);
-                    g2.fillOval(ix-4, iy-4, 32, 32);
-                    
-                    trainIcon.paintIcon(this, g2, ix, iy);
-                }
+                // Draw vector train marker directly to avoid clipped/pixelated SVG edges in route cards.
+                int ix = (w - 30) / 2;
+                int iy = midY - 15;
+                g2.setColor(CARD_BG);
+                g2.fillOval(ix - 5, iy - 5, 40, 40);
+                paintTrainMarker(g2, ix, iy);
                 
                 // Draw KM text
                 String km = tuyen.getKm() > 0 ? tuyen.getKm() + " km" : "---";
@@ -615,23 +723,69 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         return track;
     }
 
-    private JButton buildIconButton(String iconFile, Color bgHover, Color iconColor) {
-        JButton btn = new JButton() {
+    private void paintTrainMarker(Graphics2D g2, int x, int y) {
+        g2 = (Graphics2D) g2.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        g2.setColor(TEXT_MAIN);
+        g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.drawRoundRect(x + 4, y + 8, 22, 13, 3, 3);
+        g2.drawLine(x + 8, y + 5, x + 22, y + 5);
+        g2.drawLine(x + 10, y + 5, x + 14, y + 8);
+        g2.drawLine(x + 18, y + 5, x + 22, y + 8);
+        g2.drawLine(x + 8, y + 14, x + 22, y + 14);
+        g2.drawLine(x + 3, y + 24, x + 27, y + 24);
+        g2.drawLine(x + 8, y + 21, x + 5, y + 24);
+        g2.drawLine(x + 22, y + 21, x + 25, y + 24);
+        g2.dispose();
+    }
+
+    private static class StationDotIcon extends JComponent {
+        private final int size;
+        private final Color color;
+
+        StationDotIcon(int size, Color color) {
+            this.size = size;
+            this.color = color;
+            setPreferredSize(new Dimension(size, size));
+            setMinimumSize(new Dimension(size, size));
+            setOpaque(false);
+        }
+
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            int cx = size / 2;
+            int cy = size / 2;
+            g2.setColor(color);
+            g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawOval(2, 2, size - 5, size - 5);
+            g2.fillOval(cx - 2, cy - 2, 4, 4);
+            g2.drawLine(cx - 3, size - 2, cx + 3, size - 2);
+            g2.dispose();
+        }
+    }
+
+    private JButton buildTextActionButton(String text, Color fg, Color hoverBg) {
+        // Nút action ngoài card tuyến đổi màu theo trạng thái để khớp badge/strip của chính card đó.
+        // Rủi ro: nếu thêm action khác cần đưa vào dialog chi tiết hoặc menu, không đặt thêm icon ngoài card.
+        JButton btn = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isRollover() || getModel().isPressed()) {
-                    g2.setColor(bgHover);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                }
+                g2.setColor(getModel().isRollover() || getModel().isPressed() ? hoverBg : NotionTheme.CARD_MUTED);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(AppColors.withAlpha(fg, 70));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        ImageIcon ico = loadScaledIcon(iconFile, 20);
-        if (ico != null) btn.setIcon(ico);
-        btn.setPreferredSize(new Dimension(38, 38));
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setForeground(fg);
+        btn.setPreferredSize(new Dimension(96, 34));
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -676,7 +830,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
                 final int page = p;
                 JButton btn = makePaginBtn(String.valueOf(p));
                 if (p == currentPage) {
-                    btn.setForeground(Color.WHITE);
+                    btn.setForeground(AppColors.SURFACE);
                     btn.putClientProperty("active", true);
                 }
                 btn.addActionListener(e -> { currentPage = page; refreshCards(); });
@@ -745,23 +899,43 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
                 ? "Ngưng hoạt động tuyến " + tuyen.getMaTuyen() + "?\nTuyến sẽ không hiển thị khi tìm kiếm và bán vé."
                 : "Kích hoạt lại tuyến " + tuyen.getMaTuyen() + "?";
         String title = current ? "Xác nhận ngưng hoạt động" : "Xác nhận kích hoạt";
-        int choice = JOptionPane.showConfirmDialog(this, msg, title,
+        int choice = NotionMessageDialog.showConfirmDialog(this, msg, title,
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (choice != JOptionPane.YES_OPTION) return;
         boolean ok = daoTuyen.setHoatDong(tuyen.getMaTuyen(), !current);
         if (ok) loadData();
-        else JOptionPane.showMessageDialog(this, "Không thể cập nhật trạng thái tuyến.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        else NotionMessageDialog.showMessageDialog(this, "Không thể cập nhật trạng thái tuyến.", "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
 
-    private ImageIcon loadScaledIcon(String fileName, int size) {
-        try {
-            java.net.URL url = getClass().getResource("/icons/" + fileName);
-            if (url == null) return null;
-            Image img = new ImageIcon(url).getImage()
-                    .getScaledInstance(size, size, Image.SCALE_SMOOTH);
-            return new ImageIcon(img);
-        } catch (Exception e) {
-            return null;
-        }
+    private JButton createSecondaryButton(String text, int width, int height) {
+        // Nút phụ trong filter card dùng nền trắng và border mảnh để không cạnh tranh với CTA ở hero.
+        // Rủi ro: helper chỉ tối ưu cho nhãn ngắn; nếu thêm icon/text dài cần tăng width.
+        JButton btn = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? NotionTheme.CARD_MUTED : AppColors.SURFACE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(OUTLINE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(FONT_BOLD);
+        btn.setForeground(TEXT_MUTED);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(width, height));
+        return btn;
+    }
+
+    private ImageIcon loadScaledIcon(LineIcons.Name iconName, int size) {
+        ImageIcon icon = LineIcons.image(iconName, size);
+        // Handoff: module icons now use LineIcons enum directly, avoiding legacy SVG path strings.
+        // Risk: keep visual QA at small sizes when adding new icon names.
+        return icon;
     }
 }

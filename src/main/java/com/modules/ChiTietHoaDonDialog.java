@@ -42,6 +42,7 @@ public class ChiTietHoaDonDialog extends JDialog {
     private final DAO_ChiTietHoaDon   daoCTHD = new DAO_ChiTietHoaDon();
     private final DAO_ApDungKM        daoKM   = new DAO_ApDungKM();
     private final DAO_HoaDonKhachHang daoHDKH = new DAO_HoaDonKhachHang();
+    private final boolean embedded;
 
     // Formatters
     private static final NumberFormat     VND_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
@@ -49,28 +50,30 @@ public class ChiTietHoaDonDialog extends JDialog {
     private static final DateTimeFormatter D_FMT   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // Design tokens
-    private static final Color HDR_BG         = new Color(0x00, 0x4A, 0x7C);
-    private static final Color HDR_ACCENT     = new Color(0x00, 0x7A, 0xBE);
-    private static final Color SURFACE        = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG        = Color.WHITE;
-    private static final Color ON_SURFACE     = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR    = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE        = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color PRIMARY        = new Color(0x00, 0x5D, 0x90);
-    private static final Color TABLE_HDR_BG   = new Color(0xE8, 0xF4, 0xFF);
-    private static final Color ROW_ALT        = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color AMOUNT_COLOR   = new Color(0x0D, 0x6E, 0x35);
-    private static final Color STATUS_SOLD_BG = new Color(0xDC, 0xFA, 0xE6);
-    private static final Color STATUS_SOLD_FG = new Color(0x16, 0x6B, 0x3A);
-    private static final Color STATUS_HUY_BG  = new Color(0xFE, 0xE2, 0xE2);
-    private static final Color STATUS_HUY_FG  = new Color(0xB9, 0x1C, 0x1C);
-    private static final Color KM_FG          = new Color(0x92, 0x40, 0x0E);  // amber/orange
+    private static final Color HDR_BG         = NotionTheme.NAVY;
+    private static final Color HDR_ACCENT     = NotionTheme.ACCENT;
+    private static final Color SURFACE        = NotionTheme.PAGE;
+    private static final Color CARD_BG        = NotionTheme.CARD;
+    private static final Color ON_SURFACE     = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR    = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE        = NotionTheme.BORDER;
+    private static final Color PRIMARY        = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT  = NotionTheme.ACCENT_SOFT;
+    private static final Color TABLE_HDR_BG   = NotionTheme.ACCENT_SOFT;
+    private static final Color ROW_ALT        = NotionTheme.CARD_MUTED;
+    private static final Color AMOUNT_COLOR   = AppColors.SUCCESS_DARK;
+    private static final Color STATUS_SOLD_BG = AppColors.SUCCESS_LIGHT;
+    private static final Color STATUS_SOLD_FG = AppColors.SUCCESS_DARK;
+    private static final Color STATUS_HUY_BG  = AppColors.ERROR_LIGHT;
+    private static final Color STATUS_HUY_FG  = AppColors.ERROR_DARK;
+    private static final Color KM_FG          = AppColors.WARNING_DARK;  // amber/orange
 
     public ChiTietHoaDonDialog(JFrame owner, HoaDon hoaDon) {
         super(owner, "", Dialog.ModalityType.MODELESS);
         this.hoaDon        = hoaDon;
         this.chiTietList   = daoCTHD.findByHoaDon(hoaDon.getMaHoaDon());
         this.khachHangList = daoHDKH.findKhachHangByHoaDon(hoaDon.getMaHoaDon());
+        this.embedded = false;
 
         setUndecorated(true);
         setResizable(false);
@@ -83,19 +86,33 @@ public class ChiTietHoaDonDialog extends JDialog {
         setLocationRelativeTo(owner);
     }
 
+    private ChiTietHoaDonDialog(HoaDon hoaDon, boolean embedded) {
+        super((Frame) null, "", Dialog.ModalityType.MODELESS);
+        this.hoaDon        = hoaDon;
+        this.chiTietList   = daoCTHD.findByHoaDon(hoaDon.getMaHoaDon());
+        this.khachHangList = daoHDKH.findKhachHangByHoaDon(hoaDon.getMaHoaDon());
+        this.embedded = embedded;
+    }
+
+    public static JPanel createInvoiceView(HoaDon hoaDon) {
+        return new ChiTietHoaDonDialog(hoaDon, true).buildInvoicePanel(false);
+    }
+
     // =========================================================================
     //  BUILD UI
     // =========================================================================
 
     private void buildUI() {
+        setContentPane(ThemNhanVienDialog.buildShadowWrapper(buildInvoicePanel(true)));
+    }
+
+    private JPanel buildInvoicePanel(boolean includeFooter) {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(SURFACE);
         root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
 
-        // Header fixed at top (serves as custom title bar)
         root.add(buildInvoiceHeader(), BorderLayout.NORTH);
 
-        // Scrollable invoice body
         JPanel invoiceBody = new JPanel();
         invoiceBody.setLayout(new BoxLayout(invoiceBody, BoxLayout.Y_AXIS));
         invoiceBody.setBackground(SURFACE);
@@ -113,9 +130,9 @@ public class ChiTietHoaDonDialog extends JDialog {
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(SURFACE);
 
-        root.add(scroll,           BorderLayout.CENTER);
-        root.add(buildFooterBar(), BorderLayout.SOUTH);
-        setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
+        root.add(scroll, BorderLayout.CENTER);
+        if (includeFooter) root.add(buildFooterBar(), BorderLayout.SOUTH);
+        return root;
     }
 
     private void installDismissOnOutsideClick() {
@@ -149,14 +166,16 @@ public class ChiTietHoaDonDialog extends JDialog {
 
         JLabel iconLbl = new JLabel();
         iconLbl.setOpaque(false);
+        iconLbl.setForeground(AppColors.SURFACE);
         try {
-            ImageIcon ic = new ImageIcon(getClass().getResource("/icons/bieuTuongHoaDon.png"));
-            iconLbl.setIcon(new ImageIcon(ic.getImage().getScaledInstance(32, 32, Image.SCALE_SMOOTH)));
+            iconLbl.setIcon(LineIcons.contained(LineIcons.Name.INVOICE, 32, 20, AppColors.SURFACE));
         } catch (Exception ignored) {}
+        // Handoff: invoice header icon now loads at final 32px SVG size for crisp strokes.
+        // Risk: title row spacing intentionally stays unchanged.
 
         JLabel lblTitle = new JLabel("  HÓA ĐƠN BÁN VÉ TÀU HỎA");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setForeground(AppColors.SURFACE);
 
         JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         titleRow.setOpaque(false);
@@ -165,7 +184,7 @@ public class ChiTietHoaDonDialog extends JDialog {
 
         JLabel lblCompany = new JLabel("Công ty Vận tải Đường sắt Việt Nam  •  Hệ thống Azure Rail");
         lblCompany.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblCompany.setForeground(new Color(0xB0, 0xD4, 0xF0));
+        lblCompany.setForeground(PRIMARY_LIGHT);
 
         left.add(titleRow);
         left.add(Box.createVerticalStrut(4));
@@ -178,13 +197,13 @@ public class ChiTietHoaDonDialog extends JDialog {
 
         JLabel lblMa = new JLabel("Số:  " + hoaDon.getMaHoaDon());
         lblMa.setFont(new Font("Consolas", Font.BOLD, 14));
-        lblMa.setForeground(Color.WHITE);
+        lblMa.setForeground(AppColors.SURFACE);
         lblMa.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
         String ngayStr = hoaDon.getNgayLap() != null ? hoaDon.getNgayLap().format(DT_FMT) : "—";
         JLabel lblNgay = new JLabel("Ngày:  " + ngayStr);
         lblNgay.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblNgay.setForeground(new Color(0xB0, 0xD4, 0xF0));
+        lblNgay.setForeground(PRIMARY_LIGHT);
         lblNgay.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
         right.add(lblMa);
@@ -214,8 +233,8 @@ public class ChiTietHoaDonDialog extends JDialog {
         String headerTitle = khachHangList.size() > 1
                 ? "THÔNG TIN KHÁCH HÀNG (" + khachHangList.size() + ")"
                 : "THÔNG TIN KHÁCH HÀNG";
-        addCardHeader(card, "/icons/bieuTuongThongTinCaNhan.png", headerTitle,
-                new Color(0x1E, 0x66, 0xA8));
+        addCardHeader(card, LineIcons.Name.USER, headerTitle,
+                PRIMARY);
 
         if (khachHangList.isEmpty()) {
             addInfoRow(card, "Khách hàng:", "Không rõ", false);
@@ -252,8 +271,8 @@ public class ChiTietHoaDonDialog extends JDialog {
         JPanel card = infoCard();
         NhanVien nv = hoaDon.getNhanVien();
 
-        addCardHeader(card, "/icons/bieuTuongNhanVien.png", "NHÂN VIÊN LẬP HÓA ĐƠN",
-                new Color(0x1A, 0x7A, 0x3C));
+        addCardHeader(card, LineIcons.Name.USER, "NHÂN VIÊN LẬP HÓA ĐƠN",
+                PRIMARY);
 
         if (nv != null) {
             addInfoRow(card, "Họ và tên:", nv.getHoTen(),          true);
@@ -276,20 +295,21 @@ public class ChiTietHoaDonDialog extends JDialog {
         return p;
     }
 
-    private void addCardHeader(JPanel card, String iconPath, String title, Color accentColor) {
+    private void addCardHeader(JPanel card, LineIcons.Name iconName, String title, Color accentColor) {
         JPanel hdr = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         hdr.setBackground(accentColor);
         hdr.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
 
         try {
-            ImageIcon ic = new ImageIcon(getClass().getResource(iconPath));
-            JLabel iLbl = new JLabel(new ImageIcon(ic.getImage().getScaledInstance(18, 18, Image.SCALE_SMOOTH)));
+            JLabel iLbl = new JLabel(LineIcons.contained(iconName, 18, 10, AppColors.SURFACE));
             hdr.add(iLbl);
         } catch (Exception ignored) {}
+        // Handoff: card header icons use LineIcons at final 18px size, no legacy resource path.
+        // Risk: keep header max height fixed so invoice cards do not jump.
 
         JLabel lbl = new JLabel(title);
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lbl.setForeground(Color.WHITE);
+        lbl.setForeground(AppColors.SURFACE);
         hdr.add(lbl);
 
         card.add(hdr);
@@ -326,16 +346,18 @@ public class ChiTietHoaDonDialog extends JDialog {
         JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         titleRow.setOpaque(false);
         try {
-            ImageIcon ic = new ImageIcon(getClass().getResource("/icons/bieuTuongVe.png"));
-            titleRow.add(new JLabel(new ImageIcon(ic.getImage().getScaledInstance(18, 18, Image.SCALE_SMOOTH))));
+            JLabel ticketIcon = new JLabel(LineIcons.contained(LineIcons.Name.TICKET, 18, 10, PRIMARY));
+            titleRow.add(ticketIcon);
         } catch (Exception ignored) {}
+        // Handoff: ticket section icon uses final SVG size to avoid pixelated small glyphs.
+        // Risk: FlowLayout gap keeps previous baseline rhythm.
         JLabel sTitle = new JLabel("CHI TIẾT CÁC VÉ");
         sTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
         sTitle.setForeground(PRIMARY);
         titleRow.add(sTitle);
 
         JSeparator sep = new JSeparator();
-        sep.setForeground(new Color(0x00, 0x5D, 0x90, 80));
+        sep.setForeground(AppColors.primaryAlpha(80));
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
@@ -360,14 +382,15 @@ public class ChiTietHoaDonDialog extends JDialog {
         tbl.setShowGrid(false);
         tbl.setIntercellSpacing(new Dimension(0, 0));
         tbl.setBackground(CARD_BG);
-        tbl.setSelectionBackground(new Color(0xE3, 0xF2, 0xFD));
+        tbl.setSelectionBackground(NotionTheme.TABLE_SELECTION);
+        tbl.setSelectionForeground(ON_SURFACE);
         tbl.setFillsViewportHeight(true);
 
         JTableHeader th = tbl.getTableHeader();
         th.setFont(new Font("Segoe UI", Font.BOLD, 12));
         th.setBackground(TABLE_HDR_BG);
         th.setForeground(PRIMARY);
-        th.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, new Color(0x00, 0x5D, 0x90, 60)));
+        th.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, PRIMARY));
         th.setReorderingAllowed(false);
 
         // Column widths (total ~1045px — comfortable in 1150px dialog)
@@ -486,18 +509,20 @@ public class ChiTietHoaDonDialog extends JDialog {
         sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
 
         JPanel bar = new JPanel(new BorderLayout());
-        bar.setBackground(new Color(0xEF, 0xF7, 0xFF));
+        bar.setBackground(PRIMARY_LIGHT);
         bar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(0xBB, 0xDE, 0xFB), 1),
+                BorderFactory.createLineBorder(PRIMARY, 1),
                 new EmptyBorder(14, 20, 14, 20)));
         bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
 
         JPanel leftInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
         leftInfo.setOpaque(false);
         try {
-            ImageIcon ic = new ImageIcon(getClass().getResource("/icons/bieuTuongVe.png"));
-            leftInfo.add(new JLabel(new ImageIcon(ic.getImage().getScaledInstance(18, 18, Image.SCALE_SMOOTH))));
+            JLabel ticketIcon = new JLabel(LineIcons.contained(LineIcons.Name.TICKET, 18, 10, PRIMARY));
+            leftInfo.add(ticketIcon);
         } catch (Exception ignored) {}
+        // Handoff: total ticket icon stays vector-rendered in the summary strip.
+        // Risk: do not change summary text/action layout here.
         JLabel soVeLbl = new JLabel("Tổng số vé: " + chiTietList.size());
         soVeLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         soVeLbl.setForeground(ON_SURF_VAR);
@@ -575,7 +600,7 @@ public class ChiTietHoaDonDialog extends JDialog {
         bar.setBackground(CARD_BG);
         bar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE));
 
-        JButton btnClose = styledBtn("Đóng", PRIMARY, Color.WHITE);
+        JButton btnClose = styledBtn("Đóng", PRIMARY, AppColors.SURFACE);
         btnClose.addActionListener(e -> dispose());
 
         bar.add(btnClose);
@@ -628,23 +653,42 @@ public class ChiTietHoaDonDialog extends JDialog {
 
     class TrangThaiRenderer extends JPanel implements TableCellRenderer {
         private final JLabel badge = new JLabel();
+        private static final int BADGE_HEIGHT = 24;
+        private static final int BADGE_MARGIN_X = 24;
+
         TrangThaiRenderer() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 0, 8));
+            setLayout(new BorderLayout());
             setOpaque(true);
-            badge.setOpaque(true);
+            setBorder(new EmptyBorder(0, BADGE_MARGIN_X, 0, BADGE_MARGIN_X));
+            badge.setOpaque(false);
             badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            badge.setBorder(new EmptyBorder(3, 10, 3, 10));
-            add(badge);
+            badge.setHorizontalAlignment(SwingConstants.CENTER);
+            badge.setPreferredSize(new Dimension(10, BADGE_HEIGHT));
+            add(badge, BorderLayout.CENTER);
+            // Handoff: trạng thái vé trong chi tiết hóa đơn dùng tag gần full ô như các bảng quản lý.
+            // Dialog hẹp hơn module chính nên margin nhỏ hơn; tránh tăng để không cắt text trạng thái.
         }
         @Override public Component getTableCellRendererComponent(
                 JTable t, Object v, boolean sel, boolean foc, int r, int c) {
             String text = v != null ? v.toString() : "";
             badge.setText(text);
             boolean sold = TrangThaiVe.DA_BAN.toString().equals(text);
-            badge.setBackground(sold ? STATUS_SOLD_BG : STATUS_HUY_BG);
             badge.setForeground(sold ? STATUS_SOLD_FG : STATUS_HUY_FG);
-            setBackground(sel ? new Color(0xE3, 0xF2, 0xFD) : (r % 2 == 0 ? CARD_BG : ROW_ALT));
+            setBackground(sel ? NotionTheme.TABLE_SELECTION : (r % 2 == 0 ? CARD_BG : ROW_ALT));
             return this;
+        }
+
+        @Override protected void paintChildren(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Rectangle r = badge.getBounds();
+            String text = badge.getText();
+            boolean sold = TrangThaiVe.DA_BAN.toString().equals(text);
+            int y = r.y + Math.max(0, (r.height - BADGE_HEIGHT) / 2);
+            g2.setColor(sold ? STATUS_SOLD_BG : STATUS_HUY_BG);
+            g2.fillRoundRect(r.x, y, r.width, BADGE_HEIGHT, 14, 14);
+            g2.dispose();
+            super.paintChildren(g);
         }
     }
 
@@ -683,3 +727,4 @@ public class ChiTietHoaDonDialog extends JDialog {
         return sb.toString();
     }
 }
+

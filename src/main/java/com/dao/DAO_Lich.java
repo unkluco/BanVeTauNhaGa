@@ -62,11 +62,14 @@ public class DAO_Lich {
         Connection con = ConnectDB.getCon();
         if (con == null) return ds;
 
-        String sql = "SELECT * FROM Lich WHERE maTuyen = ? AND thoiGianBatDau >= ? AND thoiGianBatDau <= ? ORDER BY thoiGianBatDau";
+        String sql = "SELECT l.* FROM Lich l JOIN DoanTau dt ON dt.maDoanTau = l.maDoanTau "
+                + "WHERE l.maTuyen = ? AND l.thoiGianBatDau >= ? AND l.thoiGianBatDau <= ? "
+                + "AND dt.trangThai = ? ORDER BY l.thoiGianBatDau";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maTuyen);
             ps.setTimestamp(2, Timestamp.valueOf(fromDate));
             ps.setTimestamp(3, Timestamp.valueOf(toDate));
+            ps.setNString(4, "Đang hoạt động");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     ds.add(mapRow(rs));
@@ -82,13 +85,14 @@ public class DAO_Lich {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Lich (maLich, maTuyen, maDoanTau, thoiGianBatDau, thoiGianChay, hoatDong) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, lich.getMaLich());
             ps.setString(2, lich.getTuyen().getMaTuyen());
             ps.setString(3, lich.getDoanTau().getMaDoanTau());
             ps.setTimestamp(4, Timestamp.valueOf(lich.getThoiGianBatDau()));
             ps.setInt(5, Integer.parseInt(lich.getThoiGianChay()));
+            ps.setBoolean(6, lich.isHoatDong());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi thêm lịch: " + e.getMessage());
@@ -100,13 +104,14 @@ public class DAO_Lich {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "UPDATE Lich SET maTuyen = ?, maDoanTau = ?, thoiGianBatDau = ?, thoiGianChay = ? WHERE maLich = ?";
+        String sql = "UPDATE Lich SET maTuyen = ?, maDoanTau = ?, thoiGianBatDau = ?, thoiGianChay = ?, hoatDong = ? WHERE maLich = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, lich.getTuyen().getMaTuyen());
             ps.setString(2, lich.getDoanTau().getMaDoanTau());
             ps.setTimestamp(3, Timestamp.valueOf(lich.getThoiGianBatDau()));
             ps.setInt(4, Integer.parseInt(lich.getThoiGianChay()));
-            ps.setString(5, lich.getMaLich());
+            ps.setBoolean(5, lich.isHoatDong());
+            ps.setString(6, lich.getMaLich());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Lỗi khi cập nhật lịch: " + e.getMessage());

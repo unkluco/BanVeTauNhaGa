@@ -2,237 +2,121 @@ package com.modules;
 
 import com.dao.DAO_Gia;
 import com.entity.Gia;
+import com.util.MaTuDong;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.awt.geom.RoundRectangle2D;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 
-public class ThemGiaDialog extends JDialog {
-
-    // === Design tokens ===
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_HOVER = new Color(0x00, 0x4A, 0x73);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
-    private static final Color ERROR         = new Color(0xBA, 0x1A, 0x1A);
-    private static final Color HEADER_BG     = new Color(0xF1, 0xF5, 0xF9);
-    private static final Color FOOTER_BG     = new Color(0xF1, 0xF5, 0xF9);
-
-    private static final Font FONT_TITLE  = new Font("Segoe UI", Font.BOLD, 18);
-    private static final Font FONT_DESC   = new Font("Segoe UI", Font.PLAIN, 12);
-    private static final Font FONT_LABEL  = new Font("Segoe UI", Font.BOLD, 12);
-    private static final Font FONT_INPUT  = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FONT_MONO   = new Font("Consolas", Font.BOLD, 13);
-    private static final Font FONT_BTN    = new Font("Segoe UI", Font.BOLD, 13);
-    private static final Font FONT_HINT   = new Font("Segoe UI", Font.ITALIC, 10);
-    private static final Font FONT_ERR    = new Font("Segoe UI", Font.PLAIN, 11);
-
+public class ThemGiaDialog extends AbstractFormDialog<Gia> {
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final String MO_TA_PLACEHOLDER = "VD: H\u00e0 N\u1ed9i - S\u00e0i G\u00f2n Economy";
 
-    // === Form fields ===
-    private JTextField        txtMaGia;
-    private JTextField        txtMoTa;
-    private JTextField        txtThoiGianBatDau;
-    private JTextField        txtThoiGianKetThuc;
+    private JTextField txtMaGia;
+    private JTextField txtMoTa;
+    private JTextField txtThoiGianBatDau;
+    private JTextField txtThoiGianKetThuc;
     private JComboBox<String> cboTrangThai;
 
-    // === Error labels ===
-    private JLabel lblErrMaGia;
-    private JLabel lblErrMoTa;
-    private JLabel lblErrBatDau;
-    private JLabel lblErrKetThuc;
-
     private boolean saved = false;
-    private Runnable onSaved;
+    private final Runnable onSaved;
 
     public ThemGiaDialog(Window owner, Runnable onSaved) {
-        super(owner, "Thêm kỳ giá mới", ModalityType.APPLICATION_MODAL);
+        super(owner, "Th\u00eam k\u1ef3 gi\u00e1 m\u1edbi");
         this.onSaved = onSaved;
-        setUndecorated(true);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setResizable(false);
-        initUI();
-        pack();
-        setMinimumSize(new Dimension(600, getPreferredSize().height));
-        setLocationRelativeTo(owner);
+        installStandardLayout(owner);
     }
 
-    private void initUI() {
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(CARD_BG);
-        root.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
-
-        root.add(buildHeader(), BorderLayout.NORTH);
-        root.add(buildForm(),   BorderLayout.CENTER);
-        root.add(buildFooter(), BorderLayout.SOUTH);
-
-        setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
+    @Override
+    protected String dialogDescription() {
+        return "T\u1ea1o k\u1ef3 gi\u00e1 m\u1edbi v\u1edbi kho\u1ea3ng th\u1eddi gian \u00e1p d\u1ee5ng r\u00f5 r\u00e0ng.";
     }
 
-    // ========================= HEADER =========================
-    private JPanel buildHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(HEADER_BG);
-        header.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
-                new EmptyBorder(20, 28, 16, 28)
-        ));
-
-        JPanel left = new JPanel();
-        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
-        left.setOpaque(false);
-
-        JLabel lblTitle = new JLabel("Thêm kỳ giá mới");
-        lblTitle.setFont(FONT_TITLE);
-        lblTitle.setForeground(PRIMARY);
-
-        JLabel lblDesc = new JLabel("Vui lòng điền đầy đủ thông tin để tạo kỳ giá mới.");
-        lblDesc.setFont(FONT_DESC);
-        lblDesc.setForeground(ON_SURF_VAR);
-
-        left.add(lblTitle);
-        left.add(Box.createVerticalStrut(4));
-        left.add(lblDesc);
-
-        header.add(left, BorderLayout.CENTER);
-        return header;
+    @Override
+    protected LineIcons.Name dialogIcon() {
+        return LineIcons.Name.MONEY;
     }
 
-    // ========================= FORM =========================
-    private JPanel buildForm() {
-        JPanel form = new JPanel();
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setBackground(CARD_BG);
-        form.setBorder(new EmptyBorder(20, 24, 12, 24));
-
-        // Row 1: Ma gia (auto) | Trang thai
-        JPanel row1 = new JPanel(new GridLayout(1, 2, 16, 0));
-        row1.setOpaque(false);
-        row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
-
-        txtMaGia = createReadOnlyField(generateMaGia());
-        lblErrMaGia = createErrorLabel();
-        row1.add(buildFieldGroup("Mã giá (tự sinh)", txtMaGia, null, false, null));
-
-        cboTrangThai = new JComboBox<>(new String[]{"Đang áp dụng", "Ngừng áp dụng"});
-        cboTrangThai.setFont(FONT_INPUT);
-        cboTrangThai.setBackground(CARD_BG);
-        cboTrangThai.setEditable(true);
-        cboTrangThai.setPreferredSize(new Dimension(0, 36));
-        cboTrangThai.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        row1.add(buildFieldGroup("Trạng thái", cboTrangThai, null, false, null));
-
-        form.add(row1);
-        form.add(Box.createVerticalStrut(10));
-
-        // Row 2: Mo ta (full width)
-        JPanel row2 = new JPanel(new GridLayout(1, 1, 0, 0));
-        row2.setOpaque(false);
-        row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
-
-        txtMoTa = createInputField("VD: Hà Nội - Sài Gòn Economy");
-        lblErrMoTa = createErrorLabel();
-        row2.add(buildFieldGroup("Mô tả / Tên kỳ giá", txtMoTa, null, true, lblErrMoTa));
-
-        form.add(row2);
-        form.add(Box.createVerticalStrut(10));
-
-        // Row 3: Thoi gian bat dau | Thoi gian ket thuc
-        JPanel row3 = new JPanel(new GridLayout(1, 2, 16, 0));
-        row3.setOpaque(false);
-        row3.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
-
-        txtThoiGianBatDau = createInputField("dd/MM/yyyy");
-        lblErrBatDau = createErrorLabel();
-        row3.add(buildFieldGroup("Thời gian áp dụng", txtThoiGianBatDau, "* Định dạng: dd/MM/yyyy", true, lblErrBatDau));
-
-        txtThoiGianKetThuc = createInputField("dd/MM/yyyy");
-        lblErrKetThuc = createErrorLabel();
-        row3.add(buildFieldGroup("Thời gian kết thúc", txtThoiGianKetThuc, "* Định dạng: dd/MM/yyyy", true, lblErrKetThuc));
-
-        form.add(row3);
-
-        return form;
+    @Override
+    protected String primaryButtonText() {
+        return "Th\u00eam k\u1ef3 gi\u00e1";
     }
 
-    // ========================= FOOTER =========================
-    private JPanel buildFooter() {
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
-        footer.setBackground(FOOTER_BG);
-        footer.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE),
-                new EmptyBorder(16, 28, 16, 28)
-        ));
-
-        JButton btnCancel = createOutlineButton("Hủy bỏ");
-        btnCancel.addActionListener(e -> dispose());
-
-        JButton btnSave = createPrimaryButton("Lưu kỳ giá");
-        btnSave.addActionListener(e -> doSave());
-
-        footer.add(btnCancel);
-        footer.add(btnSave);
-        return footer;
+    @Override
+    protected int preferredDialogWidth() {
+        return 640;
     }
 
-    // ========================= SAVE LOGIC =========================
-    private void doSave() {
-        clearAllErrors();
+    @Override
+    protected FormSchema buildFormSchema() {
+        txtMaGia = createReadonlyField(generateMaGia());
+        txtMoTa = createTextField();
+        txtThoiGianBatDau = createTextField();
+        txtThoiGianKetThuc = createTextField();
+        cboTrangThai = new JComboBox<>(new String[]{"\u0110ang \u00e1p d\u1ee5ng", "Ng\u1eebng \u00e1p d\u1ee5ng"});
 
-        String maGia = txtMaGia.getText().trim();
-        String moTa = getFieldText(txtMoTa, "VD: Hà Nội - Sài Gòn Economy");
-        String batDauStr = getFieldText(txtThoiGianBatDau, "dd/MM/yyyy");
-        String ketThucStr = getFieldText(txtThoiGianKetThuc, "dd/MM/yyyy");
+        // Handoff: them gia van nhap ngay bang text de giu hanh vi cu va format dd/MM/yyyy.
+        // Rui ro: neu doi sang DatePicker thi can kiem lai luong nhap tay cua nguoi dung hien tai.
+        return FormSchema.builder()
+                .columns(2)
+                .gap(16, 14)
+                .field(FieldSpec.of("maGia", "M\u00e3 gi\u00e1", txtMaGia).grid(0, 0).required(true).build())
+                .field(FieldSpec.of("trangThai", "Tr\u1ea1ng th\u00e1i", cboTrangThai).grid(0, 1).build())
+                .field(FieldSpec.of("moTa", "M\u00f4 t\u1ea3 / T\u00ean k\u1ef3 gi\u00e1", txtMoTa)
+                        .grid(1, 0).fullWidth().required(true).hint(MO_TA_PLACEHOLDER).build())
+                .field(FieldSpec.of("batDau", "Th\u1eddi gian \u00e1p d\u1ee5ng", txtThoiGianBatDau)
+                        .grid(2, 0).required(true).hint("\u0110\u1ecbnh d\u1ea1ng: dd/MM/yyyy").build())
+                .field(FieldSpec.of("ketThuc", "Th\u1eddi gian k\u1ebft th\u00fac", txtThoiGianKetThuc)
+                        .grid(2, 1).required(true).hint("\u0110\u1ecbnh d\u1ea1ng: dd/MM/yyyy").build())
+                .build();
+    }
 
-        // Validation
+    @Override
+    protected List<ValidationError> validateForm(FormValues values) {
+        List<ValidationError> errors = new ArrayList<>();
+        String moTa = values.text("moTa");
+        LocalDate batDau = parseDate(values.text("batDau"), "batDau", "ng\u00e0y \u00e1p d\u1ee5ng", errors);
+        LocalDate ketThuc = parseDate(values.text("ketThuc"), "ketThuc", "ng\u00e0y k\u1ebft th\u00fac", errors);
+
         if (moTa.isEmpty()) {
-            showFieldError(txtMoTa, lblErrMoTa, "Vui lòng nhập mô tả");
-            return;
+            errors.add(new ValidationError("moTa", "Vui l\u00f2ng nh\u1eadp m\u00f4 t\u1ea3"));
         }
-        if (batDauStr.isEmpty()) {
-            showFieldError(txtThoiGianBatDau, lblErrBatDau, "Vui lòng nhập ngày áp dụng");
-            return;
+        if (batDau != null && ketThuc != null && !ketThuc.isAfter(batDau)) {
+            errors.add(new ValidationError("ketThuc", "Th\u1eddi gian k\u1ebft th\u00fac ph\u1ea3i sau th\u1eddi gian b\u1eaft \u0111\u1ea7u"));
         }
-        if (ketThucStr.isEmpty()) {
-            showFieldError(txtThoiGianKetThuc, lblErrKetThuc, "Vui lòng nhập ngày kết thúc");
-            return;
-        }
+        return errors;
+    }
 
-        LocalDate batDau;
+    private LocalDate parseDate(String value, String fieldId, String label, List<ValidationError> errors) {
+        if (value == null || value.isBlank()) {
+            errors.add(new ValidationError(fieldId, "Vui l\u00f2ng nh\u1eadp " + label));
+            return null;
+        }
         try {
-            batDau = LocalDate.parse(batDauStr, DT_FMT);
+            return LocalDate.parse(value.trim(), DT_FMT);
         } catch (DateTimeParseException ex) {
-            showFieldError(txtThoiGianBatDau, lblErrBatDau, "Sai định dạng (dd/MM/yyyy)");
-            return;
+            errors.add(new ValidationError(fieldId, "Sai \u0111\u1ecbnh d\u1ea1ng (dd/MM/yyyy" + ")"));
+            return null;
         }
+    }
 
-        LocalDate ketThuc;
-        try {
-            ketThuc = LocalDate.parse(ketThucStr, DT_FMT);
-        } catch (DateTimeParseException ex) {
-            showFieldError(txtThoiGianKetThuc, lblErrKetThuc, "Sai định dạng (dd/MM/yyyy)");
-            return;
-        }
-
-        if (!ketThuc.isAfter(batDau)) {
-            showFieldError(txtThoiGianKetThuc, lblErrKetThuc, "Thời gian kết thúc phải sau thời gian bắt đầu");
-            return;
-        }
-
+    @Override
+    protected Gia collectResult(FormValues values) {
+        String maGia = txtMaGia.getText().trim();
+        String moTa = values.text("moTa");
+        LocalDate batDau = LocalDate.parse(values.text("batDau"), DT_FMT);
+        LocalDate ketThuc = LocalDate.parse(values.text("ketThuc"), DT_FMT);
         Object selTT = cboTrangThai.getSelectedItem();
-        boolean trangThai = selTT == null || selTT.toString().contains("Đang");
+        boolean trangThai = selTT == null || selTT.toString().contains("\u0110ang");
+        return new Gia(maGia, batDau, ketThuc, moTa, trangThai);
+    }
 
-        Gia gia = new Gia(maGia, batDau, ketThuc, moTa, trangThai);
-
+    @Override
+    protected void onSubmit(Gia gia) {
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new SwingWorker<Boolean, Void>() {
             @Override protected Boolean doInBackground() {
@@ -246,212 +130,35 @@ public class ThemGiaDialog extends JDialog {
                         if (onSaved != null) onSaved.run();
                         dispose();
                     } else {
-                        JOptionPane.showMessageDialog(ThemGiaDialog.this,
-                                "Không thể lưu! Mã giá có thể đã tồn tại.",
-                                "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        NotionMessageDialog.showMessageDialog(ThemGiaDialog.this,
+                                "Kh\u00f4ng th\u1ec3 l\u01b0u! M\u00e3 gi\u00e1 c\u00f3 th\u1ec3 \u0111\u00e3 t\u1ed3n t\u1ea1i.", "L\u1ed7i", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(ThemGiaDialog.this,
-                            "Lỗi: " + ex.getMessage(),
-                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    NotionMessageDialog.showMessageDialog(ThemGiaDialog.this,
+                            "L\u1ed7i: " + ex.getMessage(), "L\u1ed7i", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();
+        // Handoff: luu van chay bang SwingWorker nhu ban cu de tranh khoa giao dien.
+        // Rui ro: base chua disable nut luu khi worker chay nen tranh double-click lien tuc.
     }
 
     public boolean isSaved() { return saved; }
 
-    // ========================= INLINE ERROR HELPERS =========================
+    private String generateMaGia() { return MaTuDong.generate("GIA"); }
 
-    private void showFieldError(JComponent field, JLabel errLabel, String msg) {
-        errLabel.setText(msg);
-        errLabel.setVisible(true);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ERROR, 2, true),
-                new EmptyBorder(7, 11, 7, 11)
-        ));
-        field.requestFocusInWindow();
+    private JTextField createTextField() {
+        JTextField field = new JTextField();
+        field.setFont(NotionTheme.BODY);
+        field.setForeground(NotionTheme.TEXT);
+        return field;
     }
 
-    private void clearAllErrors() {
-        JLabel[] errs     = {lblErrMoTa, lblErrBatDau, lblErrKetThuc};
-        JComponent[] flds = {txtMoTa, txtThoiGianBatDau, txtThoiGianKetThuc};
-        for (int i = 0; i < errs.length; i++) {
-            errs[i].setText("");
-            errs[i].setVisible(false);
-            flds[i].setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(OUTLINE, 1, true),
-                    new EmptyBorder(8, 12, 8, 12)
-            ));
-        }
-    }
-
-    private JLabel createErrorLabel() {
-        JLabel lbl = new JLabel();
-        lbl.setFont(FONT_ERR);
-        lbl.setForeground(ERROR);
-        lbl.setVisible(false);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return lbl;
-    }
-
-    // ========================= UI HELPERS =========================
-
-    private JPanel buildFieldGroup(String label, JComponent input, String hint, boolean required, JLabel errLabel) {
-        JPanel group = new JPanel();
-        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
-        group.setOpaque(false);
-
-        JPanel lblRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        lblRow.setOpaque(false);
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(FONT_LABEL);
-        lbl.setForeground(ON_SURF_VAR);
-        lblRow.add(lbl);
-        if (required) {
-            JLabel star = new JLabel(" *");
-            star.setFont(FONT_LABEL);
-            star.setForeground(ERROR);
-            lblRow.add(star);
-        }
-        lblRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
-        group.add(lblRow);
-        group.add(Box.createVerticalStrut(6));
-
-        input.setAlignmentX(Component.LEFT_ALIGNMENT);
-        input.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        group.add(input);
-
-        if (hint != null && !hint.isEmpty()) {
-            group.add(Box.createVerticalStrut(4));
-            JLabel lblHint = new JLabel(hint);
-            lblHint.setFont(FONT_HINT);
-            lblHint.setForeground(ON_SURF_VAR);
-            lblHint.setAlignmentX(Component.LEFT_ALIGNMENT);
-            group.add(lblHint);
-        }
-
-        if (errLabel != null) {
-            group.add(Box.createVerticalStrut(3));
-            group.add(errLabel);
-        }
-
-        return group;
-    }
-
-    private String generateMaGia() {
-        return "MG" + String.format("%05d", System.currentTimeMillis() % 100000L);
-    }
-
-    private JTextField createReadOnlyField(String value) {
-        JTextField f = new JTextField(value);
-        f.setFont(FONT_MONO);
-        f.setForeground(ON_SURF_VAR);
-        f.setEditable(false);
-        f.setBackground(new Color(0xF1, 0xF5, 0xF9));
-        f.setPreferredSize(new Dimension(0, 36));
-        f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        f.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
-        return f;
-    }
-
-    private JTextField createInputField(String placeholder) {
-        JTextField f = new JTextField();
-        f.setFont(FONT_INPUT);
-        f.setForeground(ON_SURF_VAR);
-        f.setPreferredSize(new Dimension(0, 36));
-        f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        f.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(OUTLINE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
-        f.setText(placeholder);
-        f.addFocusListener(new FocusAdapter() {
-            @Override public void focusGained(FocusEvent e) {
-                if (f.getText().equals(placeholder)) {
-                    f.setText("");
-                    f.setForeground(ON_SURFACE);
-                }
-            }
-            @Override public void focusLost(FocusEvent e) {
-                if (f.getText().trim().isEmpty()) {
-                    f.setForeground(ON_SURF_VAR);
-                    f.setText(placeholder);
-                }
-            }
-        });
-        addFocusBorderEffect(f);
-        return f;
-    }
-
-    private String getFieldText(JTextField f, String placeholder) {
-        String t = f.getText();
-        return t.equals(placeholder) ? "" : t.trim();
-    }
-
-    private void addFocusBorderEffect(JComponent comp) {
-        comp.addFocusListener(new FocusAdapter() {
-            @Override public void focusGained(FocusEvent e) {
-                comp.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(PRIMARY, 2, true),
-                        new EmptyBorder(7, 11, 7, 11)
-                ));
-            }
-            @Override public void focusLost(FocusEvent e) {
-                comp.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(OUTLINE, 1, true),
-                        new EmptyBorder(8, 12, 8, 12)
-                ));
-            }
-        });
-    }
-
-    private JButton createPrimaryButton(String text) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color bg = getModel().isRollover() ? PRIMARY_HOVER : PRIMARY;
-                g2.setColor(bg);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_BTN);
-        btn.setForeground(Color.WHITE);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(150, 40));
-        return btn;
-    }
-
-    private JButton createOutlineButton(String text) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isRollover()) {
-                    g2.setColor(new Color(0xF1, 0xF5, 0xF9));
-                    g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
-                }
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_BTN);
-        btn.setForeground(ON_SURF_VAR);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(100, 40));
-        return btn;
+    private JTextField createReadonlyField(String value) {
+        JTextField field = createTextField();
+        field.setText(value == null ? "" : value);
+        field.setEditable(false);
+        field.setFont(NotionTheme.BODY_BOLD);
+        return field;
     }
 }

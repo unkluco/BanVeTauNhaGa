@@ -13,6 +13,7 @@ import java.util.List;
 import com.connectDB.ConnectDB;
 import com.entity.HoaDon;
 import com.entity.NhanVien;
+import com.util.MaTuDong;
 
 public class DAO_HoaDon {
 
@@ -53,29 +54,8 @@ public class DAO_HoaDon {
         return null;
     }
 
-    /**
-     * Phát sinh mã hóa đơn theo định dạng HD-ddMMyyyy-xxx
-     */
     public String phatSinhMaHoaDon() {
-        Connection con = ConnectDB.getCon();
-        if (con == null) return "HD-00000000-001";
-
-        LocalDate now = LocalDate.now();
-        String datePrefix = String.format("HD-%02d%02d%04d", now.getDayOfMonth(), now.getMonthValue(), now.getYear());
-
-        String sql = "SELECT COUNT(*) FROM HoaDon WHERE maHoaDon LIKE ?";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, datePrefix + "%");
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    int count = rs.getInt(1) + 1;
-                    return datePrefix + "-" + String.format("%03d", count);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi phát sinh mã hóa đơn: " + e.getMessage());
-        }
-        return datePrefix + "-001";
+        return MaTuDong.generate("HD");
     }
 
     /**

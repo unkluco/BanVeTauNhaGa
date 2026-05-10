@@ -45,13 +45,13 @@ public class BanVeStep1Module extends JPanel implements AppModule {
     private JLabel lblModeRange;
 
     // Design tokens
-    private static final Color PRIMARY       = new Color(0x00, 0x5D, 0x90);
-    private static final Color PRIMARY_LIGHT = new Color(0xE3, 0xF2, 0xFD);
-    private static final Color SURFACE       = new Color(0xF8, 0xFA, 0xFC);
-    private static final Color CARD_BG       = Color.WHITE;
-    private static final Color ON_SURFACE    = new Color(0x1A, 0x1D, 0x21);
-    private static final Color ON_SURF_VAR   = new Color(0x5F, 0x67, 0x70);
-    private static final Color OUTLINE       = new Color(0xDE, 0xE3, 0xE8);
+    private static final Color PRIMARY       = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT = NotionTheme.ACCENT_SOFT;
+    private static final Color SURFACE       = NotionTheme.PAGE;
+    private static final Color CARD_BG       = NotionTheme.CARD;
+    private static final Color ON_SURFACE    = NotionTheme.TEXT;
+    private static final Color ON_SURF_VAR   = NotionTheme.TEXT_MUTED;
+    private static final Color OUTLINE       = NotionTheme.BORDER;
 
     private JButton btnSubmit;
     private JButton btnCancel;
@@ -77,7 +77,7 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBackground(CARD_BG);
-        content.setBorder(new EmptyBorder(40, 80, 28, 80));
+        content.setBorder(new EmptyBorder(42, 72, 30, 72));
 
         // Title
         JLabel title = new JLabel("Thông tin hành trình");
@@ -140,9 +140,7 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         styleBtn(btnCancel, false);
         btnCancel.addActionListener(e -> { if (callback != null) callback.accept(null); });
 
-        btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
-        btnPanel.setBackground(CARD_BG);
-        btnPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE));
+        btnPanel = BookingStepUi.createFooter();
         btnPanel.add(btnCancel);
         btnPanel.add(btnSubmit);
         btnPanel.setVisible(false);
@@ -162,8 +160,8 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         cardExact = new JPanel(new BorderLayout(0, 8));
         cardExact.setBackground(CARD_BG);
         cardExact.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(PRIMARY, 2),
-            new EmptyBorder(10, 14, 10, 14)
+            BorderFactory.createLineBorder(PRIMARY, 1, true),
+            new EmptyBorder(12, 14, 12, 14)
         ));
         cardExact.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         cardExact.addMouseListener(new MouseAdapter() {
@@ -182,8 +180,8 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         cardRange = new JPanel(new BorderLayout(0, 8));
         cardRange.setBackground(CARD_BG);
         cardRange.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(OUTLINE, 1),
-            new EmptyBorder(10, 14, 10, 14)
+            BorderFactory.createLineBorder(OUTLINE, 1, true),
+            new EmptyBorder(12, 14, 12, 14)
         ));
         cardRange.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         cardRange.addMouseListener(new MouseAdapter() {
@@ -295,12 +293,12 @@ public class BanVeStep1Module extends JPanel implements AppModule {
 
         // Update card borders
         cardExact.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(exact ? PRIMARY : OUTLINE, exact ? 2 : 1),
-            new EmptyBorder(10, 14, 10, 14)
+            BorderFactory.createLineBorder(exact ? PRIMARY : OUTLINE, 1, true),
+            new EmptyBorder(12, 14, 12, 14)
         ));
         cardRange.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(!exact ? PRIMARY : OUTLINE, !exact ? 2 : 1),
-            new EmptyBorder(10, 14, 10, 14)
+            BorderFactory.createLineBorder(!exact ? PRIMARY : OUTLINE, 1, true),
+            new EmptyBorder(12, 14, 12, 14)
         ));
 
         // Repaint radio dots (chúng đọc dateMode động nên repaint là đủ)
@@ -364,23 +362,12 @@ public class BanVeStep1Module extends JPanel implements AppModule {
     private void styleCombo(JComboBox<?> cb) {
         cb.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         cb.setBackground(CARD_BG);
+        cb.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
         cb.setPreferredSize(new Dimension(320, 42));
     }
 
     private void styleBtn(JButton btn, boolean primary) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(10, 28, 10, 28));
-        if (primary) {
-            btn.setBackground(PRIMARY);
-            btn.setForeground(Color.WHITE);
-            btn.setOpaque(true);
-        } else {
-            btn.setBackground(CARD_BG);
-            btn.setForeground(ON_SURF_VAR);
-            btn.setOpaque(true);
-        }
+        BookingStepUi.styleActionButton(btn, primary);
     }
 
     // =========================================================================
@@ -392,11 +379,11 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         Ga gaDen = (Ga) cbGaDen.getSelectedItem();
 
         if (gaDi == null || gaDen == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn ga đi và ga đến.");
+            NotionMessageDialog.showMessageDialog(this, "Vui lòng chọn ga đi và ga đến.");
             return;
         }
         if (gaDi.getMaGa().equals(gaDen.getMaGa())) {
-            JOptionPane.showMessageDialog(this, "Ga đi và ga đến không được trùng nhau.");
+            NotionMessageDialog.showMessageDialog(this, "Ga đi và ga đến không được trùng nhau.");
             return;
         }
 
@@ -405,7 +392,7 @@ public class BanVeStep1Module extends JPanel implements AppModule {
         if (dateMode == MODE_EXACT) {
             from = dpExact.getValue();
             if (from == null) {
-                JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày đi.");
+                NotionMessageDialog.showMessageDialog(this, "Vui lòng chọn ngày đi.");
                 return;
             }
             to = from;
@@ -413,17 +400,17 @@ public class BanVeStep1Module extends JPanel implements AppModule {
             from = dpRangeFrom.getValue();
             to   = dpRangeTo.getValue();
             if (from == null || to == null) {
-                JOptionPane.showMessageDialog(this, "Vui lòng chọn khoảng ngày.");
+                NotionMessageDialog.showMessageDialog(this, "Vui lòng chọn khoảng ngày.");
                 return;
             }
             if (to.isBefore(from)) {
-                JOptionPane.showMessageDialog(this, "Ngày kết thúc phải sau ngày bắt đầu.");
+                NotionMessageDialog.showMessageDialog(this, "Ngày kết thúc phải sau ngày bắt đầu.");
                 return;
             }
         }
 
         if (from.isBefore(LocalDate.now())) {
-            JOptionPane.showMessageDialog(this, "Ngày đi phải từ hôm nay trở đi.");
+            NotionMessageDialog.showMessageDialog(this, "Ngày đi phải từ hôm nay trở đi.");
             return;
         }
 
