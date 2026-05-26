@@ -54,10 +54,7 @@ public class QuanLyToaModule extends JPanel implements AppModule {
     private Consumer<Object> callback;
     private List<ToaTau> allData      = new ArrayList<>();
     private List<ToaTau> filteredData = new ArrayList<>();
-    private int currentPage  = 1;
-    private int rowsPerPage  = 12; // Adjusted dynamically
     private int gridCols     = 3;
-    private boolean isRefreshing = false;
 
     // ── Widgets ───────────────────────────────────────────────────────────
     private JTextField txtSearch;
@@ -67,8 +64,8 @@ public class QuanLyToaModule extends JPanel implements AppModule {
     private JLabel     lblStatSeat;
     private JLabel     lblStatBed;
     private JPanel     cardsPanel;
+    private JPanel     cardsHost;
     private JScrollPane scrollPane;
-    private JPanel     paginationPanel;
 
     public QuanLyToaModule() {
         setLayout(new BorderLayout());
@@ -86,7 +83,9 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         stats.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
         JPanel filterCard = buildFilterBar();
         filterCard.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filterCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 190));
+        NotionTheme.lockMaxWidthToPreferredHeight(filterCard);
+        // Handoff: filter card dùng preferred height thay vì số pixel cứng để tránh che control.
+        // Cảnh báo: các kích thước nút/tag/card con vẫn cố định để giữ layout dạng lưới ổn định.
         top.add(header);
         top.add(Box.createVerticalStrut(16));
         top.add(stats);
@@ -264,11 +263,16 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         content.setOpaque(true);
         content.setBackground(SURFACE);
 
-        cardsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
+        cardsPanel = new JPanel(new GridLayout(0, gridCols, 15, 15));
         cardsPanel.setOpaque(true);
         cardsPanel.setBackground(SURFACE);
 
-        scrollPane = new JScrollPane(cardsPanel);
+        cardsHost = new JPanel(new BorderLayout());
+        cardsHost.setOpaque(true);
+        cardsHost.setBackground(SURFACE);
+        cardsHost.add(cardsPanel, BorderLayout.NORTH);
+
+        scrollPane = new JScrollPane(cardsHost);
         scrollPane.setOpaque(true);
         scrollPane.setBackground(SURFACE);
         scrollPane.getViewport().setOpaque(true);
@@ -277,36 +281,12 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         scrollPane.getVerticalScrollBar().setUnitIncrement(20);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-        scrollPane.addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                int w = scrollPane.getWidth();
-                int h = scrollPane.getHeight();
-                int cardW = 260; // Slightly narrower for wagons
-                int cols = Math.max(1, (w - 15) / (cardW + 15));
-                int rH = 110 + 15;
-                int rows = Math.max(2, h / rH);
-                int newItems = cols * rows;
-                
-                if (gridCols != cols) {
-                    gridCols = cols;
-                }
-                
-                if (newItems != rowsPerPage) {
-                    rowsPerPage = newItems;
-                    if (!isRefreshing) refreshCards();
-                } else if (!isRefreshing) {
-                    refreshCards();
-                }
-            }
+        scrollPane.getViewport().addComponentListener(new ComponentAdapter() {
+            @Override public void componentResized(ComponentEvent e) { updateGridColumns(); }
         });
 
         content.add(scrollPane, BorderLayout.CENTER);
         
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
-        paginationPanel.setOpaque(true);
-        paginationPanel.setBackground(SURFACE);
-        content.add(paginationPanel, BorderLayout.SOUTH);
 
         return content;
     }
@@ -388,6 +368,7 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         cbLoai.setFont(FONT_BODY);
         cbLoai.setBackground(CARD_BG);
         cbLoai.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
+        NotionTheme.applyComboBoxSelection(cbLoai);
         cbLoai.addActionListener(e -> applyFilter());
 
         cbStatus = new JComboBox<>(new String[]{"Tất cả trạng thái", STATUS_OPTIONS[0], STATUS_OPTIONS[1], STATUS_OPTIONS[2]});
@@ -395,6 +376,7 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         cbStatus.setFont(FONT_BODY);
         cbStatus.setBackground(CARD_BG);
         cbStatus.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
+        NotionTheme.applyComboBoxSelection(cbStatus);
         cbStatus.addActionListener(e -> applyFilter());
 
         JPanel optionRow = new JPanel(new GridBagLayout());
@@ -472,45 +454,42 @@ public class QuanLyToaModule extends JPanel implements AppModule {
             lblStatSeat.setText(String.valueOf(filteredData.stream().filter(t -> t.getLoaiGhe() == LoaiGhe.GHE_CUNG || t.getLoaiGhe() == LoaiGhe.GHE_MEM).count()));
             lblStatBed.setText(String.valueOf(filteredData.stream().filter(t -> t.getLoaiGhe() == LoaiGhe.GIUONG_NAM).count()));
         }
-        currentPage = 1;
         refreshCards();
     }
 
     private void refreshCards() {
-        isRefreshing = true;
-        try {
-            int total = filteredData.size();
-            int totalPages = (total == 0) ? 1 : (int) Math.ceil((double) total / rowsPerPage);
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            int start = (currentPage - 1) * rowsPerPage;
-            int end   = Math.min(start + rowsPerPage, total);
-            List<ToaTau> pageData = filteredData.subList(start, end);
-
-            int w = scrollPane.getWidth();
-            int cardW = 260;
-            if (gridCols > 0) {
-                cardW = (w - (gridCols + 1) * 15) / gridCols;
-                cardW = Math.max(cardW, 230);
+        updateGridColumns();
+        cardsPanel.removeAll();
+        if (filteredData.isEmpty()) {
+            cardsPanel.setLayout(new BorderLayout());
+            cardsPanel.add(buildEmptyState());
+        } else {
+            cardsPanel.setLayout(new GridLayout(0, gridCols, 15, 15));
+            for (ToaTau t : filteredData) {
+                cardsPanel.add(buildToaCard(t, 300));
             }
-
-            cardsPanel.removeAll();
-            cardsPanel.setPreferredSize(new Dimension(w - 20, 0));
-            if (pageData.isEmpty()) {
-                cardsPanel.add(buildEmptyState());
-            } else {
-                for (ToaTau t : pageData) {
-                    cardsPanel.add(buildToaCard(t, cardW));
-                }
-            }
-            cardsPanel.revalidate();
-            cardsPanel.repaint();
-
-            rebuildPagination(totalPages, total);
-        } finally {
-            isRefreshing = false;
         }
+        cardsPanel.revalidate();
+        cardsPanel.repaint();
+        cardsHost.revalidate();
+        cardsHost.repaint();
     }
+
+    private void updateGridColumns() {
+        if (cardsPanel == null || scrollPane == null) return;
+        if (filteredData.isEmpty()) return;
+        int width = Math.max(1, scrollPane.getViewport().getWidth());
+        int nextCols = Math.max(1, width / 330);
+        if (nextCols != gridCols || !(cardsPanel.getLayout() instanceof GridLayout)) {
+            gridCols = nextCols;
+            cardsPanel.setLayout(new GridLayout(0, gridCols, 15, 15));
+            cardsPanel.revalidate();
+        }
+        // Handoff: card toa là mẫu grid chuẩn cho nhóm đầu máy/toa/đoàn tàu.
+        // Rủi ro: nếu thay đổi card width/spacing, giữ divisor đồng bộ với hai module còn lại.
+    }
+
+
 
     private void openChiTiet(ToaTau toa) {
         Window owner = SwingUtilities.getWindowAncestor(this);
@@ -537,11 +516,25 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         dlg.setVisible(true);
     }
 
+    private void showToaQuickActions(MouseEvent e, ToaTau toa) {
+        if (!e.isPopupTrigger()) return;
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem view = new JMenuItem("Xem chi tiết");
+        view.addActionListener(ev -> openChiTiet(toa));
+        JMenuItem item = new JMenuItem("Đổi trạng thái hoạt động");
+        item.addActionListener(ev -> openChangeToaStatusDialog(toa));
+        menu.add(view);
+        menu.addSeparator();
+        menu.add(item);
+        menu.show(e.getComponent(), e.getX(), e.getY());
+    }
+
     private void openChangeToaStatusDialog(ToaTau toa) {
         if (toa == null || toa.getMaToaTau() == null || toa.getMaToaTau().isBlank()) return;
 
         JComboBox<String> cbo = new JComboBox<>(STATUS_OPTIONS);
         cbo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        NotionTheme.applyComboBoxSelection(cbo);
         cbo.setSelectedItem(normalizeStatus(toa.getTrangThai()));
 
         JPanel panel = new JPanel(new BorderLayout(0, 8));
@@ -602,7 +595,11 @@ public class QuanLyToaModule extends JPanel implements AppModule {
                 addMouseListener(new MouseAdapter() {
                     @Override public void mouseEntered(MouseEvent e) { isHovered = true; repaint(); }
                     @Override public void mouseExited(MouseEvent e)  { isHovered = false; repaint(); }
-                    @Override public void mouseClicked(MouseEvent e) { openChiTiet(toa); }
+                    @Override public void mouseClicked(MouseEvent e) {
+                        if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2) openChiTiet(toa);
+                    }
+                    @Override public void mousePressed(MouseEvent e) { showToaQuickActions(e, toa); }
+                    @Override public void mouseReleased(MouseEvent e) { showToaQuickActions(e, toa); }
                 });
             }
             @Override
@@ -686,30 +683,21 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         lblCount.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblCount.setForeground(TEXT_MUTED);
 
-        JLabel lblStatus = new JLabel(normalizeStatus(toa.getTrangThai())) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(resolveStatusBg(getText()));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblStatus.setForeground(resolveStatusFg(lblStatus.getText()));
-        lblStatus.setBorder(new EmptyBorder(4, 10, 4, 10));
-
         body.add(Box.createVerticalStrut(8));
         body.add(lblType);
         body.add(Box.createVerticalStrut(4));
         body.add(lblCount);
-        body.add(Box.createVerticalStrut(6));
-        body.add(lblStatus);
-
         content.add(body, BorderLayout.CENTER);
+
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        footer.setOpaque(false);
+        footer.add(createStatusChip(normalizeStatus(toa.getTrangThai())));
+        content.add(footer, BorderLayout.SOUTH);
+        // Handoff: footer card toa giữ các tag riêng, thống nhất layout với đầu máy/đoàn tàu.
+        // Rủi ro: count ghế vẫn lấy theo DAO hiện tại; nếu danh sách lớn nên cache theo mã toa.
         card.add(content, BorderLayout.CENTER);
+        // Handoff: vùng card toa chỉ mở chi tiết khi double-click, đồng bộ với các bảng quản lý tàu.
+        // Nút kính lúp/đổi trạng thái vẫn single-click để không làm chậm thao tác chủ đích.
 
         return card;
     }
@@ -735,11 +723,21 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         return chip;
     }
 
-    private static Color scaleBrightness(Color c, float f) {
-        return new Color(
-                Math.min(255, Math.max(0, (int)(c.getRed()   * f))),
-                Math.min(255, Math.max(0, (int)(c.getGreen() * f))),
-                Math.min(255, Math.max(0, (int)(c.getBlue()  * f))));
+    private JLabel createStatusChip(String status) {
+        JLabel chip = new JLabel(status) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(resolveStatusBg(getText()));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        chip.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        chip.setForeground(resolveStatusFg(status));
+        chip.setBorder(new EmptyBorder(4, 10, 4, 10));
+        return chip;
     }
 
     private String normalizeStatus(String status) {
@@ -772,78 +770,6 @@ public class QuanLyToaModule extends JPanel implements AppModule {
         lbl.setForeground(TEXT_MUTED);
         p.add(lbl);
         return p;
-    }
-
-    // ====================================================================
-    //  PAGINATION
-    // ====================================================================
-
-    private void rebuildPagination(int totalPages, int total) {
-        paginationPanel.removeAll();
-
-        if (total > 0) {
-            JLabel info = new JLabel("Hiển thị trang " + currentPage + " / " + totalPages + " (" + total + " toa)");
-            info.setFont(FONT_SMALL);
-            info.setForeground(TEXT_MUTED);
-            paginationPanel.add(info);
-            paginationPanel.add(Box.createHorizontalStrut(15));
-        }
-
-        if (totalPages > 1) {
-            JButton btnPrev = makePaginBtn("<");
-            btnPrev.setEnabled(currentPage > 1);
-            btnPrev.addActionListener(e -> { currentPage--; refreshCards(); });
-            paginationPanel.add(btnPrev);
-
-            int startP = Math.max(1, currentPage - 2);
-            int endP   = Math.min(totalPages, startP + 4);
-            for (int p = startP; p <= endP; p++) {
-                final int page = p;
-                JButton btn = makePaginBtn(String.valueOf(p));
-                if (p == currentPage) {
-                    btn.setForeground(AppColors.SURFACE);
-                    btn.putClientProperty("active", true);
-                }
-                btn.addActionListener(e -> { currentPage = page; refreshCards(); });
-                paginationPanel.add(btn);
-            }
-
-            JButton btnNext = makePaginBtn(">");
-            btnNext.setEnabled(currentPage < totalPages);
-            btnNext.addActionListener(e -> { currentPage++; refreshCards(); });
-            paginationPanel.add(btnNext);
-        }
-
-        paginationPanel.revalidate();
-        paginationPanel.repaint();
-    }
-
-    private JButton makePaginBtn(String label) {
-        JButton btn = new JButton(label) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Object active = getClientProperty("active");
-                if (Boolean.TRUE.equals(active)) {
-                    g2.setColor(PRIMARY);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                } else if (getModel().isRollover()) {
-                    g2.setColor(OUTLINE);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                }
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_BOLD);
-        btn.setForeground(TEXT_MAIN);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setPreferredSize(new Dimension(36, 36));
-        return btn;
     }
 
     private JButton createCardActionButton(LineIcons.Name iconName, String toolTip, Color hoverBg) {

@@ -47,9 +47,6 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     private Consumer<Object> callback;
     private List<Tuyen> allData      = new ArrayList<>();
     private List<Tuyen> filteredData = new ArrayList<>();
-    private int currentPage  = 1;
-    private int rowsPerPage  = 5;
-    private boolean isRefreshing = false;
 
     // ── Widgets ───────────────────────────────────────────────────────────
     private SearchableComboBox<Ga> filterGaDi;
@@ -57,7 +54,6 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     private JComboBox<String>      filterTrangThai;
     private JPanel                 cardsPanel;
     private JScrollPane            scrollPane;
-    private JPanel                 paginationPanel;
     private JLabel                 lblStatTotal;
     private JLabel                 lblStatActive;
     private JLabel                 lblStatInactive;
@@ -104,7 +100,9 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         stats.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
         JPanel filterCard = buildFilterBar();
         filterCard.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filterCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 132));
+        NotionTheme.lockMaxWidthToPreferredHeight(filterCard);
+        // Handoff: vùng lọc tự theo preferred height để không bị thiếu chiều cao trên máy scale khác.
+        // Cảnh báo: header/stat vẫn giữ size chung của các tab quản lý cho đồng bộ thị giác.
         top.add(header);
         top.add(Box.createVerticalStrut(16));
         top.add(stats);
@@ -266,24 +264,8 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getVerticalScrollBar().setUnitIncrement(20);
 
-        scrollPane.getViewport().addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                int h = scrollPane.getViewport().getHeight();
-                int newRows = Math.max(3, h / (CARD_HEIGHT + 15));
-                if (newRows != rowsPerPage) {
-                    rowsPerPage = newRows;
-                    if (!isRefreshing) refreshCards();
-                }
-            }
-        });
-
         content.add(scrollPane, BorderLayout.CENTER);
         
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
-        paginationPanel.setOpaque(true);
-        paginationPanel.setBackground(SURFACE);
-        content.add(paginationPanel, BorderLayout.SOUTH);
 
         return content;
     }
@@ -408,6 +390,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         combo.setBackground(CARD_BG);
         combo.setPreferredSize(new Dimension(170, 38));
         combo.setFocusable(false);
+        NotionTheme.applyComboBoxSelection(combo);
         combo.addActionListener(e -> applyFilter());
         return combo;
     }
@@ -447,38 +430,23 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
             lblStatInactive.setText(String.valueOf(filteredData.stream().filter(t -> !t.isHoatDong()).count()));
         }
 
-        currentPage = 1;
         refreshCards();
     }
 
     private void refreshCards() {
-        isRefreshing = true;
-        try {
-            int total = filteredData.size();
-            int totalPages = (total == 0) ? 1 : (int) Math.ceil((double) total / rowsPerPage);
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            int start = (currentPage - 1) * rowsPerPage;
-            int end   = Math.min(start + rowsPerPage, total);
-            List<Tuyen> pageData = filteredData.subList(start, end);
-
-            cardsPanel.removeAll();
-            if (pageData.isEmpty()) {
-                cardsPanel.add(buildEmptyState());
-            } else {
-                for (Tuyen t : pageData) {
-                    cardsPanel.add(buildTicketCard(t));
-                    cardsPanel.add(Box.createVerticalStrut(15));
-                }
+        cardsPanel.removeAll();
+        if (filteredData.isEmpty()) {
+            cardsPanel.add(buildEmptyState());
+        } else {
+            for (Tuyen t : filteredData) {
+                cardsPanel.add(buildTicketCard(t));
+                cardsPanel.add(Box.createVerticalStrut(15));
             }
-            cardsPanel.revalidate();
-            cardsPanel.repaint();
-
-            rebuildPagination(totalPages, total);
-        } finally {
-            isRefreshing = false;
         }
+        cardsPanel.revalidate();
+        cardsPanel.repaint();
     }
+
 
     // ====================================================================
     //  TICKET CARD BUILDER
@@ -496,8 +464,10 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
                     @Override public void mouseEntered(MouseEvent e) { isHovered = true; repaint(); }
                     @Override public void mouseExited(MouseEvent e)  { isHovered = false; repaint(); }
                     @Override public void mouseClicked(MouseEvent e) {
-                        if (SwingUtilities.isLeftMouseButton(e)) openEditDialog(tuyen);
+                        if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2) openEditDialog(tuyen);
                     }
+                    @Override public void mousePressed(MouseEvent e) { showTuyenQuickActions(e, tuyen); }
+                    @Override public void mouseReleased(MouseEvent e) { showTuyenQuickActions(e, tuyen); }
                 });
             }
             @Override
@@ -584,6 +554,8 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
         actions.add(btnEdit);
 
         card.add(actions, BorderLayout.EAST);
+        // Handoff: vùng card tuyến chỉ mở sửa bằng double-click, thống nhất với các tab tàu.
+        // Nút sửa riêng vẫn single-click để giữ thao tác nhanh khi người dùng chọn đúng icon.
 
         return card;
     }
@@ -807,47 +779,7 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     //  PAGINATION
     // ====================================================================
 
-    private void rebuildPagination(int totalPages, int total) {
-        paginationPanel.removeAll();
-
-        if (total > 0) {
-            JLabel info = new JLabel("Hiển thị trang " + currentPage + " / " + totalPages + " (" + total + " tuyến)");
-            info.setFont(FONT_SMALL);
-            info.setForeground(TEXT_MUTED);
-            paginationPanel.add(info);
-            paginationPanel.add(Box.createHorizontalStrut(15));
-        }
-
-        if (totalPages > 1) {
-            JButton btnPrev = makePaginBtn("<");
-            btnPrev.setEnabled(currentPage > 1);
-            btnPrev.addActionListener(e -> { currentPage--; refreshCards(); });
-            paginationPanel.add(btnPrev);
-
-            int startP = Math.max(1, currentPage - 2);
-            int endP   = Math.min(totalPages, startP + 4);
-            for (int p = startP; p <= endP; p++) {
-                final int page = p;
-                JButton btn = makePaginBtn(String.valueOf(p));
-                if (p == currentPage) {
-                    btn.setForeground(AppColors.SURFACE);
-                    btn.putClientProperty("active", true);
-                }
-                btn.addActionListener(e -> { currentPage = page; refreshCards(); });
-                paginationPanel.add(btn);
-            }
-
-            JButton btnNext = makePaginBtn(">");
-            btnNext.setEnabled(currentPage < totalPages);
-            btnNext.addActionListener(e -> { currentPage++; refreshCards(); });
-            paginationPanel.add(btnNext);
-        }
-
-        paginationPanel.revalidate();
-        paginationPanel.repaint();
-    }
-
-    private JButton makePaginBtn(String label) {
+        private JButton makePaginBtn(String label) {
         JButton btn = new JButton(label) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -878,6 +810,19 @@ public class QuanLyTuyenModule extends JPanel implements AppModule {
     // ====================================================================
     //  ACTIONS
     // ====================================================================
+
+    private void showTuyenQuickActions(MouseEvent e, Tuyen tuyen) {
+        if (!e.isPopupTrigger()) return;
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem edit = new JMenuItem("Sửa");
+        edit.addActionListener(ev -> openEditDialog(tuyen));
+        JMenuItem toggle = new JMenuItem(tuyen.isHoatDong() ? "Ngưng hoạt động" : "Kích hoạt");
+        toggle.addActionListener(ev -> toggleHoatDong(tuyen));
+        menu.add(edit);
+        menu.addSeparator();
+        menu.add(toggle);
+        menu.show(e.getComponent(), e.getX(), e.getY());
+    }
 
     private void openAddDialog() {
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);

@@ -144,6 +144,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         cboYear = new JComboBox<>(years);
         cboYear.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cboYear.setPreferredSize(new Dimension(90, 32));
+        NotionTheme.applyComboBoxSelection(cboYear);
         cboYear.addActionListener(e -> loadAllData());
 
         btnExportReport = createExportButton("Xuất báo cáo");
@@ -759,6 +760,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         cboFormat.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cboFormat.setPreferredSize(new Dimension(0, 36));
         cboFormat.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        NotionTheme.applyComboBoxSelection(cboFormat);
 
         content.add(lblFormat);
         content.add(Box.createVerticalStrut(6));
@@ -835,9 +837,9 @@ public class ThongKeModule extends JPanel implements AppModule {
         root.add(content, BorderLayout.CENTER);
         root.add(footer, BorderLayout.SOUTH);
 
-        dialog.setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
+        dialog.setContentPane(ModuleLauncher.buildShadowWrapper(root));
         dialog.setSize(770, 520);
-        dialog.setLocationRelativeTo(owner);
+        ModuleLauncher.centerDialog(dialog, owner);
         dialog.setVisible(true);
     }
 

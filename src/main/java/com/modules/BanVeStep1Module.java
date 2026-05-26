@@ -362,8 +362,11 @@ public class BanVeStep1Module extends JPanel implements AppModule {
     private void styleCombo(JComboBox<?> cb) {
         cb.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         cb.setBackground(CARD_BG);
+        NotionTheme.applyComboBoxSelection(cb);
         cb.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
         cb.setPreferredSize(new Dimension(320, 42));
+        // Handoff: popup ga dùng selection tím/chữ trắng, không còn phụ thuộc màu xanh mặc định LAF.
+        // Rủi ro: renderer ga chỉ nên đổi text, màu selected để NotionTheme wrapper quản lý.
     }
 
     private void styleBtn(JButton btn, boolean primary) {

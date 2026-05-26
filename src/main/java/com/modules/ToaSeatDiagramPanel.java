@@ -22,7 +22,9 @@ public class ToaSeatDiagramPanel extends JPanel {
     private List<Ghe> gheList = new ArrayList<>();
     private Predicate<Ghe> unavailableResolver = ghe -> false;
     private Predicate<Ghe> selectedResolver = ghe -> false;
+    private Predicate<Ghe> heldByOtherResolver = ghe -> false;
     private Function<Ghe, Double> priceResolver = ghe -> null;
+    private Function<Ghe, String> holdTooltipResolver = ghe -> null;
     private Consumer<Ghe> seatClickHandler;
     private boolean selectable;
     private Ghe hoveredGhe;
@@ -53,6 +55,8 @@ public class ToaSeatDiagramPanel extends JPanel {
     private static final Color CLR_KHOANG_LINE    = AppColors.BORDER;
     private static final Color UNAVAILABLE_FILL   = AppColors.SEAT_UNAVAILABLE_FILL;
     private static final Color UNAVAILABLE_BORDER = AppColors.SEAT_UNAVAILABLE_BORDER;
+    private static final Color HELD_FILL          = new Color(255, 236, 179);
+    private static final Color HELD_BORDER        = new Color(245, 158, 11);
     private static final Color SELECTED_FILL      = NotionTheme.ACCENT;
     private static final Color SELECTED_BORDER    = NotionTheme.ACCENT_HOVER;
 
@@ -63,7 +67,7 @@ public class ToaSeatDiagramPanel extends JPanel {
         addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 Ghe ghe = getSeatAtPoint(e.getPoint());
-                if (ghe == null || !selectable || isUnavailable(ghe)) return;
+                if (ghe == null || !selectable || isUnavailable(ghe) || isHeldByOther(ghe)) return;
                 if (seatClickHandler != null) seatClickHandler.accept(ghe);
                 repaint();
             }
@@ -83,7 +87,7 @@ public class ToaSeatDiagramPanel extends JPanel {
                     hoveredGhe = hit;
                     repaint();
                 }
-                setCursor(hit != null && selectable && !isUnavailable(hit)
+                setCursor(hit != null && selectable && !isUnavailable(hit) && !isHeldByOther(hit)
                         ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
                         : Cursor.getDefaultCursor());
             }
@@ -112,6 +116,18 @@ public class ToaSeatDiagramPanel extends JPanel {
     public void setSelectedResolver(Predicate<Ghe> selectedResolver) {
         this.selectedResolver = selectedResolver == null ? ghe -> false : selectedResolver;
         repaint();
+    }
+
+    public void setHeldByOtherResolver(Predicate<Ghe> heldByOtherResolver) {
+        this.heldByOtherResolver = heldByOtherResolver == null ? ghe -> false : heldByOtherResolver;
+        repaint();
+    }
+
+    public void setHoldTooltipResolver(Function<Ghe, String> holdTooltipResolver) {
+        this.holdTooltipResolver = holdTooltipResolver == null ? ghe -> null : holdTooltipResolver;
+        repaint();
+        // Handoff: UI nhận text giữ chỗ từ Step 3 để panel không phụ thuộc DAO/thời gian DB.
+        // Risk: tooltip nên refresh theo timer ở module cha nếu TTL ngắn.
     }
 
     public void setPriceResolver(Function<Ghe, Double> priceResolver) {
@@ -197,8 +213,9 @@ public class ToaSeatDiagramPanel extends JPanel {
     private void drawSeatShape(Graphics2D g2, int x, int y, int w, int h, int seatNo, Ghe ghe, boolean hover, LoaiGhe lg) {
         boolean unavailable = ghe != null && isUnavailable(ghe);
         boolean selected = ghe != null && isSelected(ghe);
-        Color fill = fillColor(lg, hover && ghe != null && !unavailable, unavailable, selected);
-        Color border = borderColor(lg, unavailable, selected);
+        boolean heldByOther = ghe != null && isHeldByOther(ghe);
+        Color fill = fillColor(lg, hover && ghe != null && !unavailable && !heldByOther, unavailable, heldByOther, selected);
+        Color border = borderColor(lg, unavailable, heldByOther, selected);
         Color textColor = selected ? AppColors.SURFACE : unavailable ? ON_SURF_VAR : ON_SURFACE;
         int arc = lg == LoaiGhe.GIUONG_NAM ? 5 : 6;
 
@@ -220,8 +237,9 @@ public class ToaSeatDiagramPanel extends JPanel {
         // Risk: nếu cần thêm dữ liệu hover, ưu tiên tooltip thay vì nhồi chữ vào ô nhỏ.
     }
 
-    private Color fillColor(LoaiGhe lg, boolean hover, boolean unavailable, boolean selected) {
+    private Color fillColor(LoaiGhe lg, boolean hover, boolean unavailable, boolean heldByOther, boolean selected) {
         if (selected) return SELECTED_FILL;
+        if (heldByOther) return HELD_FILL;
         if (unavailable) return UNAVAILABLE_FILL;
         if (hover && selectable) return PRIMARY_LIGHT;
         if (lg == LoaiGhe.GIUONG_NAM) return CLR_GIUONG_FILL;
@@ -229,8 +247,9 @@ public class ToaSeatDiagramPanel extends JPanel {
         return CLR_CUNG_FILL;
     }
 
-    private Color borderColor(LoaiGhe lg, boolean unavailable, boolean selected) {
+    private Color borderColor(LoaiGhe lg, boolean unavailable, boolean heldByOther, boolean selected) {
         if (selected) return SELECTED_BORDER;
+        if (heldByOther) return HELD_BORDER;
         if (unavailable) return UNAVAILABLE_BORDER;
         if (lg == LoaiGhe.GIUONG_NAM) return CLR_GIUONG_BORDER;
         if (lg == LoaiGhe.GHE_MEM) return CLR_MEM_BORDER;
@@ -279,10 +298,17 @@ public class ToaSeatDiagramPanel extends JPanel {
         return selectedResolver != null && selectedResolver.test(ghe);
     }
 
+    private boolean isHeldByOther(Ghe ghe) {
+        return heldByOtherResolver != null && heldByOtherResolver.test(ghe);
+    }
+
     @Override public String getToolTipText(MouseEvent e) {
         Ghe ghe = getSeatAtPoint(e.getPoint());
         if (ghe == null) return null;
-        String state = isUnavailable(ghe) ? "Đã bán / giữ chỗ" : isSelected(ghe) ? "Đang chọn" : "Còn trống";
+        String holdTooltip = holdTooltipResolver.apply(ghe);
+        String state = holdTooltip != null
+                ? holdTooltip
+                : isUnavailable(ghe) ? "Đã bán" : isSelected(ghe) ? "Đang chọn" : "Còn trống";
         Double price = priceResolver != null ? priceResolver.apply(ghe) : null;
         String priceText = price != null && price > 0 ? String.format("%,.0f đ", price) : "Chưa có giá";
         return "<html><div style='padding:6px 8px;'>"

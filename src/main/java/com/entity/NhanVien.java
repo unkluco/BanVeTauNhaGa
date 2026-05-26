@@ -16,7 +16,7 @@ public class NhanVien {
 
     // 6 new fields
     private String email;
-    private String gaLamViec;        // FK to Ga.maGa e.g. "GA-001"
+    private Ga gaLamViec;
     private String diaChiThuongTru;
     private LocalDate ngaySinh;
     private String gioiTinh;         // "NAM" or "NU"
@@ -79,8 +79,11 @@ public class NhanVien {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
-    public String getGaLamViec() { return gaLamViec; }
-    public void setGaLamViec(String gaLamViec) { this.gaLamViec = gaLamViec; }
+    public Ga getGaLamViec() { return gaLamViec; }
+    public void setGaLamViec(Ga gaLamViec) { this.gaLamViec = gaLamViec; }
+
+    public String getMaGaLamViec() { return gaLamViec != null ? gaLamViec.getMaGa() : null; }
+    public void setMaGaLamViec(String maGaLamViec) { this.gaLamViec = maGaLamViec != null && !maGaLamViec.isBlank() ? new Ga(maGaLamViec) : null; }
 
     public String getDiaChiThuongTru() { return diaChiThuongTru; }
     public void setDiaChiThuongTru(String diaChiThuongTru) { this.diaChiThuongTru = diaChiThuongTru; }
@@ -104,7 +107,7 @@ public class NhanVien {
                 ", cccd='" + cccd + '\'' +
                 ", trangThai=" + trangThai +
                 ", email='" + email + '\'' +
-                ", gaLamViec='" + gaLamViec + '\'' +
+                ", gaLamViec=" + gaLamViec +
                 ", ngaySinh=" + ngaySinh +
                 ", gioiTinh='" + gioiTinh + '\'' +
                 '}';

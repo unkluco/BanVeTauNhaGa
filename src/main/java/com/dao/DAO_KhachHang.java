@@ -169,10 +169,11 @@ public class DAO_KhachHang {
     public boolean existsBySoDienThoai(String sdt, String excludeMaKH) {
         Connection con = ConnectDB.getCon();
         if (con == null || sdt == null || sdt.isBlank()) return false;
-        String sql = "SELECT 1 FROM KhachHang WHERE soDienThoai = ? AND maKhachHang <> ?";
+        String sql = "SELECT 1 FROM KhachHang WHERE soDienThoai = ? AND (? IS NULL OR maKhachHang <> ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, sdt);
             ps.setString(2, excludeMaKH);
+            ps.setString(3, excludeMaKH);
             try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
         } catch (SQLException e) {
             System.err.println("Loi khi kiem tra trung SDT khach hang: " + e.getMessage());
@@ -183,10 +184,11 @@ public class DAO_KhachHang {
     public boolean existsByCccd(String cccd, String excludeMaKH) {
         Connection con = ConnectDB.getCon();
         if (con == null || cccd == null || cccd.isBlank()) return false;
-        String sql = "SELECT 1 FROM KhachHang WHERE cccd = ? AND maKhachHang <> ?";
+        String sql = "SELECT 1 FROM KhachHang WHERE cccd = ? AND (? IS NULL OR maKhachHang <> ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, cccd);
             ps.setString(2, excludeMaKH);
+            ps.setString(3, excludeMaKH);
             try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
         } catch (SQLException e) {
             System.err.println("Loi khi kiem tra trung CCCD khach hang: " + e.getMessage());
@@ -197,10 +199,11 @@ public class DAO_KhachHang {
     public boolean existsByEmail(String email, String excludeMaKH) {
         Connection con = ConnectDB.getCon();
         if (con == null || email == null || email.isBlank()) return false;
-        String sql = "SELECT 1 FROM KhachHang WHERE email = ? AND maKhachHang <> ?";
+        String sql = "SELECT 1 FROM KhachHang WHERE email = ? AND (? IS NULL OR maKhachHang <> ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, email);
             ps.setString(2, excludeMaKH);
+            ps.setString(3, excludeMaKH);
             try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
         } catch (SQLException e) {
             System.err.println("Loi khi kiem tra trung email khach hang: " + e.getMessage());

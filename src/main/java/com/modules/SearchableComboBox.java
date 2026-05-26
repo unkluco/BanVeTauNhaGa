@@ -28,7 +28,8 @@ public class SearchableComboBox<T> extends JPanel {
     // ===== Design tokens (matches the rest of the app) =====
     private static final Color OUTLINE       = AppColors.BORDER;
     private static final Color PRIMARY       = AppColors.PRIMARY_DARK;
-    private static final Color PRIMARY_LIGHT = AppColors.PRIMARY_LIGHT;
+    private static final Color SELECTED_BG   = NotionTheme.POPUP_SELECTION;
+    private static final Color SELECTED_FG   = NotionTheme.POPUP_SELECTION_TEXT;
     private static final Color ON_SURFACE    = AppColors.TEXT_PRIMARY;
     private static final Color ON_SURF_VAR   = AppColors.TEXT_SECONDARY;
     private static final Color PLACEHOLDER   = AppColors.BORDER;
@@ -92,6 +93,7 @@ public class SearchableComboBox<T> extends JPanel {
         txtSearch.setFont(FONT_INPUT);
         txtSearch.setBackground(AppColors.SURFACE);
         txtSearch.setForeground(ON_SURFACE);
+        txtSearch.setColumns(1);
         applyNormalBorder();
 
         // ── List inside popup ────────────────────────────────────────────
@@ -101,6 +103,7 @@ public class SearchableComboBox<T> extends JPanel {
         listWidget.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         listWidget.setFixedCellHeight(ROW_HEIGHT);
         listWidget.setCellRenderer(new ItemRenderer());
+        NotionTheme.applyListSelection(listWidget);
         listWidget.setFocusable(false);
         listWidget.setBackground(AppColors.SURFACE);
 
@@ -175,6 +178,18 @@ public class SearchableComboBox<T> extends JPanel {
         });
 
         add(txtSearch, BorderLayout.CENTER);
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        if (isPreferredSizeSet()) return super.getPreferredSize();
+        return new Dimension(220, ROW_HEIGHT);
+    }
+
+    @Override
+    public Dimension getMinimumSize() {
+        Dimension preferred = getPreferredSize();
+        return new Dimension(0, preferred.height);
     }
 
     // ====================================================================
@@ -297,8 +312,10 @@ public class SearchableComboBox<T> extends JPanel {
             lbl.setFont(FONT_ITEM);
             lbl.setBorder(new EmptyBorder(4, 14, 4, 14));
             if (isSelected) {
-                lbl.setBackground(PRIMARY_LIGHT);
-                lbl.setForeground(PRIMARY);
+                // Handoff: popup selection follows Notion purple accent with white text.
+                // Cảnh báo: renderer custom nên giữ sync với list selection fallback ở constructor.
+                lbl.setBackground(SELECTED_BG);
+                lbl.setForeground(SELECTED_FG);
             } else {
                 lbl.setBackground(AppColors.SURFACE);
                 lbl.setForeground(ON_SURFACE);

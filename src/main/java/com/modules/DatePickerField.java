@@ -31,8 +31,8 @@ import java.util.Locale;
 public class DatePickerField extends JPanel {
 
     // ── Design tokens ────────────────────────────────────────────────────────
-    private static final Color PRIMARY        = AppColors.PRIMARY_DARK;
-    private static final Color PRIMARY_LIGHT  = AppColors.PRIMARY_LIGHT;
+    private static final Color PRIMARY        = NotionTheme.ACCENT;
+    private static final Color PRIMARY_LIGHT  = NotionTheme.ACCENT_SOFT;
     private static final Color SURFACE        = AppColors.BACKGROUND;
     private static final Color CARD_BG        = AppColors.SURFACE;
     private static final Color ON_SURFACE     = AppColors.TEXT_PRIMARY;
@@ -94,7 +94,7 @@ public class DatePickerField extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 Color bg = getModel().isRollover() ? PRIMARY_LIGHT
-                    : getModel().isPressed()       ? AppColors.PRIMARY_LIGHT
+                    : getModel().isPressed()       ? NotionTheme.ACCENT_SOFT
                     : SURFACE;
                 g2.setColor(bg);
                 g2.fillRect(0, 0, getWidth(), getHeight());
@@ -424,6 +424,8 @@ public class DatePickerField extends JPanel {
                 Color textColor;
 
                 if (isSelected) {
+                    // Handoff: ngày đang chọn dùng tím đậm để đồng bộ popup selection toàn app.
+                    // Rủi ro: chữ ngày chọn luôn trắng, nên nền chọn không được đổi sang màu quá nhạt.
                     g2.setColor(CELL_SEL_BG);
                     g2.fillOval(cx, cy, diam, diam);
                     font      = new Font("Segoe UI", Font.BOLD, 12);

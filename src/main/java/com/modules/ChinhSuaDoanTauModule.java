@@ -302,6 +302,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
                 return this;
             }
         });
+        NotionTheme.applyComboBoxSelection(cboDauMay);
         cboDauMay.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) updateVisualizer();
         });
@@ -645,6 +646,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
                 return this;
             }
         });
+        NotionTheme.applyListSelection(list);
         
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
             void filter() {
@@ -677,9 +679,9 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         bot.add(btnAdd);
         cpan.add(bot, BorderLayout.SOUTH);
         
-        dialog.setContentPane(ThemNhanVienDialog.buildShadowWrapper(cpan));
+        dialog.setContentPane(ModuleLauncher.buildShadowWrapper(cpan));
         dialog.setSize(470, 540);
-        dialog.setLocationRelativeTo(this);
+        ModuleLauncher.centerDialog(dialog, this);
         dialog.setVisible(true);
     }
 
@@ -897,6 +899,7 @@ public class ChinhSuaDoanTauModule extends JPanel implements AppModule {
         combo.setFont(FONT_INPUT);
         combo.setEditable(false);
         combo.setBackground(CARD_BG);
+        NotionTheme.applyComboBoxSelection(combo);
         combo.setPreferredSize(new Dimension(0, 44));
         combo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
         combo.setBorder(BorderFactory.createCompoundBorder(

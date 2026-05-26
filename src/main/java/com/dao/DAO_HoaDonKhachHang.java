@@ -34,14 +34,14 @@ public class DAO_HoaDonKhachHang {
     }
 
     /**
-     * Lay danh sach KhachHang cua mot HoaDon theo thu tu chen (maHDKH tang dan).
+     * Lay danh sach KhachHang cua mot HoaDon tu cac dong ChiTietHoaDon theo nghiep vu moi.
      */
     public List<KhachHang> findKhachHangByHoaDon(String maHoaDon) {
         List<KhachHang> ds = new ArrayList<>();
         Connection con = ConnectDB.getCon();
         if (con == null) return ds;
 
-        String sql = "SELECT maKhachHang FROM HoaDonKhachHang WHERE maHoaDon = ? ORDER BY maHDKH";
+        String sql = "SELECT DISTINCT maKhachHang FROM ChiTietHoaDon WHERE maHoaDon = ? ORDER BY maKhachHang";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maHoaDon);
             try (ResultSet rs = ps.executeQuery()) {
@@ -62,7 +62,7 @@ public class DAO_HoaDonKhachHang {
         if (con == null) return ds;
 
         DAO_HoaDon daoHD = new DAO_HoaDon();
-        String sql = "SELECT maHoaDon FROM HoaDonKhachHang WHERE maKhachHang = ? ORDER BY maHDKH";
+        String sql = "SELECT DISTINCT maHoaDon FROM ChiTietHoaDon WHERE maKhachHang = ? ORDER BY maHoaDon";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, maKhachHang);
             try (ResultSet rs = ps.executeQuery()) {

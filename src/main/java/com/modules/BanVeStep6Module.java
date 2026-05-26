@@ -221,7 +221,7 @@ public class BanVeStep6Module extends JPanel implements AppModule {
     }
 
     private JPanel buildCustomerCard() {
-        JPanel card = card("Thông tin khách hàng" + (khachHangs != null && khachHangs.size() > 1
+        JPanel card = card("Khách hàng theo từng vé" + (khachHangs != null && khachHangs.size() > 1
                 ? " (" + khachHangs.size() + " khách)" : ""));
         if (khachHangs == null || khachHangs.isEmpty()) {
             addInfoRow(card, "", "Chưa có thông tin khách hàng", ON_SURF_VAR);
@@ -236,7 +236,7 @@ public class BanVeStep6Module extends JPanel implements AppModule {
         }
         for (int i = 0; i < khachHangs.size(); i++) {
             KhachHang kh = khachHangs.get(i);
-            JLabel idxLbl = new JLabel("Khách #" + (i + 1));
+            JLabel idxLbl = new JLabel(seatCustomerLabel(i));
             idxLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
             idxLbl.setForeground(PRIMARY);
             idxLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -254,6 +254,16 @@ public class BanVeStep6Module extends JPanel implements AppModule {
             }
         }
         return card;
+    }
+
+    private String seatCustomerLabel(int index) {
+        if (ghes != null && index >= 0 && index < ghes.size()) {
+            Ghe ghe = ghes.get(index);
+            if (ghe != null) return "Khách của " + seatPromoLabel(ghe);
+        }
+        return "Khách #" + (index + 1);
+        // Handoff: nhãn khách ở bước xác nhận bám theo thứ tự ghế từ Step 5.
+        // Cảnh báo: không sort riêng danh sách khách ở bước này để tránh lệch vé/khách.
     }
 
     private JPanel buildPaymentCard() {

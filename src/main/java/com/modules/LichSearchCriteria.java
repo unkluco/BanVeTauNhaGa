@@ -8,10 +8,14 @@ package com.modules;
  * @param gaDenCode   mã ga đến (maGa từ DB) hoặc null
  * @param tuNgayYmd   từ ngày ("yyyy-MM-dd") hoặc null
  * @param denNgayYmd  đến ngày ("yyyy-MM-dd") hoặc null
+ * @param tuGioHm     từ giờ ("HH:mm") hoặc null
+ * @param denGioHm    đến giờ ("HH:mm") hoặc null
  */
 public record LichSearchCriteria(
     String gaDiCode,
     String gaDenCode,
     String tuNgayYmd,
-    String denNgayYmd
+    String denNgayYmd,
+    String tuGioHm,
+    String denGioHm
 ) {}

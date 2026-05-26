@@ -3,8 +3,12 @@ package com.modules;
 import com.connectDB.ConnectDB;
 import com.dao.DAO_DoanTau;
 import com.dao.DAO_Ga;
+import com.dao.DAO_HoaDon;
+import com.dao.DAO_Lich;
 import com.entity.DoanTau;
 import com.entity.Ga;
+import com.entity.HoaDon;
+import com.entity.Lich;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -68,6 +72,8 @@ public class TongQuatModule extends JPanel implements AppModule {
 
     private DefaultTableModel recentTableModel;
     private JTable            recentTable;
+    private final DAO_HoaDon  daoHoaDon = new DAO_HoaDon();
+    private final DAO_Lich    daoLich = new DAO_Lich();
 
     // AppModule buttons
     private JButton btnSubmit, btnCancel;
@@ -125,7 +131,6 @@ public class TongQuatModule extends JPanel implements AppModule {
         JPanel wrapper = new JPanel(new BorderLayout());
         wrapper.setBackground(SURFACE);
         wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
-        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
 
         searchCard = new JPanel(new BorderLayout(8, 0));
         searchCard.setBackground(CARD_BG);
@@ -143,6 +148,7 @@ public class TongQuatModule extends JPanel implements AppModule {
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         txtSearch.setBackground(CARD_BG);
         txtSearch.setForeground(TEXT_MAIN);
+        stabilizeLookupInput(txtSearch, 40);
         txtSearch.putClientProperty("JTextField.placeholderText",
             "Tìm kiếm nhân viên, khách hàng, vé, hóa đơn, ga, đoàn tàu...");
 
@@ -208,6 +214,10 @@ public class TongQuatModule extends JPanel implements AppModule {
             }
         });
 
+        NotionTheme.lockMaxWidthToPreferredHeight(wrapper);
+        // Handoff: search bar khóa theo preferred sau khi gắn input để tránh hụt chiều cao ở DPI khác.
+        // Cảnh báo: không đổi preferred của text field để placeholder/nút clear vẫn ổn định.
+
         return wrapper;
     }
 
@@ -217,7 +227,6 @@ public class TongQuatModule extends JPanel implements AppModule {
         card.setBackground(CARD_BG);
         card.setBorder(cardBorder());
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
 
         card.add(makeSectionLabel("TRA CỨU LỊCH CHẠY"), BorderLayout.NORTH);
 
@@ -238,6 +247,8 @@ public class TongQuatModule extends JPanel implements AppModule {
                         || ga.getMaGa().toLowerCase().contains(q));
         cbGaDi.setItems(gaList);
         cbGaDi.setPlaceholder("Chọn ga đi…");
+        cbGaDi.setPreferredSize(new Dimension(0, 40));
+        cbGaDi.setMinimumSize(new Dimension(0, 40));
 
         // GA ĐẾN — SearchableComboBox<Ga>
         SearchableComboBox<Ga> cbGaDen = new SearchableComboBox<>(
@@ -246,6 +257,8 @@ public class TongQuatModule extends JPanel implements AppModule {
                         || ga.getMaGa().toLowerCase().contains(q));
         cbGaDen.setItems(gaList);
         cbGaDen.setPlaceholder("Chọn ga đến…");
+        cbGaDen.setPreferredSize(new Dimension(0, 40));
+        cbGaDen.setMinimumSize(new Dimension(0, 40));
 
         // TỪ NGÀY / ĐẾN NGÀY — đồng bộ với bộ lọc Quản lý lịch chạy
         DatePickerField dateFrom = new DatePickerField();
@@ -283,7 +296,9 @@ public class TongQuatModule extends JPanel implements AppModule {
                     gaDi  != null ? gaDi.getMaGa()  : null,
                     gaDen != null ? gaDen.getMaGa() : null,
                     tuNgayYmd,
-                    denNgayYmd
+                    denNgayYmd,
+                    null,
+                    null
             );
 
             if (navCallback != null) {
@@ -306,6 +321,9 @@ public class TongQuatModule extends JPanel implements AppModule {
         addLookupField(fields, lookupGbc, 4, 0, wrapBtnGroup(btn));
 
         card.add(fields, BorderLayout.CENTER);
+        NotionTheme.lockMaxWidthToPreferredHeight(card);
+        // Handoff: card tra cứu lịch chạy tự lấy chiều cao từ các field ngày/ga hiện có.
+        // Cảnh báo: chỉ nới card ngoài, không thay grid weight để tránh lệch hàng nút Tìm.
         return card;
     }
 
@@ -315,8 +333,6 @@ public class TongQuatModule extends JPanel implements AppModule {
         card.setBackground(CARD_BG);
         card.setBorder(cardBorder());
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
-
         card.add(makeSectionLabel("TRA CỨU HÓA ĐƠN & VÉ NHANH"), BorderLayout.NORTH);
 
         JPanel row = new JPanel(new GridBagLayout());
@@ -355,6 +371,9 @@ public class TongQuatModule extends JPanel implements AppModule {
         // Cảnh báo: nếu đổi kích thước nút tìm, cập nhật makeSearchActionBtn() để cả hai card đổi cùng lúc.
 
         card.add(row, BorderLayout.CENTER);
+        NotionTheme.lockMaxWidthToPreferredHeight(card);
+        // Handoff: card tra cứu hóa đơn/vé tự theo preferred height để không cắt field khi font đổi.
+        // Cảnh báo: logic điều hướng theo keyword không đổi, chỉ chỉnh giới hạn layout card ngoài.
         return card;
     }
 
@@ -493,6 +512,12 @@ public class TongQuatModule extends JPanel implements AppModule {
         recentTable.setSelectionBackground(NotionTheme.TABLE_SELECTION);
         recentTable.setSelectionForeground(TEXT_MAIN);
         recentTable.setFillsViewportHeight(true);
+        recentTable.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e) || e.getClickCount() != 2) return;
+                openRecentInvoiceDetail();
+            }
+        });
 
         JTableHeader header = recentTable.getTableHeader();
         header.setDefaultRenderer((tbl, val, sel, foc, r, c) -> {
@@ -556,6 +581,28 @@ public class TongQuatModule extends JPanel implements AppModule {
         return card;
     }
 
+
+    private void openRecentInvoiceDetail() {
+        int viewRow = recentTable.getSelectedRow();
+        if (viewRow < 0) return;
+        int modelRow = recentTable.convertRowIndexToModel(viewRow);
+        Object value = recentTableModel.getValueAt(modelRow, 0);
+        String maHoaDon = value == null ? "" : value.toString().trim();
+        if (maHoaDon.isEmpty()) return;
+
+        HoaDon hoaDon = daoHoaDon.findById(maHoaDon);
+        if (hoaDon == null) {
+            NotionMessageDialog.showMessageDialog(this,
+                    "Không tìm thấy hóa đơn " + maHoaDon + ".",
+                    "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        JFrame frame = owner instanceof JFrame ? (JFrame) owner : null;
+        new ChiTietHoaDonDialog(frame, hoaDon).setVisible(true);
+        // Handoff: double-click giao dịch gần đây mở đúng dialog chi tiết hóa đơn hiện có.
+        // Cảnh báo: cột 0 phải luôn là mã hóa đơn gốc, nếu đổi thứ tự cột cần cập nhật index này.
+    }
     // ── ĐỒNG HỒ SỐ ───────────────────────────────────────────────────────────
     private JPanel buildClockCard() {
         JPanel card = new JPanel();
@@ -646,13 +693,20 @@ public class TongQuatModule extends JPanel implements AppModule {
         btnAll.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnAll.setFocusPainted(false);
         btnAll.addActionListener(e -> {
+            LocalDateTime now = LocalDateTime.now();
+            LichSearchCriteria criteria = new LichSearchCriteria(
+                    null, null,
+                    now.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE),
+                    null,
+                    now.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")),
+                    null);
             if (navCallback != null) {
-                navCallback.navigate("QL_LICH_CHAY", "Quản lý lịch chạy", null);
+                navCallback.navigate("QL_LICH_CHAY", "Quản lý lịch chạy", criteria);
             } else if (callback != null) {
-                callback.accept(new Object[]{"QL_LICH_CHAY", "Quản lý lịch chạy", null});
+                callback.accept(new Object[]{"QL_LICH_CHAY", "Quản lý lịch chạy", criteria});
             }
-            // Handoff: Xem toàn bộ lịch trình không truyền filter hôm nay nữa.
-            // Cảnh báo: nếu muốn lịch hôm nay, đổi label thành Xem lịch hôm nay và truyền criteria ngày.
+            // Handoff: Xem toàn bộ lịch trình mở quản lý lịch với mốc hiện tại trở đi.
+            // Cảnh báo: chỉ set từ ngày/từ giờ, không set đến ngày để giữ nghĩa "trở đi".
         });
         card.add(btnAll, BorderLayout.SOUTH);
 
@@ -734,12 +788,13 @@ public class TongQuatModule extends JPanel implements AppModule {
 
         search(con, out,
             "SELECT TOP 4 hd.maHoaDon, hd.maNV, CONVERT(varchar,hd.ngayLap,120) AS nd, " +
-            "       ISNULL(kh.hoTen, '') AS tenKhach, ISNULL(kh.soDienThoai, '') AS sdtKhach " +
+            "       MIN(ISNULL(kh.hoTen, '')) AS tenKhach, MIN(ISNULL(kh.soDienThoai, '')) AS sdtKhach " +
             "FROM HoaDon hd " +
-            "LEFT JOIN HoaDonKhachHang hdkh ON hd.maHoaDon = hdkh.maHoaDon " +
-            "LEFT JOIN KhachHang kh ON hdkh.maKhachHang = kh.maKhachHang " +
+            "LEFT JOIN ChiTietHoaDon ct ON hd.maHoaDon = ct.maHoaDon " +
+            "LEFT JOIN KhachHang kh ON ct.maKhachHang = kh.maKhachHang " +
             "LEFT JOIN NhanVien nv ON hd.maNV = nv.maNV " +
-            "WHERE hd.maHoaDon LIKE ? OR kh.hoTen LIKE ? OR kh.soDienThoai LIKE ? OR kh.cccd LIKE ? OR nv.hoTen LIKE ?",
+            "WHERE hd.maHoaDon LIKE ? OR kh.hoTen LIKE ? OR kh.soDienThoai LIKE ? OR kh.cccd LIKE ? OR nv.hoTen LIKE ? " +
+            "GROUP BY hd.maHoaDon, hd.maNV, hd.ngayLap",
             rs -> new SearchResult("HD", rs.getString("maHoaDon"),
                 "Hóa đơn " + rs.getString("maHoaDon"),
                 "KH: " + fallback(rs.getString("tenKhach"), "-") + "  ·  " + clip(rs.getString("nd"), 10)),
@@ -751,8 +806,7 @@ public class TongQuatModule extends JPanel implements AppModule {
             "FROM Ve v " +
             "LEFT JOIN ChiTietHoaDon ct ON v.maVe = ct.maVe " +
             "LEFT JOIN HoaDon hd ON ct.maHoaDon = hd.maHoaDon " +
-            "LEFT JOIN HoaDonKhachHang hdkh ON hd.maHoaDon = hdkh.maHoaDon " +
-            "LEFT JOIN KhachHang kh ON hdkh.maKhachHang = kh.maKhachHang " +
+            "LEFT JOIN KhachHang kh ON ct.maKhachHang = kh.maKhachHang " +
             "WHERE v.maVe LIKE ? OR hd.maHoaDon LIKE ? OR kh.hoTen LIKE ? OR kh.soDienThoai LIKE ? OR kh.cccd LIKE ?",
             rs -> new SearchResult("VE", rs.getString("maVe"),
                 "Vé " + rs.getString("maVe"),
@@ -894,7 +948,7 @@ public class TongQuatModule extends JPanel implements AppModule {
                 return "SELECT maNV AS [Mã NV], hoTen AS [Họ tên]," +
                     " vaiTro AS [Vai trò], soDienThoai AS [Điện thoại]," +
                     " cccd AS [CCCD], email AS [Email]," +
-                    " gaLamViec AS [Ga làm việc]," +
+                    " maGaLamViec AS [Ga làm việc]," +
                     " CONVERT(varchar,ngaySinh,103) AS [Ngày sinh]," +
                     " gioiTinh AS [Giới tính], quocTich AS [Quốc tịch]," +
                     " diaChiThuongTru AS [Địa chỉ thường trú]," +
@@ -909,31 +963,32 @@ public class TongQuatModule extends JPanel implements AppModule {
                 return "SELECT hd.maHoaDon AS [Mã HĐ]," +
                     " hd.maNV AS [Nhân viên (mã)]," +
                     " nv.hoTen AS [Tên nhân viên]," +
-                    " kh.maKhachHang AS [Khách hàng đại diện (mã)]," +
-                    " kh.hoTen AS [Tên khách hàng đại diện]," +
-                    " (SELECT COUNT(*) FROM HoaDonKhachHang WHERE maHoaDon=hd.maHoaDon) AS [Số khách]," +
+                    " MIN(kh.maKhachHang) AS [Khách hàng đầu tiên (mã)]," +
+                    " MIN(kh.hoTen) AS [Tên khách hàng đầu tiên]," +
+                    " COUNT(DISTINCT ct.maKhachHang) AS [Số khách]," +
                     " CONVERT(varchar,hd.ngayLap,120) AS [Ngày lập]," +
                     " COUNT(ct.maChiTietHD) AS [Số vé]," +
                     " ISNULL(SUM(ct.giaTien),0) AS [Tổng tiền (VNĐ)]" +
                     " FROM HoaDon hd" +
                     " LEFT JOIN NhanVien nv ON hd.maNV=nv.maNV" +
-                    " LEFT JOIN HoaDonKhachHang hdkh ON hdkh.maHoaDon=hd.maHoaDon" +
-                    "   AND hdkh.maHDKH=(SELECT MIN(maHDKH) FROM HoaDonKhachHang WHERE maHoaDon=hd.maHoaDon)" +
-                    " LEFT JOIN KhachHang kh ON kh.maKhachHang=hdkh.maKhachHang" +
                     " LEFT JOIN ChiTietHoaDon ct ON hd.maHoaDon=ct.maHoaDon" +
+                    " LEFT JOIN KhachHang kh ON kh.maKhachHang=ct.maKhachHang" +
                     " WHERE hd.maHoaDon=?" +
-                    " GROUP BY hd.maHoaDon,hd.maNV,nv.hoTen,kh.maKhachHang,kh.hoTen,hd.ngayLap";
+                    " GROUP BY hd.maHoaDon,hd.maNV,nv.hoTen,hd.ngayLap";
             case "VE":
                 return "SELECT v.maVe AS [Mã vé]," +
                     " v.maLich AS [Lịch chạy (mã)]," +
                     " v.maGhe AS [Ghế (mã)]," +
-                    " g.loaiGhe AS [Loại ghế]," +
+                    " toa.loaiGhe AS [Loại ghế]," +
                     " v.trangThai AS [Trạng thái]," +
                     " v.lyDoHuy AS [Lý do hủy]," +
                     " CONVERT(varchar,v.ngayHuy,120) AS [Ngày hủy]" +
                     " FROM Ve v" +
                     " LEFT JOIN Ghe g ON v.maGhe=g.maGhe" +
+                    " LEFT JOIN ToaTau toa ON g.maToaTau=toa.maToaTau" +
                     " WHERE v.maVe=?";
+                // Handoff: loại ghế của vé lấy qua Ghe -> ToaTau vì bảng Ghe chỉ lưu maToaTau/soGhe.
+                // Rủi ro: nếu đổi schema ghế có loaiGhe riêng thì cần đồng bộ lại query detail này.
             case "GA":
                 return "SELECT maGa AS [Mã ga], tenGa AS [Tên ga], diaChi AS [Địa chỉ]" +
                     " FROM Ga WHERE maGa=?";
@@ -1005,17 +1060,15 @@ public class TongQuatModule extends JPanel implements AppModule {
                 Connection con = ConnectDB.getCon();
                 if (con == null) return rows;
                 String sql =
-                    "SELECT TOP 15 hd.maHoaDon, kh.hoTen AS tenKH, " +
+                    "SELECT TOP 15 hd.maHoaDon, MIN(kh.hoTen) AS tenKH, " +
                     "  CONVERT(varchar,hd.ngayLap,120) AS nd, " +
                     "  COUNT(ct.maChiTietHD) AS soVe, " +
                     "  ISNULL(SUM(ct.giaTien),0) AS tong, " +
-                    "  (SELECT COUNT(*) FROM HoaDonKhachHang WHERE maHoaDon=hd.maHoaDon) AS soKH " +
+                    "  COUNT(DISTINCT ct.maKhachHang) AS soKH " +
                     "FROM HoaDon hd " +
-                    "LEFT JOIN HoaDonKhachHang hdkh ON hdkh.maHoaDon=hd.maHoaDon " +
-                    "  AND hdkh.maHDKH=(SELECT MIN(maHDKH) FROM HoaDonKhachHang WHERE maHoaDon=hd.maHoaDon) " +
-                    "LEFT JOIN KhachHang kh ON kh.maKhachHang=hdkh.maKhachHang " +
                     "LEFT JOIN ChiTietHoaDon ct ON hd.maHoaDon=ct.maHoaDon " +
-                    "GROUP BY hd.maHoaDon, kh.hoTen, hd.ngayLap " +
+                    "LEFT JOIN KhachHang kh ON kh.maKhachHang=ct.maKhachHang " +
+                    "GROUP BY hd.maHoaDon, hd.ngayLap " +
                     "ORDER BY hd.ngayLap DESC";
                 try (PreparedStatement ps = con.prepareStatement(sql);
                      ResultSet rs = ps.executeQuery()) {
@@ -1056,7 +1109,7 @@ public class TongQuatModule extends JPanel implements AppModule {
                 Connection con = ConnectDB.getCon();
                 if (con == null) return results;
                 String sql =
-                    "SELECT TOP 5 l.maDoanTau," +
+                    "SELECT TOP 5 l.maLich, l.maDoanTau," +
                     "  ISNULL(dt.tenDoanTau, l.maDoanTau) AS tenDoan," +
                     "  ISNULL(g1.tenGa, ISNULL(t.gaDi,'?')) AS gaDi," +
                     "  ISNULL(g2.tenGa, ISNULL(t.gaDen,'?')) AS gaDen," +
@@ -1075,6 +1128,7 @@ public class TongQuatModule extends JPanel implements AppModule {
                      ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         results.add(new String[]{
+                            rs.getString("maLich"),
                             rs.getString("maDoanTau"),
                             rs.getString("tenDoan"),
                             rs.getString("gaDi"),
@@ -1115,13 +1169,14 @@ public class TongQuatModule extends JPanel implements AppModule {
 
     // ── DEPARTURE ITEM ────────────────────────────────────────────────────────
     private JPanel buildDepartureItem(String[] d) {
-        // d: [maDoanTau, tenDoanTau, gaDi, gaDen, gio, batDau, ketThuc, trangThai]
-        String code  = d[0] != null ? d[0] : "?";
-        String tenDoan = d[1] != null ? d[1] : "";
-        String gaDi  = d[2] != null ? d[2] : "?";
-        String gaDen = d[3] != null ? d[3] : "?";
-        String gio   = d[4] != null ? d[4].substring(0, Math.min(5, d[4].length())) : "--:--";
-        String status = departureStatus(d.length > 5 ? d[5] : null, d.length > 6 ? d[6] : null, d.length > 7 ? d[7] : null);
+        // d: [maLich, maDoanTau, tenDoanTau, gaDi, gaDen, gio, batDau, ketThuc, trangThai]
+        String maLich = d[0] != null ? d[0] : "";
+        String code  = d[1] != null ? d[1] : "?";
+        String tenDoan = d[2] != null ? d[2] : "";
+        String gaDi  = d[3] != null ? d[3] : "?";
+        String gaDen = d[4] != null ? d[4] : "?";
+        String gio   = d[5] != null ? d[5].substring(0, Math.min(5, d[5].length())) : "--:--";
+        String status = departureStatus(d.length > 6 ? d[6] : null, d.length > 7 ? d[7] : null, d.length > 8 ? d[8] : null);
         String badge = code.length() > 6 ? code.substring(0, 6) : code;
 
         JPanel item = new JPanel(new BorderLayout(12, 0));
@@ -1132,6 +1187,13 @@ public class TongQuatModule extends JPanel implements AppModule {
         ));
         item.setAlignmentX(Component.LEFT_ALIGNMENT);
         item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
+        item.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        item.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e) || e.getClickCount() != 2) return;
+                openDepartureDetail(maLich);
+            }
+        });
 
         // Badge
         JLabel badgeLbl = new JLabel(badge, SwingConstants.CENTER);
@@ -1186,6 +1248,22 @@ public class TongQuatModule extends JPanel implements AppModule {
         // Cảnh báo: nếu DB đổi kiểu trangThai, cập nhật departureStatus().
     }
 
+
+    private void openDepartureDetail(String maLich) {
+        if (maLich == null || maLich.isBlank()) return;
+        Lich lich = daoLich.findById(maLich.trim());
+        if (lich == null) {
+            NotionMessageDialog.showMessageDialog(this,
+                    "Không tìm thấy lịch chạy " + maLich + ".",
+                    "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        ChinhSuaLichChayDialog dialog = new ChinhSuaLichChayDialog(owner, lich, this::loadDepartures);
+        dialog.setVisible(true);
+        // Handoff: double-click bảng khởi hành mở dialog lịch chạy hiện có và reload lại dashboard sau khi lưu.
+        // Cảnh báo: dữ liệu item phải giữ maLich ở index 0 vì mã đoàn tàu hiển thị không định danh lịch.
+    }
     private String departureStatus(String startText, String endText, String rawStatus) {
         if (rawStatus != null) {
             String normalized = rawStatus.trim().toLowerCase(Locale.ROOT);
@@ -1234,13 +1312,25 @@ public class TongQuatModule extends JPanel implements AppModule {
             new LineBorder(NotionTheme.BORDER, 1, true),
             new EmptyBorder(7, 10, 7, 10)
         ));
+        stabilizeLookupInput(f, 40);
         f.putClientProperty("JTextField.placeholderText", placeholder);
         return f;
+    }
+
+    private void stabilizeLookupInput(JTextField field, int height) {
+        field.setColumns(1);
+        field.setMinimumSize(new Dimension(0, height));
+        field.setPreferredSize(new Dimension(0, height));
+        // Handoff: Tổng quan dùng grid ngang cố định; input không tự nới theo nội dung khi nhập.
+        // Cảnh báo: chỉ áp dụng cho field nằm trong vùng fill ngang, không dùng cho form nhập liệu tự do.
     }
 
     private void styleCombo(JComboBox<?> cbo) {
         cbo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbo.setBackground(Color.WHITE);
+        NotionTheme.applyComboBoxSelection(cbo);
+        // Handoff: combo bộ lọc tổng quan giữ LAF gọn nhưng popup selection theo theme tím chung.
+        // Rủi ro: nếu đổi renderer sau styleCombo thì cần gọi lại applyComboBoxSelection.
     }
 
     private JButton makePrimaryBtn(String text) {
@@ -1360,7 +1450,7 @@ public class TongQuatModule extends JPanel implements AppModule {
         public Component getListCellRendererComponent(JList<?> list, Object value,
                                                       int idx, boolean sel, boolean foc) {
             SearchResult sr = (SearchResult) value;
-            Color bg = sel ? NotionTheme.ACCENT_SOFT : Color.WHITE;
+            Color bg = sel ? NotionTheme.POPUP_SELECTION : Color.WHITE;
 
             JPanel panel = new JPanel(new BorderLayout(10, 0));
             panel.setBackground(bg);
@@ -1371,7 +1461,7 @@ public class TongQuatModule extends JPanel implements AppModule {
 
             if ("INFO".equals(sr.type)) {
                 JLabel lbl = new JLabel(sr.title);
-                lbl.setForeground(NotionTheme.TEXT_MUTED);
+                lbl.setForeground(sel ? NotionTheme.POPUP_SELECTION_TEXT : NotionTheme.TEXT_MUTED);
                 lbl.setFont(new Font("Segoe UI", Font.ITALIC, 13));
                 panel.add(lbl, BorderLayout.CENTER);
                 return panel;
@@ -1393,11 +1483,11 @@ public class TongQuatModule extends JPanel implements AppModule {
 
             JLabel lTitle = new JLabel(sr.title + "  (" + sr.id + ")");
             lTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            lTitle.setForeground(NotionTheme.TEXT);
+            lTitle.setForeground(sel ? NotionTheme.POPUP_SELECTION_TEXT : NotionTheme.TEXT);
 
             JLabel lSub = new JLabel(sr.subtitle);
             lSub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            lSub.setForeground(NotionTheme.TEXT_MUTED);
+            lSub.setForeground(sel ? NotionTheme.POPUP_SELECTION_TEXT : NotionTheme.TEXT_MUTED);
 
             texts.add(lTitle, BorderLayout.NORTH);
             texts.add(lSub,   BorderLayout.SOUTH);

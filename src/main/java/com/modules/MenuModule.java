@@ -29,6 +29,7 @@ public class MenuModule extends JPanel implements AppModule {
     private final List<MenuGroup> menuGroups = new ArrayList<>();
     private final Map<NavItem, MenuGroup> itemGroups = new HashMap<>();
     private NavItem activeMenuItem = null;
+    private BanVeModule cachedBanVeModule;
 
     // Colors
     private static final Color PRIMARY        = NotionTheme.ACCENT;
@@ -87,15 +88,7 @@ public class MenuModule extends JPanel implements AppModule {
         btnDatVe.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                setActive(null);
-                lblPageTitle.setText("Đặt vé mới");
-                BanVeModule banVeModule = new BanVeModule(currentUser);
-                banVeModule.reset();
-                banVeModule.setOnResult(null);
-                contentPanel.removeAll();
-                contentPanel.add(banVeModule.getView(), BorderLayout.CENTER);
-                contentPanel.revalidate();
-                contentPanel.repaint();
+                openBookingModule();
             }
         });
         nav.add(btnDatVe);
@@ -560,6 +553,24 @@ public class MenuModule extends JPanel implements AppModule {
         }
     }
 
+    private void openBookingModule() {
+        setActive(null);
+        lblPageTitle.setText("Đặt vé mới");
+        if (cachedBanVeModule == null) {
+            cachedBanVeModule = new BanVeModule(currentUser);
+            cachedBanVeModule.reset();
+            cachedBanVeModule.setOnResult(null);
+        } else if (cachedBanVeModule.isCompleted()) {
+            cachedBanVeModule.beginNewBooking();
+        }
+        contentPanel.removeAll();
+        contentPanel.add(cachedBanVeModule.getView(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+        // Handoff: giữ một instance BanVeModule để đổi tab không làm mất phiên đặt vé đang dở.
+        // Cảnh báo: chỉ reset khi phiên đã hoàn thành; nếu cần hủy chủ động thì thêm nút/confirm riêng.
+    }
+
     // =====================================================================
     //  MENU ACTION HANDLER
     // =====================================================================
@@ -817,18 +828,6 @@ public class MenuModule extends JPanel implements AppModule {
         setActive(null);
         lblPageTitle.setText("Thông tin cá nhân");
         ThongTinCaNhanModule module = new ThongTinCaNhanModule(currentUser);
-        module.reset();
-        module.setOnResult(null);
-        contentPanel.removeAll();
-        contentPanel.add(module.getView(), BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
-    }
-
-    private void openDebugMauHeThong() {
-        setActive(null);
-        lblPageTitle.setText("Debug màu hệ thống");
-        MauHeThongDebugModule module = new MauHeThongDebugModule();
         module.reset();
         module.setOnResult(null);
         contentPanel.removeAll();

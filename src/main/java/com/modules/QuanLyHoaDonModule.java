@@ -39,15 +39,11 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     private int             hoveredRow = -1;
 
     // Pagination
-    private int currentPage = 1;
-    private int rowsPerPage = 10;
-    private boolean isRefreshing = false;
     private JLabel lblPageInfo;
     private JLabel lblTableMeta;
     private JLabel lblStatTotal;
     private JLabel lblStatTickets;
     private JLabel lblStatRevenue;
-    private JPanel paginationPanel;
 
     // Data
     private final List<HoaDonRow> allData      = new ArrayList<>();
@@ -229,7 +225,7 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
         return card;
     }
 
-    // ---- Body: filter + table + pagination ----
+    // ---- Body: filter + scrollable table ----
     private JPanel buildBody() {
         JPanel body = new JPanel(new BorderLayout(0, 16));
         body.setOpaque(false);
@@ -398,43 +394,33 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
         });
         table.addMouseListener(new MouseAdapter() {
             @Override public void mouseExited(MouseEvent e) { hoveredRow = -1; table.repaint(); }
+            @Override public void mousePressed(MouseEvent e) { showHoaDonQuickActions(e); }
+            @Override public void mouseReleased(MouseEvent e) { showHoaDonQuickActions(e); }
+
+            @Override public void mouseClicked(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e) || e.getClickCount() != 2) return;
+                int row = table.rowAtPoint(e.getPoint());
+                int col = table.columnAtPoint(e.getPoint());
+                if (row < 0 || col == 7) return;
+                openChiTiet(row);
+            }
         });
+        // Handoff: thân dòng hóa đơn mở bằng double-click; nút Chi tiết vẫn single-click.
+        // Cảnh báo: nếu JTable có sorter thì row view cần convert về model trước khi mở.
 
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.setOpaque(false);
         scroll.getViewport().setBackground(CARD_BG);
-        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
-        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scroll.setWheelScrollingEnabled(false);
-        scroll.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override public void componentResized(java.awt.event.ComponentEvent e) {
-                int newRows = calcRowsFromViewport();
-                if (newRows > 0 && newRows != rowsPerPage) {
-                    rowsPerPage = newRows;
-                    if (!isRefreshing) refreshTable();
-                }
-            }
-        });
+        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setWheelScrollingEnabled(true);
         card.add(scroll, BorderLayout.CENTER);
-        card.add(buildPaginationBar(), BorderLayout.SOUTH);
+        card.add(buildTableFooter(), BorderLayout.SOUTH);
         return card;
     }
 
-    private int calcRowsFromViewport() {
-        if (table == null || !(table.getParent() instanceof JViewport vp)) return 0;
-        int viewH = vp.getHeight();
-        int rowH = table.getRowHeight() > 0 ? table.getRowHeight() : 56;
-        int headerH = table.getTableHeader() != null ? table.getTableHeader().getHeight() : 44;
-        if (headerH <= 0 && table.getTableHeader() != null) headerH = table.getTableHeader().getPreferredSize().height;
-        if (headerH <= 0) headerH = 44;
-        int available = viewH - headerH;
-        return available > 0 ? Math.max(1, available / rowH + 1) : 0;
-        // Handoff: copy nhịp tính dòng từ các module bảng để lấp đầy khoảng trống còn lại.
-        // Cảnh báo: hàng cuối có thể sát mép như mẫu bảng, không bật scrollbar dọc ở đây.
-    }
-
-    private JPanel buildPaginationBar() {
+        private JPanel buildTableFooter() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createCompoundBorder(
@@ -446,14 +432,11 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
         lblPageInfo.setFont(FONT_BODY);
         lblPageInfo.setForeground(ON_SURF_VAR);
 
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        paginationPanel.setOpaque(false);
 
         bar.add(lblPageInfo, BorderLayout.WEST);
-        bar.add(paginationPanel, BorderLayout.EAST);
+        // Handoff: footer chỉ hiển thị tổng số hóa đơn sau lọc, không còn điều hướng phân trang.
+        // Cảnh báo: nếu thêm tổng tiền theo filter thì cập nhật cùng refreshTable để tránh lệch số liệu.
         return bar;
-        // Handoff: phân trang hóa đơn dùng cùng bố cục bảng với Quản lý vé/khách hàng.
-        // Cảnh báo: không đặt info vào paginationPanel để tránh bị canh giữa như layout lưới.
     }
 
     // =========================================================================
@@ -486,121 +469,33 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
                     return maHD.contains(kw) || khMatch || nv.contains(kw);
                 })
                 .collect(Collectors.toList()));
-        currentPage = 1;
         refreshTable();
     }
 
     private void refreshTable() {
-        isRefreshing = true;
-        try {
-            int vpRows = calcRowsFromViewport();
-            if (vpRows > 0) {
-                rowsPerPage = vpRows;
-            } else {
-                int screenH = Toolkit.getDefaultToolkit().getScreenSize().height;
-                int rh = (table != null && table.getRowHeight() > 0) ? table.getRowHeight() : 56;
-                rowsPerPage = Math.max(5, (screenH - 300) / rh);
-            }
-            int total = filteredData.size();
-            int pages = Math.max(1, (int) Math.ceil((double) total / rowsPerPage));
-            if (currentPage > pages) currentPage = pages;
-
-            int from = (currentPage - 1) * rowsPerPage;
-            int to   = Math.min(from + rowsPerPage, total);
-            List<HoaDonRow> page = filteredData.subList(from, to);
-
-            tableModel.setData(page, from);
-            buildPaginationControls(pages, from, to);
-        } finally {
-            isRefreshing = false;
-        }
-    }
-
-    private void buildPaginationControls(int totalPages, int from, int to) {
-        paginationPanel.removeAll();
-
+        tableModel.setData(filteredData);
         int total = filteredData.size();
-        String rangeText = total == 0 ? "0" : (from + 1) + "-" + to;
-        lblPageInfo.setText("Hiển thị " + rangeText + " / " + total
-                + " hóa đơn · Trang " + currentPage + " / " + totalPages);
-        if (lblTableMeta != null) lblTableMeta.setText(filteredData.size() + " hóa đơn");
-        if (lblStatTotal != null) {
-            lblStatTotal.setText(String.valueOf(filteredData.size()));
-            lblStatTickets.setText(String.valueOf(filteredData.stream().mapToInt(HoaDonRow::soVe).sum()));
-            BigDecimal totalRevenue = filteredData.stream()
-                    .map(HoaDonRow::tongTien)
-                    .filter(java.util.Objects::nonNull)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            lblStatRevenue.setText(VND_FMT.format(totalRevenue) + " ₫");
-        }
-
-        addNavButton("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
-        for (int i = 1; i <= totalPages; i++) {
-            if (totalPages > 7) {
-                if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-                    addPageButton(i);
-                } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("…");
-                    dots.setFont(FONT_BODY);
-                    dots.setForeground(ON_SURF_VAR);
-                    dots.setBorder(new EmptyBorder(0, 6, 0, 6));
-                    paginationPanel.add(dots);
-                }
-            } else {
-                addPageButton(i);
-            }
-        }
-        addNavButton("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
-
-        paginationPanel.revalidate();
-        paginationPanel.repaint();
+        lblPageInfo.setText(total == 0
+                ? "Không tìm thấy hóa đơn nào"
+                : "Hiển thị " + total + " hóa đơn");
     }
-
-    private void addPageButton(int page) {
-        JButton button = pageBtn(String.valueOf(page), page == currentPage);
-        button.addActionListener(e -> { currentPage = page; refreshTable(); });
-        paginationPanel.add(button);
-    }
-
-    private void addNavButton(String text, boolean enabled, Runnable action) {
-        JButton button = pageBtn(text, false);
-        button.setEnabled(enabled);
-        button.addActionListener(e -> action.run());
-        paginationPanel.add(button);
-    }
-
-    private JButton pageBtn(String text, boolean active) {
-        JButton b = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (active) {
-                    g2.setColor(PRIMARY);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                } else if (getModel().isRollover() && isEnabled()) {
-                    g2.setColor(OUTLINE);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                }
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        b.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        b.setPreferredSize(new Dimension(32, 32));
-        b.setMargin(new Insets(0, 0, 0, 0));
-        b.setForeground(active ? Color.WHITE : ON_SURF_VAR);
-        b.setContentAreaFilled(false);
-        b.setBorderPainted(false);
-        b.setFocusPainted(false);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return b;
+    private void showHoaDonQuickActions(MouseEvent e) {
+        if (!e.isPopupTrigger()) return;
+        int row = table.rowAtPoint(e.getPoint());
+        if (row < 0) return;
+        table.setRowSelectionInterval(row, row);
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem view = new JMenuItem("Xem chi tiết");
+        view.addActionListener(ev -> openChiTiet(row));
+        menu.add(view);
+        menu.show(table, e.getX(), e.getY());
     }
 
     private void openChiTiet(int row) {
         if (row < 0) return;
-        List<HoaDonRow> page = tableModel.getCurrentPage();
-        if (row >= page.size()) return;
-        HoaDon hd = page.get(row).hoaDon();
+        HoaDonRow selectedRow = tableModel.getRowAt(row);
+        if (selectedRow == null) return;
+        HoaDon hd = selectedRow.hoaDon();
         Window owner = SwingUtilities.getWindowAncestor(this);
         JFrame frame = owner instanceof JFrame ? (JFrame) owner : null;
         new ChiTietHoaDonDialog(frame, hd).setVisible(true);
@@ -613,17 +508,17 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     class HoaDonTableModel extends AbstractTableModel {
         private final String[]        cols;
         private final List<HoaDonRow> data = new ArrayList<>();
-        private int                   rowOffset = 0;
 
         HoaDonTableModel(String[] cols) { this.cols = cols; }
 
-        void setData(List<HoaDonRow> list, int offset) {
+        void setData(List<HoaDonRow> list) {
             data.clear(); data.addAll(list);
-            this.rowOffset = offset;
             fireTableDataChanged();
         }
 
-        List<HoaDonRow> getCurrentPage() { return data; }
+        HoaDonRow getRowAt(int row) {
+            return row >= 0 && row < data.size() ? data.get(row) : null;
+        }
 
         @Override public int getRowCount()    { return data.size(); }
         @Override public int getColumnCount() { return cols.length; }

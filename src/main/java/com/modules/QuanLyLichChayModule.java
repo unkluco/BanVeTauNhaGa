@@ -21,8 +21,10 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -37,18 +39,16 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
     private final DAO_Ga   daoGa    = new DAO_Ga();
 
     // --- Pagination ---
-    private int currentPage  = 1;
-    private int rowsPerPage  = 10;
     private int totalRecords = 0;
-    private boolean isRefreshing = false;
     private JLabel lblPageInfo;
-    private JPanel paginationPanel;
 
     // --- Filter ---
     private SearchableComboBox<Ga> filterGaDi;
     private SearchableComboBox<Ga> filterGaDen;
     private DatePickerField         dateFrom;
     private DatePickerField         dateTo;
+    private JSpinner                timeFrom;
+    private JSpinner                timeTo;
 
     // --- UI ---
     private JTextField    txtSearch;
@@ -130,7 +130,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
 
         JPanel filterArea = buildFilterBar();
         filterArea.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filterArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
+        NotionTheme.lockMaxWidthToPreferredHeight(filterArea);
 
         top.add(header);
         top.add(Box.createVerticalStrut(16));
@@ -311,7 +311,6 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         JPanel searchRow = new JPanel(new BorderLayout(10, 0));
         searchRow.setOpaque(false);
         searchRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        searchRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
         JPanel searchBox = new JPanel(new BorderLayout(10, 0));
         searchBox.setOpaque(false);
@@ -346,6 +345,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             if (filterGaDen != null) filterGaDen.clearSelection();
             if (dateFrom != null) dateFrom.setValue(null);
             if (dateTo   != null) dateTo.setValue(null);
+            if (timeFrom != null) setSpinnerTime(timeFrom, 0, 0);
+            if (timeTo   != null) setSpinnerTime(timeTo, 23, 59);
             applyFilter();
         });
 
@@ -356,7 +357,6 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         JPanel filterRow = new JPanel(new GridBagLayout());
         filterRow.setOpaque(false);
         filterRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filterRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
         GridBagConstraints filterGbc = new GridBagConstraints();
         filterGbc.gridy = 0;
         filterGbc.fill = GridBagConstraints.HORIZONTAL;
@@ -384,28 +384,45 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         filterGbc.gridx = 1;
         filterRow.add(buildFilterGroupLich("Ga đến", filterGaDen), filterGbc);
 
+        timeFrom = createTimeSpinner(0, 0);
+        timeFrom.addChangeListener(e -> applyFilter());
+        filterGbc.gridx = 2;
+        filterGbc.weightx = 0.45;
+        filterRow.add(buildFilterGroupLich("Từ giờ", timeFrom), filterGbc);
+
         // Tu ngay
         dateFrom = new DatePickerField();
         dateFrom.setPreferredSize(new Dimension(150, 38));
         dateFrom.addPropertyChangeListener("value", e -> applyFilter());
-        filterGbc.gridx = 2;
+        filterGbc.gridx = 3;
         filterGbc.weightx = 0.7;
         filterRow.add(buildFilterGroupLich("Từ ngày", dateFrom), filterGbc);
+
+        timeTo = createTimeSpinner(23, 59);
+        timeTo.addChangeListener(e -> applyFilter());
+        filterGbc.gridx = 4;
+        filterGbc.weightx = 0.45;
+        filterRow.add(buildFilterGroupLich("Đến giờ", timeTo), filterGbc);
 
         // Den ngay
         dateTo = new DatePickerField();
         dateTo.setPreferredSize(new Dimension(150, 38));
         dateTo.addPropertyChangeListener("value", e -> applyFilter());
-        filterGbc.gridx = 3;
+        filterGbc.gridx = 5;
+        filterGbc.weightx = 0.7;
         filterRow.add(buildFilterGroupLich("Đến ngày", dateTo), filterGbc);
-        filterGbc.gridx = 4;
+
+        filterGbc.gridx = 6;
+
         filterGbc.weightx = 0.0;
         filterGbc.insets = new Insets(0, 0, 0, 0);
         filterRow.add(FilterActionGroup.wrap(btnResetAll), filterGbc);
-        // Handoff: Bỏ lọc chỉ reset ga/ngày, còn tìm kiếm có nút X riêng trong search box.
+        // Handoff: Bỏ lọc reset ga/ngày/giờ, còn tìm kiếm có nút X riêng trong search box.
         // Cảnh báo: giữ nút ở filterRow để semantics không ngang hàng với thanh tìm kiếm.
 
         wrapper.add(filterRow);
+        // Handoff: filter lịch chạy để Swing tự đo chiều cao theo search/ga/ngày, không khóa số cứng.
+        // Cảnh báo: nếu thêm control động sau khi render, gọi lại lockMaxWidthToPreferredHeight ở parent.
 
         return wrapper;
     }
@@ -447,7 +464,7 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         card.setBorder(new EmptyBorder(0, 0, 0, 0));
         card.add(buildTableHeader(), BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
-        card.add(buildPaginationBar(), BorderLayout.SOUTH);
+        card.add(buildTableFooter(), BorderLayout.SOUTH);
         return card;
     }
 
@@ -491,6 +508,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         });
         table.addMouseListener(new MouseAdapter() {
             @Override public void mouseExited(MouseEvent e) { hoveredRow = -1; table.repaint(); }
+            @Override public void mousePressed(MouseEvent e) { showLichQuickActions(e); }
+            @Override public void mouseReleased(MouseEvent e) { showLichQuickActions(e); }
 
             @Override public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() != 2 || !SwingUtilities.isLeftMouseButton(e)) return;
@@ -537,32 +556,14 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         JScrollPane sp = new JScrollPane(table);
         sp.setBorder(BorderFactory.createEmptyBorder());
         sp.getViewport().setBackground(CARD_BG);
-        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        sp.setWheelScrollingEnabled(false);
+        sp.setWheelScrollingEnabled(true);
 
-        sp.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override public void componentResized(java.awt.event.ComponentEvent e) {
-                int nr = calcRowsFromViewport();
-                if (nr > 0 && nr != rowsPerPage) {
-                    rowsPerPage = nr;
-                    if (!isRefreshing) refreshTable();
-                }
-            }
-        });
         return sp;
     }
 
-    private int calcRowsFromViewport() {
-        if (table == null || !(table.getParent() instanceof JViewport vp)) return 0;
-        int rh = table.getRowHeight() > 0 ? table.getRowHeight() : 52;
-        int hh = table.getTableHeader().getHeight();
-        if (hh <= 0) hh = 44;
-        int avail = vp.getHeight() - hh;
-        return avail > 0 ? Math.max(1, avail / rh + 1) : 0;
-    }
-
-    private JPanel buildPaginationBar() {
+        private JPanel buildTableFooter() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createCompoundBorder(
@@ -573,11 +574,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         lblPageInfo.setFont(FONT_SMALL);
         lblPageInfo.setForeground(ON_SURF_VAR);
 
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        paginationPanel.setOpaque(false);
 
         bar.add(lblPageInfo, BorderLayout.WEST);
-        bar.add(paginationPanel, BorderLayout.EAST);
         return bar;
     }
 
@@ -621,6 +619,11 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         Ga selGaDen = filterGaDen != null ? filterGaDen.getSelectedItem() : null;
         java.time.LocalDate ldFrom = dateFrom != null ? dateFrom.getValue() : null;
         java.time.LocalDate ldTo   = dateTo   != null ? dateTo.getValue()   : null;
+        LocalTime ltFrom = readSpinnerTime(timeFrom);
+        LocalTime ltTo = readSpinnerTime(timeTo);
+        LocalDateTime dtFrom = ldFrom != null ? ldFrom.atTime(ltFrom) : null;
+        LocalDateTime dtTo = ldTo != null ? ldTo.atTime(ltTo) : null;
+        boolean invalidTimeRange = dtFrom != null && dtTo != null && dtFrom.isAfter(dtTo);
 
         filteredData = new ArrayList<>();
         for (Lich l : allData) {
@@ -642,16 +645,17 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
                 if (l.getTuyen() == null || l.getTuyen().getGaDen() == null
                         || !l.getTuyen().getGaDen().getMaGa().equals(selGaDen.getMaGa())) continue;
             }
-            if (ldFrom != null && l.getThoiGianBatDau() != null) {
-                if (l.getThoiGianBatDau().toLocalDate().isBefore(ldFrom)) continue;
+            if (invalidTimeRange) continue;
+            LocalDateTime startTime = l.getThoiGianBatDau();
+            if (dtFrom != null) {
+                if (startTime == null || startTime.isBefore(dtFrom)) continue;
             }
-            if (ldTo != null && l.getThoiGianBatDau() != null) {
-                if (l.getThoiGianBatDau().toLocalDate().isAfter(ldTo)) continue;
+            if (dtTo != null) {
+                if (startTime == null || startTime.isAfter(dtTo)) continue;
             }
             filteredData.add(l);
         }
         totalRecords = filteredData.size();
-        currentPage  = 1;
         refreshTable();
     }
 
@@ -659,83 +663,61 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         applyFilter();
     }
 
+    private JSpinner createTimeSpinner(int hour, int minute) {
+        SpinnerDateModel model = new SpinnerDateModel();
+        JSpinner spinner = new JSpinner(model);
+        spinner.setEditor(new JSpinner.DateEditor(spinner, "HH:mm"));
+        spinner.setFont(FONT_BODY);
+        spinner.setPreferredSize(new Dimension(92, 38));
+        spinner.setToolTipText("Dùng nút tăng/giảm hoặc nhập giờ dạng HH:mm. Giờ chỉ áp dụng khi ngày tương ứng được chọn.");
+        setSpinnerTime(spinner, hour, minute);
+        return spinner;
+    }
+
+    private void setSpinnerTime(JSpinner spinner, int hour, int minute) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        spinner.setValue(calendar.getTime());
+    }
+
+    private LocalTime readSpinnerTime(JSpinner spinner) {
+        if (spinner == null) return LocalTime.MIN;
+        try { spinner.commitEdit(); } catch (java.text.ParseException ignored) {}
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime((java.util.Date) spinner.getValue());
+        return LocalTime.of(calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE));
+        // Handoff: filter giờ dùng JSpinner giống dialog sửa lịch để có nút tăng/giảm bằng chuột.
+        // Cảnh báo: giờ chỉ tạo khoảng datetime khi ngày tương ứng đã được chọn.
+    }
+
+    private int parseHour(String value) {
+        LocalTime time = parseCriteriaTime(value, LocalTime.MIN);
+        return time.getHour();
+    }
+
+    private int parseMinute(String value) {
+        LocalTime time = parseCriteriaTime(value, LocalTime.MIN);
+        return time.getMinute();
+    }
+
+    private LocalTime parseCriteriaTime(String value, LocalTime fallback) {
+        if (value == null || value.isBlank()) return fallback;
+        try { return LocalTime.parse(value, DateTimeFormatter.ofPattern("H:mm")); }
+        catch (Exception ignored) { return fallback; }
+    }
+
     private void refreshTable() {
-        isRefreshing = true;
-        try {
-            int vpRows = calcRowsFromViewport();
-            if (vpRows > 0) {
-                rowsPerPage = vpRows;
-            } else {
-                int screenH = Toolkit.getDefaultToolkit().getScreenSize().height;
-                int rh = table != null && table.getRowHeight() > 0 ? table.getRowHeight() : 52;
-                rowsPerPage = Math.max(3, (screenH - 530) / rh);
-            }
-
-            int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / rowsPerPage));
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            int start = (currentPage - 1) * rowsPerPage;
-            int end   = Math.min(start + rowsPerPage, totalRecords);
-            tableModel.setData(filteredData.subList(start, end));
-
-            lblPageInfo.setText(totalRecords == 0
-                    ? "Không tìm thấy lịch nào"
-                    : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " lịch");
-
-            rebuildPagination(totalPages);
-        } finally { isRefreshing = false; }
+        tableModel.setData(filteredData);
+        lblPageInfo.setText(totalRecords == 0
+                ? "Không tìm thấy bản ghi nào"
+                : "Hiển thị " + totalRecords + " bản ghi");
     }
 
-    private void rebuildPagination(int totalPages) {
-        paginationPanel.removeAll();
-        addNavBtn("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
-        for (int i = 1; i <= totalPages; i++) {
-            if (totalPages > 7) {
-                if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-                    addPageBtn(i);
-                } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("…");
-                    dots.setFont(FONT_SMALL); dots.setForeground(ON_SURF_VAR);
-                    dots.setBorder(new EmptyBorder(0, 4, 0, 4));
-                    paginationPanel.add(dots);
-                }
-            } else { addPageBtn(i); }
-        }
-        addNavBtn("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
-        paginationPanel.revalidate(); paginationPanel.repaint();
-    }
 
-    private void addPageBtn(int page) {
-        JButton btn = new JButton(String.valueOf(page)) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (page == currentPage) { g2.setColor(PRIMARY); g2.fill(new RoundRectangle2D.Float(0,0,getWidth(),getHeight(),8,8)); }
-                g2.dispose(); super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_HEADER); btn.setPreferredSize(new Dimension(32,32));
-        btn.setMargin(new Insets(0,0,0,0)); btn.setFocusPainted(false);
-        btn.setBorderPainted(false); btn.setContentAreaFilled(false);
-        btn.setForeground(page == currentPage ? NotionTheme.CARD : ON_SURF_VAR);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(e -> { currentPage = page; refreshTable(); });
-        paginationPanel.add(btn);
-    }
-
-    private void addNavBtn(String sym, boolean enabled, Runnable action) {
-        JButton btn = new JButton(sym);
-        btn.setFont(FONT_BODY); btn.setPreferredSize(new Dimension(32,32));
-        btn.setMargin(new Insets(0,0,0,0)); btn.setFocusPainted(false);
-        btn.setBorderPainted(false); btn.setContentAreaFilled(false);
-        btn.setForeground(enabled ? ON_SURFACE : ON_SURF_VAR);
-        btn.setEnabled(enabled); btn.setCursor(enabled
-                ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
-        if (enabled) btn.addActionListener(e -> action.run());
-        paginationPanel.add(btn);
-    }
-
-    // =====================================================================
+                // =====================================================================
     //  ACTIONS
     // =====================================================================
 
@@ -743,6 +725,24 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         Window owner = SwingUtilities.getWindowAncestor(this);
         ChinhSuaLichChayDialog dlg = new ChinhSuaLichChayDialog(owner, lich, () -> loadData());
         dlg.setVisible(true);
+    }
+
+    private void showLichQuickActions(MouseEvent e) {
+        if (!e.isPopupTrigger()) return;
+        int row = table.rowAtPoint(e.getPoint());
+        if (row < 0) return;
+        table.setRowSelectionInterval(row, row);
+        Lich lich = tableModel.getAt(table.convertRowIndexToModel(row));
+        if (lich == null) return;
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem edit = new JMenuItem("Sửa");
+        edit.addActionListener(ev -> openDialog(lich));
+        JMenuItem toggle = new JMenuItem(lich.isHoatDong() ? "Ngưng hoạt động" : "Kích hoạt");
+        toggle.addActionListener(ev -> toggleHoatDong(lich));
+        menu.add(edit);
+        menu.addSeparator();
+        menu.add(toggle);
+        menu.show(table, e.getX(), e.getY());
     }
 
     private void toggleHoatDong(Lich lich) {
@@ -804,6 +804,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         };
         f.setFont(FONT_BODY);
         f.setBackground(CARD_BG);
+        f.setColumns(1);
+        f.setMinimumSize(new Dimension(0, 38));
         f.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1, true), new EmptyBorder(6, 12, 6, 12)));
         f.setPreferredSize(new Dimension(0, 38));
@@ -1118,6 +1120,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
             if (filterGaDen != null) filterGaDen.selectItem(null);
             if (dateFrom != null) dateFrom.setValue(null);
             if (dateTo != null) dateTo.setValue(null);
+            if (timeFrom != null) setSpinnerTime(timeFrom, 0, 0);
+            if (timeTo != null) setSpinnerTime(timeTo, 23, 59);
 
             // Select GA ĐI — tìm Ga theo maGa rồi select
             if (criteria.gaDiCode() != null && filterGaDi != null) {
@@ -1148,6 +1152,12 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
                 java.time.LocalDate ld = java.time.LocalDate.parse(criteria.denNgayYmd());
                 dateTo.setValue(ld);
             }
+            if (criteria.tuGioHm() != null && timeFrom != null) {
+                setSpinnerTime(timeFrom, parseHour(criteria.tuGioHm()), parseMinute(criteria.tuGioHm()));
+            }
+            if (criteria.denGioHm() != null && timeTo != null) {
+                setSpinnerTime(timeTo, parseHour(criteria.denGioHm()), parseMinute(criteria.denGioHm()));
+            }
         } catch (Exception ex) {
             System.err.println("[TongQuat] applySearchFromDashboard error: " + ex.getMessage());
         }
@@ -1165,6 +1175,8 @@ public class QuanLyLichChayModule extends JPanel implements AppModule {
         txtSearch.setText("");
         if (dateFrom != null) dateFrom.setValue(null);
         if (dateTo != null) dateTo.setValue(null);
+        if (timeFrom != null) setSpinnerTime(timeFrom, 0, 0);
+        if (timeTo != null) setSpinnerTime(timeTo, 23, 59);
         loadData();
     }
 }

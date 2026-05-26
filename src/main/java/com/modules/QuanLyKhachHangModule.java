@@ -31,12 +31,9 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
     private KhachHangTableModel tableModel;
 
     // --- Pagination ---
-    private int currentPage  = 1;
-    private int rowsPerPage  = 10;
     private int totalRecords = 0;
 
     private JLabel  lblPageInfo;
-    private JPanel  paginationPanel;
     private JLabel  lblTotalCount;
     private JLabel  lblMaleCount;
     private JLabel  lblFemaleCount;
@@ -160,7 +157,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
 
         btnAddNew = createPrimaryButton("+ Thêm khách hàng");
         btnAddNew.setPreferredSize(new Dimension(178, 42));
-        btnAddNew.addActionListener(e -> openThemKhachHangDialog());
+        btnAddNew.addActionListener(e -> openCreateKhachHangDialog());
 
         JPanel rightWrapper = new JPanel(new GridBagLayout());
         rightWrapper.setOpaque(false);
@@ -250,8 +247,10 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         };
         card.setOpaque(false);
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
         card.add(buildFilterBar(), BorderLayout.CENTER);
+        NotionTheme.lockMaxWidthToPreferredHeight(card);
+        // Handoff: card filter khách hàng lấy chiều cao tự nhiên sau khi add đủ nội dung, không hard-code.
+        // Cảnh báo: nếu filter thêm/bớt dòng runtime, cần revalidate và khóa lại max height theo preferred.
         return card;
     }
 
@@ -286,7 +285,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
 
         card.add(tableHeader, BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
-        card.add(buildPaginationBar(), BorderLayout.SOUTH);
+        card.add(buildTableFooter(), BorderLayout.SOUTH);
 
         return card;
     }
@@ -442,6 +441,9 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
 
         // Row click → open edit dialog
         table.addMouseListener(new MouseAdapter() {
+            @Override public void mousePressed(MouseEvent e) { showKhachHangQuickActions(e); }
+            @Override public void mouseReleased(MouseEvent e) { showKhachHangQuickActions(e); }
+
             @Override
             public void mouseClicked(MouseEvent e) {
                 int viewRow = table.rowAtPoint(e.getPoint());
@@ -462,35 +464,11 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         sp.setWheelScrollingEnabled(true);
 
-        sp.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentResized(java.awt.event.ComponentEvent e) {
-                int newRows = calcRowsFromViewport();
-                if (newRows > 0 && newRows != rowsPerPage) {
-                    rowsPerPage = newRows;
-                    if (!isRefreshing) refreshTable();
-                }
-            }
-        });
-
         return sp;
     }
 
-    private boolean isRefreshing = false;
 
-    private int calcRowsFromViewport() {
-        if (table == null || !(table.getParent() instanceof JViewport vp)) return 0;
-        int viewH = vp.getHeight();
-        int rh = table.getRowHeight();
-        if (rh <= 0) rh = 56;
-        int headerH = table.getTableHeader().getHeight();
-        if (headerH <= 0) headerH = table.getTableHeader().getPreferredSize().height;
-        if (headerH <= 0) headerH = 44;
-        int available = viewH - headerH;
-        return available > 0 ? Math.max(1, available / rh + 1) : 0;
-    }
-
-    private JPanel buildPaginationBar() {
+        private JPanel buildTableFooter() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createCompoundBorder(
@@ -502,11 +480,8 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         lblPageInfo.setFont(FONT_SMALL);
         lblPageInfo.setForeground(ON_SURF_VAR);
 
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        paginationPanel.setOpaque(false);
 
         bar.add(lblPageInfo, BorderLayout.WEST);
-        bar.add(paginationPanel, BorderLayout.EAST);
 
         return bar;
     }
@@ -563,7 +538,6 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         // Rủi ro: giới tính trong DB đang là String thô NAM/NU, nên cần normalize trước khi so sánh.
         totalRecords = filteredData.size();
         updateStats(filteredData);
-        currentPage = 1;
         refreshTable();
     }
 
@@ -581,104 +555,14 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
     // =================================================================
 
     private void refreshTable() {
-        isRefreshing = true;
-        try {
-            int vpRows = calcRowsFromViewport();
-            if (vpRows > 0) {
-                rowsPerPage = vpRows;
-            } else {
-                int screenH = Toolkit.getDefaultToolkit().getScreenSize().height;
-                int rh = (table != null && table.getRowHeight() > 0) ? table.getRowHeight() : 56;
-                rowsPerPage = Math.max(5, (screenH - 300) / rh);
-            }
-
-            int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / rowsPerPage));
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            int start = (currentPage - 1) * rowsPerPage;
-            int end = Math.min(start + rowsPerPage, totalRecords);
-
-            tableModel.setData(filteredData.subList(start, end));
-
-            lblPageInfo.setText(totalRecords == 0
-                    ? "Không tìm thấy khách hàng nào"
-                    : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " khách hàng");
-
-            rebuildPagination(totalPages);
-        } finally {
-            isRefreshing = false;
-        }
+        tableModel.setData(filteredData);
+        lblPageInfo.setText(totalRecords == 0
+                ? "Không tìm thấy bản ghi nào"
+                : "Hiển thị " + totalRecords + " bản ghi");
     }
 
-    private void rebuildPagination(int totalPages) {
-        paginationPanel.removeAll();
 
-        addNavButton("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
-
-        for (int i = 1; i <= totalPages; i++) {
-            if (totalPages > 7) {
-                if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-                    addPageButton(i);
-                } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("…");
-                    dots.setFont(FONT_SMALL);
-                    dots.setForeground(ON_SURF_VAR);
-                    dots.setBorder(new EmptyBorder(0, 6, 0, 6));
-                    paginationPanel.add(dots);
-                }
-            } else {
-                addPageButton(i);
-            }
-        }
-
-        addNavButton("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
-
-        paginationPanel.revalidate();
-        paginationPanel.repaint();
-    }
-
-    private void addPageButton(int page) {
-        JButton btn = new JButton(String.valueOf(page)) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (page == currentPage) {
-                    g2.setColor(PRIMARY);
-                    g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 8, 8));
-                }
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_HEADER);
-        btn.setPreferredSize(new Dimension(32, 32));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setForeground(page == currentPage ? NotionTheme.CARD : ON_SURF_VAR);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(e -> { currentPage = page; refreshTable(); });
-        paginationPanel.add(btn);
-    }
-
-    private void addNavButton(String symbol, boolean enabled, Runnable action) {
-        JButton btn = new JButton(symbol);
-        btn.setFont(FONT_BODY);
-        btn.setPreferredSize(new Dimension(32, 32));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setForeground(enabled ? ON_SURF_VAR : OUTLINE);
-        btn.setEnabled(enabled);
-        btn.setCursor(enabled ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
-        btn.addActionListener(e -> action.run());
-        paginationPanel.add(btn);
-    }
-
-    // =================================================================
+                // =================================================================
     //  TABLE MODEL
     // =================================================================
 
@@ -712,7 +596,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
 
         @Override
         public boolean isCellEditable(int r, int c) {
-            return false; // all edits handled via SuaKhachHangDialog
+            return false; // all edits handled via KhachHangDialog
         }
 
         @Override
@@ -913,9 +797,23 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
     //  EDIT ACTION
     // =================================================================
 
+    private void showKhachHangQuickActions(MouseEvent e) {
+        if (!e.isPopupTrigger()) return;
+        int viewRow = table.rowAtPoint(e.getPoint());
+        if (viewRow < 0) return;
+        table.setRowSelectionInterval(viewRow, viewRow);
+        KhachHang kh = tableModel.getKhachHangAt(table.convertRowIndexToModel(viewRow));
+        if (kh == null) return;
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem edit = new JMenuItem("Sửa");
+        edit.addActionListener(ev -> onEditKhachHang(kh));
+        menu.add(edit);
+        menu.show(table, e.getX(), e.getY());
+    }
+
     private void onEditKhachHang(KhachHang kh) {
         Window owner = SwingUtilities.getWindowAncestor(this);
-        SuaKhachHangDialog dlg = new SuaKhachHangDialog(owner, kh, this::loadData);
+        KhachHangDialog dlg = KhachHangDialog.edit(owner, kh, this::loadData);
         dlg.setVisible(true);
     }
 
@@ -935,7 +833,6 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
     @Override public void reset() {
         txtSearch.setText("");
         if (cboGioiTinh != null) cboGioiTinh.setSelectedIndex(0);
-        currentPage = 1;
         loadData();
     }
 
@@ -945,6 +842,7 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         cbo.setPreferredSize(new Dimension(180, 38));
         cbo.setBackground(NotionTheme.CARD);
         cbo.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
+        NotionTheme.applyComboBoxSelection(cbo);
         return cbo;
     }
 
@@ -965,9 +863,9 @@ public class QuanLyKhachHangModule extends JPanel implements AppModule {
         // Cảnh báo: nếu thêm filter mới, giữ cấu trúc vertical này để cùng baseline với Bỏ lọc.
     }
 
-    private void openThemKhachHangDialog() {
+    private void openCreateKhachHangDialog() {
         Window owner = SwingUtilities.getWindowAncestor(this);
-        ThemKhachHangDialog dlg = new ThemKhachHangDialog(owner, this::loadData);
+        KhachHangDialog dlg = KhachHangDialog.create(owner, this::loadData);
         dlg.setVisible(true);
     }
 

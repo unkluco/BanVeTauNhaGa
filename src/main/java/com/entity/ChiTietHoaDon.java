@@ -7,6 +7,7 @@ public class ChiTietHoaDon {
     private String maChiTietHD;
     private HoaDon hoaDon;
     private Ve ve;
+    private KhachHang khachHang;
     private ChiTietGia chiTietGia;
     private BigDecimal giaTien;
 
@@ -19,13 +20,19 @@ public class ChiTietHoaDon {
     }
 
     public ChiTietHoaDon(String maChiTietHD, HoaDon hoaDon, Ve ve, BigDecimal giaTien) {
-        this(maChiTietHD, hoaDon, ve, null, giaTien);
+        this(maChiTietHD, hoaDon, ve, null, null, giaTien);
     }
 
     public ChiTietHoaDon(String maChiTietHD, HoaDon hoaDon, Ve ve, ChiTietGia chiTietGia, BigDecimal giaTien) {
+        this(maChiTietHD, hoaDon, ve, null, chiTietGia, giaTien);
+    }
+
+    public ChiTietHoaDon(String maChiTietHD, HoaDon hoaDon, Ve ve, KhachHang khachHang,
+                        ChiTietGia chiTietGia, BigDecimal giaTien) {
         this.maChiTietHD = maChiTietHD;
         this.hoaDon = hoaDon;
         this.ve = ve;
+        this.khachHang = khachHang;
         this.chiTietGia = chiTietGia;
         this.giaTien = giaTien;
     }
@@ -38,6 +45,9 @@ public class ChiTietHoaDon {
 
     public Ve getVe() { return ve; }
     public void setVe(Ve ve) { this.ve = ve; }
+
+    public KhachHang getKhachHang() { return khachHang; }
+    public void setKhachHang(KhachHang khachHang) { this.khachHang = khachHang; }
 
     public ChiTietGia getChiTietGia() { return chiTietGia; }
     public void setChiTietGia(ChiTietGia chiTietGia) { this.chiTietGia = chiTietGia; }
@@ -68,6 +78,7 @@ public class ChiTietHoaDon {
                 "maChiTietHD='" + maChiTietHD + '\'' +
                 ", hoaDon=" + (hoaDon != null ? hoaDon.getMaHoaDon() : "null") +
                 ", ve=" + (ve != null ? ve.getMaVe() : "null") +
+                ", khachHang=" + (khachHang != null ? khachHang.getMaKhachHang() : "null") +
                 ", chiTietGia=" + (chiTietGia != null ? chiTietGia.getMaChiTietGia() : "null") +
                 ", giaTien=" + giaTien +
                 '}';

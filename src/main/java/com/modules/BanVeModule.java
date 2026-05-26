@@ -12,6 +12,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,15 +44,17 @@ public class BanVeModule extends JPanel implements AppModule {
     private final Map<LoaiGhe, Double> ctxPriceMap = new EnumMap<>(LoaiGhe.class);
     private final Map<LoaiGhe, ChiTietGia> ctxPriceDetailMap = new EnumMap<>(LoaiGhe.class);
     private final List<Ghe> ctxGhes = new ArrayList<>();
-    private final List<KhachHang> ctxKhachHangs = new ArrayList<>();
+    private final Map<String, KhachHang> ctxKhachHangBySeat = new LinkedHashMap<>();
     private final Map<String, List<ChiTietKhuyenMai>> ctxChiTietKMsBySeat = new LinkedHashMap<>();
     private String    ctxPaymentType;
     private HoaDon    ctxSavedHoaDon;
+    private final DAO_GiuCho daoGiuCho = new DAO_GiuCho();
 
     // --- Navigation stack ---
     private final Deque<String> stepHistory = new ArrayDeque<>();
     private final Map<String, JPanel> stepCache = new HashMap<>();
     private String currentStep = "";
+    private int maxUnlockedStepIndex = 0;
 
     private static final String STEP_1  = "1";
     private static final String STEP_2  = "2";
@@ -62,6 +66,7 @@ public class BanVeModule extends JPanel implements AppModule {
     private static final String STEP_7A = "7A";  // Tiền mặt
     private static final String STEP_7B = "7B";  // Chuyển khoản
     private static final String STEP_8  = "8";   // Hoàn thành
+    private static final int HOLD_TTL_SECONDS = 5 * 60;
 
     private static final String[] STEP_LABELS = {
         "Thông tin", "Chọn chuyến", "Chọn chỗ",
@@ -86,7 +91,6 @@ public class BanVeModule extends JPanel implements AppModule {
     private final DAO_ChiTietHoaDon    daoCTHD  = new DAO_ChiTietHoaDon();
     private final DAO_KhachHang        daoKH    = new DAO_KhachHang();
     private final DAO_ApDungKM         daoADKM  = new DAO_ApDungKM();
-    private final DAO_HoaDonKhachHang  daoHDKH  = new DAO_HoaDonKhachHang();
 
     // --- AppModule buttons ---
     private JButton btnSubmit, btnCancel;
@@ -181,9 +185,10 @@ public class BanVeModule extends JPanel implements AppModule {
         for (int i = 0; i < STEP_LABELS.length; i++) {
             final boolean done   = i < activeIdx;
             final boolean active = i == activeIdx;
-            final Color bgClr = active ? PRIMARY : (done ? STEP_DONE_BG : NotionTheme.CARD_MUTED);
-            final Color borderClr = active ? PRIMARY : (done ? AppColors.SUCCESS_LIGHT : OUTLINE);
-            final Color textClr = active ? Color.WHITE : (done ? STEP_DONE : ON_SURF_VAR);
+            final boolean reachable = i <= maxUnlockedStepIndex && stepCache.containsKey(stepFromIndex(i));
+            final Color bgClr = active ? PRIMARY : (done || reachable ? STEP_DONE_BG : NotionTheme.CARD_MUTED);
+            final Color borderClr = active ? PRIMARY : (done || reachable ? AppColors.SUCCESS_LIGHT : OUTLINE);
+            final Color textClr = active ? Color.WHITE : (done || reachable ? STEP_DONE : ON_SURF_VAR);
 
             JPanel chip = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0)) {
                 @Override
@@ -201,6 +206,13 @@ public class BanVeModule extends JPanel implements AppModule {
             chip.setOpaque(false);
             chip.setBorder(new EmptyBorder(6, 10, 6, 10));
             chip.setPreferredSize(new Dimension(116, 32));
+            chip.setCursor(reachable ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
+            if (reachable && !active) {
+                final String targetStep = stepFromIndex(i);
+                chip.addMouseListener(new MouseAdapter() {
+                    @Override public void mouseClicked(MouseEvent e) { navigateToVisitedStep(targetStep); }
+                });
+            }
 
             JLabel stepLbl = new JLabel((i + 1) + ". " + STEP_LABELS[i]);
             stepLbl.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 11));
@@ -231,17 +243,33 @@ public class BanVeModule extends JPanel implements AppModule {
         };
     }
 
+    private String stepFromIndex(int index) {
+        return switch (index) {
+            case 0 -> STEP_1;
+            case 1 -> STEP_2;
+            case 2 -> STEP_3;
+            case 3 -> STEP_5;
+            case 4 -> STEP_5B;
+            case 5 -> STEP_6;
+            case 6 -> STEP_7A;
+            case 7 -> STEP_8;
+            default -> STEP_1;
+        };
+    }
+
     // =========================================================================
     //  NAVIGATION
     // =========================================================================
 
     private void navigateTo(String step, boolean pushHistory) {
+        if (pushHistory && !validateBeforeForward(step)) return;
         if (pushHistory && !currentStep.isEmpty()) {
             stepHistory.push(currentStep);
             // Moving forward: clear the next step from cache to ensure it's fresh
             stepCache.remove(step);
         }
         currentStep = step;
+        maxUnlockedStepIndex = Math.max(maxUnlockedStepIndex, stepToIndex(step));
         renderStep();
         btnBack.setVisible(!stepHistory.isEmpty());
         refreshStepBar();
@@ -253,6 +281,35 @@ public class BanVeModule extends JPanel implements AppModule {
         renderStep();
         btnBack.setVisible(!stepHistory.isEmpty());
         refreshStepBar();
+    }
+
+    private void navigateToVisitedStep(String step) {
+        if (!stepCache.containsKey(step)) return;
+        currentStep = step;
+        rebuildHistoryBefore(step);
+        renderStep();
+        btnBack.setVisible(!stepHistory.isEmpty());
+        refreshStepBar();
+    }
+
+    private void rebuildHistoryBefore(String step) {
+        stepHistory.clear();
+        int targetIndex = stepToIndex(step);
+        for (int i = 0; i < targetIndex; i++) stepHistory.push(stepFromIndex(i));
+    }
+
+    private void clearAfterStep(String step) {
+        int index = stepToIndex(step);
+        for (int i = index + 1; i < STEP_LABELS.length; i++) stepCache.remove(stepFromIndex(i));
+        if (index < stepToIndex(STEP_2)) { ctxLich = null; ctxPriceMap.clear(); ctxPriceDetailMap.clear(); }
+        if (index < stepToIndex(STEP_3)) { releaseCurrentHolds(); ctxGhes.clear(); }
+        if (index < stepToIndex(STEP_5)) ctxKhachHangBySeat.clear();
+        if (index < stepToIndex(STEP_5B)) ctxChiTietKMsBySeat.clear();
+        if (index < stepToIndex(STEP_6)) ctxPaymentType = null;
+        if (index < stepToIndex(STEP_8)) ctxSavedHoaDon = null;
+        maxUnlockedStepIndex = Math.min(maxUnlockedStepIndex, index);
+        // Handoff: sửa dữ liệu ở bước trước sẽ cắt cache/context các bước phụ thuộc phía sau.
+        // Cảnh báo: nếu thêm bước mới phải cập nhật stepFromIndex và dependency clear tại đây.
     }
 
     private void renderStep() {
@@ -275,10 +332,19 @@ public class BanVeModule extends JPanel implements AppModule {
                 BanVeStep1Module m = new BanVeStep1Module();
                 m.setOnResult(result -> {
                     if (result instanceof Object[] arr) {
-                        ctxGaDi       = (Ga)        arr[0];
-                        ctxGaDen      = (Ga)        arr[1];
-                        ctxNgayDiFrom = (LocalDate) arr[2];
-                        ctxNgayDiTo   = (LocalDate) arr[3];
+                        Ga newGaDi = (Ga) arr[0];
+                        Ga newGaDen = (Ga) arr[1];
+                        LocalDate newFrom = (LocalDate) arr[2];
+                        LocalDate newTo = (LocalDate) arr[3];
+                        boolean changed = !Objects.equals(stationId(ctxGaDi), stationId(newGaDi))
+                                || !Objects.equals(stationId(ctxGaDen), stationId(newGaDen))
+                                || !Objects.equals(ctxNgayDiFrom, newFrom)
+                                || !Objects.equals(ctxNgayDiTo, newTo);
+                        if (changed) clearAfterStep(STEP_1);
+                        ctxGaDi = newGaDi;
+                        ctxGaDen = newGaDen;
+                        ctxNgayDiFrom = newFrom;
+                        ctxNgayDiTo = newTo;
                         navigateTo(STEP_2, true);
                     }
                 });
@@ -290,11 +356,19 @@ public class BanVeModule extends JPanel implements AppModule {
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     if (result instanceof Object[] arr) {
-                        ctxLich = (Lich) arr[0];
+                        Lich newLich = (Lich) arr[0];
+                        Map<LoaiGhe, Double> newPriceMap = new EnumMap<>((Map<LoaiGhe, Double>) arr[1]);
+                        Map<LoaiGhe, ChiTietGia> newPriceDetailMap = new EnumMap<>(LoaiGhe.class);
+                        if (arr.length > 2) newPriceDetailMap.putAll((Map<LoaiGhe, ChiTietGia>) arr[2]);
+                        boolean changed = !Objects.equals(lichId(ctxLich), lichId(newLich))
+                                || !Objects.equals(ctxPriceMap, newPriceMap)
+                                || !samePriceDetailMap(ctxPriceDetailMap, newPriceDetailMap);
+                        if (changed) clearAfterStep(STEP_2);
+                        ctxLich = newLich;
                         ctxPriceMap.clear();
-                        ctxPriceMap.putAll((Map<LoaiGhe, Double>) arr[1]);
+                        ctxPriceMap.putAll(newPriceMap);
                         ctxPriceDetailMap.clear();
-                        if (arr.length > 2) ctxPriceDetailMap.putAll((Map<LoaiGhe, ChiTietGia>) arr[2]);
+                        ctxPriceDetailMap.putAll(newPriceDetailMap);
                         navigateTo(STEP_3, true);
                     }
                 });
@@ -303,11 +377,26 @@ public class BanVeModule extends JPanel implements AppModule {
 
             case STEP_3 -> {
                 BanVeStep3Module m = new BanVeStep3Module(ctxLich, ctxPriceMap);
+                m.setHeldByOtherSeats(heldSeatsByOther());
+                m.setHeldByMeSeats(heldSeatsByCurrentUser());
+                m.setSeatHoldHandlers(ghe -> {
+                    boolean held = holdSeatForCurrentUser(ghe);
+                    if (held) m.markHeldByMe(ghe, LocalDateTime.now().plusSeconds(HOLD_TTL_SECONDS));
+                    if (!held) m.setHeldByOtherSeats(heldSeatsByOther());
+                    return held;
+                }, ghe -> {
+                    boolean released = releaseSeatForCurrentUser(ghe);
+                    if (released) m.unmarkHeldByMe(ghe);
+                    return released;
+                });
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     if (result instanceof List<?> ghes) {
+                        List<Ghe> newSeats = new ArrayList<>();
+                        for (Object o : ghes) if (o instanceof Ghe g) newSeats.add(g);
+                        if (!sameSeatList(ctxGhes, newSeats)) clearAfterStep(STEP_3);
                         ctxGhes.clear();
-                        for (Object o : ghes) if (o instanceof Ghe g) ctxGhes.add(g);
+                        ctxGhes.addAll(newSeats);
                         navigateTo(STEP_5, true);
                     }
                 });
@@ -319,9 +408,15 @@ public class BanVeModule extends JPanel implements AppModule {
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     if (result instanceof List<?> list && !list.isEmpty()) {
-                        ctxKhachHangs.clear();
-                        for (Object o : list) if (o instanceof KhachHang kh) ctxKhachHangs.add(kh);
-                        if (ctxKhachHangs.isEmpty()) return;
+                        Map<String, KhachHang> newCustomersBySeat = new LinkedHashMap<>();
+                        for (int i = 0; i < Math.min(ctxGhes.size(), list.size()); i++) {
+                            Object o = list.get(i);
+                            if (o instanceof KhachHang kh) newCustomersBySeat.put(seatKey(ctxGhes.get(i)), kh);
+                        }
+                        if (newCustomersBySeat.size() != ctxGhes.size()) return;
+                        if (!sameCustomerMap(ctxKhachHangBySeat, newCustomersBySeat)) clearAfterStep(STEP_5);
+                        ctxKhachHangBySeat.clear();
+                        ctxKhachHangBySeat.putAll(newCustomersBySeat);
                         navigateTo(STEP_5B, true);
                     }
                 });
@@ -335,7 +430,7 @@ public class BanVeModule extends JPanel implements AppModule {
                     tuyen, ctxGhes, ctxPriceMap, departureTime);
                 m5b.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
-                    ctxChiTietKMsBySeat.clear();
+                    Map<String, List<ChiTietKhuyenMai>> newPromosBySeat = new LinkedHashMap<>();
                     if (result instanceof Map<?, ?> mapResult) {
                         for (Map.Entry<?, ?> entry : mapResult.entrySet()) {
                             if (!(entry.getKey() instanceof String maGhe)) continue;
@@ -345,9 +440,12 @@ public class BanVeModule extends JPanel implements AppModule {
                                     if (o instanceof ChiTietKhuyenMai ctkm) seatPromos.add(ctkm);
                                 }
                             }
-                            ctxChiTietKMsBySeat.put(maGhe, seatPromos);
+                            newPromosBySeat.put(maGhe, seatPromos);
                         }
                     }
+                    if (!samePromotionMap(ctxChiTietKMsBySeat, newPromosBySeat)) clearAfterStep(STEP_5B);
+                    ctxChiTietKMsBySeat.clear();
+                    ctxChiTietKMsBySeat.putAll(newPromosBySeat);
                     navigateTo(STEP_6, true);
                 });
                 yield m5b.getView();
@@ -358,11 +456,12 @@ public class BanVeModule extends JPanel implements AppModule {
                 ToaTau repToa = (!ctxGhes.isEmpty()) ? ctxGhes.get(0).getToaTau() : null;
                 BanVeStep6Module m = new BanVeStep6Module(
                     ctxLich, repToa, Collections.unmodifiableList(ctxGhes),
-                    ctxPriceMap, Collections.unmodifiableList(ctxKhachHangs),
+                    ctxPriceMap, orderedSeatCustomers(),
                     freezeSeatPromoMap(ctxChiTietKMsBySeat));
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
                     if (result instanceof String paymentType) {
+                        if (!Objects.equals(ctxPaymentType, paymentType)) clearAfterStep(STEP_6);
                         ctxPaymentType = paymentType;
                         navigateTo("TIEN_MAT".equals(ctxPaymentType) ? STEP_7A : STEP_7B, true);
                     }
@@ -374,8 +473,7 @@ public class BanVeModule extends JPanel implements AppModule {
                 BanVeStep7TienMatModule m = new BanVeStep7TienMatModule(calcTotal());
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
-                    if ("CONFIRMED".equals(result)) {
-                        saveTransaction();
+                    if ("CONFIRMED".equals(result) && saveTransaction()) {
                         navigateTo(STEP_8, true);
                     }
                 });
@@ -386,8 +484,7 @@ public class BanVeModule extends JPanel implements AppModule {
                 BanVeStep7ChuyenKhoanModule m = new BanVeStep7ChuyenKhoanModule(calcTotal());
                 m.setOnResult(result -> {
                     if (result == null) { goBack(); return; }
-                    if ("CONFIRMED".equals(result)) {
-                        saveTransaction();
+                    if ("CONFIRMED".equals(result) && saveTransaction()) {
                         navigateTo(STEP_8, true);
                     }
                 });
@@ -402,6 +499,264 @@ public class BanVeModule extends JPanel implements AppModule {
 
             default -> new JPanel();
         };
+    }
+
+    private String stationId(Ga ga) {
+        return ga == null ? null : ga.getMaGa();
+    }
+
+    private String lichId(Lich lich) {
+        return lich == null ? null : lich.getMaLich();
+    }
+
+    private boolean samePriceDetailMap(Map<LoaiGhe, ChiTietGia> left, Map<LoaiGhe, ChiTietGia> right) {
+        if (!left.keySet().equals(right.keySet())) return false;
+        for (LoaiGhe loai : left.keySet()) {
+            if (!Objects.equals(priceDetailId(left.get(loai)), priceDetailId(right.get(loai)))) return false;
+        }
+        return true;
+    }
+
+    private String priceDetailId(ChiTietGia chiTietGia) {
+        return chiTietGia == null ? null : chiTietGia.getMaChiTietGia();
+    }
+
+    private boolean sameSeatList(List<Ghe> left, List<Ghe> right) {
+        if (left.size() != right.size()) return false;
+        for (int i = 0; i < left.size(); i++) {
+            if (!Objects.equals(seatKey(left.get(i)), seatKey(right.get(i)))) return false;
+        }
+        return true;
+    }
+
+    private boolean sameCustomerMap(Map<String, KhachHang> left, Map<String, KhachHang> right) {
+        if (!left.keySet().equals(right.keySet())) return false;
+        for (String key : left.keySet()) {
+            if (!Objects.equals(customerSignature(left.get(key)), customerSignature(right.get(key)))) return false;
+        }
+        return true;
+    }
+
+    private String customerSignature(KhachHang khachHang) {
+        if (khachHang == null) return "";
+        return String.join("|",
+                Objects.toString(khachHang.getMaKhachHang(), ""),
+                Objects.toString(khachHang.getHoTen(), ""),
+                Objects.toString(khachHang.getCccd(), ""),
+                Objects.toString(khachHang.getSoDienThoai(), ""),
+                Objects.toString(khachHang.getEmail(), ""));
+    }
+
+    private boolean samePromotionMap(Map<String, List<ChiTietKhuyenMai>> left, Map<String, List<ChiTietKhuyenMai>> right) {
+        if (!left.keySet().equals(right.keySet())) return false;
+        for (String key : left.keySet()) {
+            if (!promotionIds(left.get(key)).equals(promotionIds(right.get(key)))) return false;
+        }
+        return true;
+    }
+
+    private List<String> promotionIds(List<ChiTietKhuyenMai> promotions) {
+        List<String> ids = new ArrayList<>();
+        if (promotions != null) {
+            for (ChiTietKhuyenMai km : promotions) ids.add(km == null ? "" : Objects.toString(km.getMaChiTietKM(), ""));
+        }
+        return ids;
+    }
+
+    private boolean validateBeforeForward(String targetStep) {
+        return switch (targetStep) {
+            case STEP_2 -> validateSearchCriteria();
+            case STEP_3 -> validateScheduleAndPrices();
+            case STEP_5 -> validateScheduleAndPrices() && validateSelectedSeatsAvailable();
+            case STEP_5B -> validateScheduleAndPrices() && validateSelectedSeatsAvailable() && validateSeatCustomers();
+            case STEP_6, STEP_7A, STEP_7B -> validateReadyForPayment();
+            default -> true;
+        };
+    }
+
+    private boolean validateSearchCriteria() {
+        if (ctxGaDi == null || ctxGaDen == null || ctxNgayDiFrom == null || ctxNgayDiTo == null) {
+            showValidationError("Thiếu thông tin tìm chuyến. Vui lòng kiểm tra ga đi, ga đến và ngày đi.");
+            return false;
+        }
+        return true;
+    }
+
+    private boolean validateScheduleAndPrices() {
+        if (ctxLich == null || ctxLich.getMaLich() == null) {
+            showValidationError("Chưa chọn lịch chạy hoặc lịch chạy không hợp lệ.");
+            return false;
+        }
+        Lich current = new DAO_Lich().findById(ctxLich.getMaLich());
+        if (current == null || !current.isHoatDong()) {
+            showValidationError("Lịch chạy đã bị ngừng hoặc không còn tồn tại. Vui lòng chọn lại chuyến.");
+            return false;
+        }
+        ctxLich = current;
+        if (ctxPriceMap.isEmpty() || ctxPriceDetailMap.isEmpty()) {
+            showValidationError("Thông tin giá không còn hợp lệ. Vui lòng quay lại bước chọn chuyến.");
+            return false;
+        }
+        for (Ghe ghe : ctxGhes) {
+            if (unitPriceFor(ghe) <= 0.0 || priceDetailForSeat(ghe) == null) {
+                showValidationError("Giá của ghế " + seatDisplay(ghe) + " không còn hợp lệ. Vui lòng chọn lại chuyến hoặc ghế.");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean validateSelectedSeatsAvailable() {
+        if (ctxGhes.isEmpty()) {
+            showValidationError("Chưa chọn ghế để đặt vé.");
+            return false;
+        }
+        if (ctxLich == null || ctxLich.getMaLich() == null) return false;
+        if (hasExpiredCurrentHolds()) {
+            handleExpiredCurrentHolds();
+            return false;
+        }
+        for (Ghe ghe : ctxGhes) {
+            String maGhe = ghe != null ? ghe.getMaGhe() : null;
+            if (daoVe.existsSoldSeat(ctxLich.getMaLich(), maGhe)) {
+                showValidationError("Ghế " + seatDisplay(ghe) + " vừa được bán hoặc không còn trống. Vui lòng chọn lại ghế.");
+                return false;
+            }
+            if (currentUser != null && !daoGiuCho.hasActiveHold(currentUser.getMaNV(), ctxLich.getMaLich(), maGhe)) {
+                handleExpiredCurrentHolds();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean validateSeatCustomers() {
+        if (ctxKhachHangBySeat.size() != ctxGhes.size()) {
+            showValidationError("Mỗi ghế/vé phải có đúng một khách hàng. Vui lòng kiểm tra lại bước khách hàng.");
+            return false;
+        }
+        for (Ghe ghe : ctxGhes) {
+            KhachHang kh = ctxKhachHangBySeat.get(seatKey(ghe));
+            if (kh == null || isBlank(kh.getHoTen())) {
+                showValidationError("Thiếu khách hàng cho ghế " + seatDisplay(ghe) + ".");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean validateSelectedPromotions() {
+        LocalDate travelDate = ctxLich != null && ctxLich.getThoiGianBatDau() != null
+                ? ctxLich.getThoiGianBatDau().toLocalDate() : LocalDate.now();
+        for (Ghe ghe : ctxGhes) {
+            String key = seatKey(ghe);
+            for (ChiTietKhuyenMai km : ctxChiTietKMsBySeat.getOrDefault(key, Collections.emptyList())) {
+                if (!isPromotionStillApplicable(km, ghe, travelDate)) {
+                    showValidationError("Khuyến mãi cho ghế " + seatDisplay(ghe) + " không còn hợp lệ. Vui lòng kiểm tra lại bước khuyến mãi.");
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean isPromotionStillApplicable(ChiTietKhuyenMai km, Ghe ghe, LocalDate travelDate) {
+        if (km == null || km.getKhuyenMai() == null || !km.getKhuyenMai().isTrangThai()) return false;
+        if (km.getKhuyenMai().getThoiGianBatDau() != null && travelDate.isBefore(km.getKhuyenMai().getThoiGianBatDau())) return false;
+        if (km.getKhuyenMai().getThoiGianKetThuc() != null && travelDate.isAfter(km.getKhuyenMai().getThoiGianKetThuc())) return false;
+        if (ctxLich != null && ctxLich.getTuyen() != null && km.getTuyen() != null
+                && !Objects.equals(km.getTuyen().getMaTuyen(), ctxLich.getTuyen().getMaTuyen())) return false;
+        LoaiGhe loai = ghe != null && ghe.getToaTau() != null ? ghe.getToaTau().getLoaiGhe() : null;
+        return km.getLoaiGhe() == null || km.getLoaiGhe() == loai;
+    }
+
+    private boolean validateReadyForPayment() {
+        return validateScheduleAndPrices()
+                && validateSelectedSeatsAvailable()
+                && validateSeatCustomers()
+                && validateSelectedPromotions();
+        // Handoff: mọi bước tiến trong wizard chạy qua validator tập trung để giữ draft nhưng vẫn bắt lỗi nền kịp thời.
+        // Cảnh báo: thanh toán vẫn phải gọi validateReadyForPayment vì ghế/giá có thể đổi sau bước xác nhận.
+    }
+
+    private void showValidationError(String message) {
+        NotionMessageDialog.showMessageDialog(this, message, "Dữ liệu đặt vé đã thay đổi", JOptionPane.WARNING_MESSAGE);
+    }
+
+    private String seatDisplay(Ghe ghe) {
+        if (ghe == null) return "?";
+        String toa = ghe.getToaTau() != null && ghe.getToaTau().getMaToaTau() != null ? ghe.getToaTau().getMaToaTau() : "?";
+        return toa + " - ghế " + ghe.getSoGhe();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    public boolean isCompleted() {
+        return STEP_8.equals(currentStep);
+    }
+
+    public void beginNewBooking() {
+        reset();
+    }
+
+    private Map<String, LocalDateTime> heldSeatsByOther() {
+        String maNV = currentUser == null ? null : currentUser.getMaNV();
+        String maLich = ctxLich == null ? null : ctxLich.getMaLich();
+        daoGiuCho.deleteExpired();
+        return daoGiuCho.findActiveHeldSeatsByOther(maNV, maLich);
+    }
+
+    private Map<String, LocalDateTime> heldSeatsByCurrentUser() {
+        String maNV = currentUser == null ? null : currentUser.getMaNV();
+        String maLich = ctxLich == null ? null : ctxLich.getMaLich();
+        daoGiuCho.deleteExpired();
+        return daoGiuCho.findActiveHeldSeatsByNhanVien(maNV, maLich);
+    }
+
+    private boolean holdSeatForCurrentUser(Ghe ghe) {
+        if (ctxLich == null || currentUser == null || ghe == null) return false;
+        String maGhe = ghe.getMaGhe();
+        if (daoVe.existsSoldSeat(ctxLich.getMaLich(), maGhe)) {
+            showValidationError("Ghế " + seatDisplay(ghe) + " vừa được bán. Vui lòng chọn ghế khác.");
+            return false;
+        }
+        if (!daoGiuCho.tryHoldSeat(currentUser.getMaNV(), ctxLich.getMaLich(), maGhe, HOLD_TTL_SECONDS)) {
+            showValidationError("Ghế " + seatDisplay(ghe) + " đã được nhân viên khác giữ chỗ. Vui lòng chọn ghế khác.");
+            stepCache.remove(STEP_3);
+            return false;
+        }
+        return true;
+        // Handoff: giữ chỗ ghi DB ngay lúc chọn ghế để nhân viên khác thấy tức thì.
+        // Risk: TTL hiện là 5 phút; nếu đổi test nhanh chỉ cần đổi HOLD_TTL_SECONDS.
+    }
+
+    private boolean releaseSeatForCurrentUser(Ghe ghe) {
+        if (ctxLich == null || currentUser == null || ghe == null) return false;
+        daoGiuCho.releaseSeat(currentUser.getMaNV(), ctxLich.getMaLich(), ghe.getMaGhe());
+        return true;
+    }
+
+    private boolean hasExpiredCurrentHolds() {
+        return currentUser != null && ctxLich != null
+                && daoGiuCho.hasExpiredHold(currentUser.getMaNV(), ctxLich.getMaLich());
+    }
+
+    private void handleExpiredCurrentHolds() {
+        releaseCurrentHolds();
+        ctxGhes.clear();
+        clearAfterStep(STEP_3);
+        stepCache.remove(STEP_3);
+        showValidationError("Giữ chỗ đã hết hạn. Hệ thống đã xóa giữ chỗ cũ, vui lòng chọn ghế lại.");
+        SwingUtilities.invokeLater(() -> navigateTo(STEP_3, false));
+        // Handoff: kiểm tra hết hạn khi qua bước để cache sau chọn ghế không còn dữ liệu cũ.
+        // Risk: nếu user đứng yên ở Step 3 quá TTL, lỗi được chặn ở lần đi tiếp kế tiếp.
+    }
+
+    private void releaseCurrentHolds() {
+        if (currentUser == null || ctxLich == null) return;
+        daoGiuCho.deleteByNhanVienAndLich(currentUser.getMaNV(), ctxLich.getMaLich());
     }
 
     // =========================================================================
@@ -459,6 +814,17 @@ public class BanVeModule extends JPanel implements AppModule {
         return price;
     }
 
+    private List<KhachHang> orderedSeatCustomers() {
+        List<KhachHang> customers = new ArrayList<>();
+        for (Ghe ghe : ctxGhes) {
+            KhachHang kh = ctxKhachHangBySeat.get(seatKey(ghe));
+            if (kh != null) customers.add(kh);
+        }
+        return Collections.unmodifiableList(customers);
+        // Handoff: thứ tự khách luôn đi theo thứ tự ghế để các bước xác nhận không tách rời vé/khách.
+        // Cảnh báo: nếu đổi cách sắp xếp ghế ở Step 5 thì phải giữ đồng bộ key seatKey tại đây.
+    }
+
     private BigDecimal calcTotal() {
         if (ctxGhes.isEmpty()) return BigDecimal.ZERO;
         double total = 0.0;
@@ -466,7 +832,9 @@ public class BanVeModule extends JPanel implements AppModule {
         return BigDecimal.valueOf(total);
     }
 
-    private void saveTransaction() {
+    private boolean saveTransaction() {
+        java.sql.Connection txCon = null;
+        boolean oldAutoCommit = true;
         try {
             // 0. Kiểm tra giá hợp lệ trước khi ghi DB — DB có CHECK giaTien > 0.
             for (Ghe g : ctxGhes) {
@@ -477,59 +845,88 @@ public class BanVeModule extends JPanel implements AppModule {
                         "Không tìm được giá hợp lệ cho ghế " + (g != null ? g.getMaGhe() : "?") +
                         ".\nVui lòng kiểm tra bảng giá tuyến cho loại ghế này trước khi bán vé.",
                         "Lỗi dữ liệu giá", JOptionPane.ERROR_MESSAGE);
-                    return;
+                    return false;
                 }
             }
+            txCon = com.connectDB.ConnectDB.getCon();
+            if (txCon == null) throw new IllegalStateException("Chưa kết nối cơ sở dữ liệu");
+            oldAutoCommit = txCon.getAutoCommit();
+            txCon.setAutoCommit(false);
+            if (!validateReadyForPayment()) {
+                txCon.rollback();
+                txCon.setAutoCommit(oldAutoCommit);
+                return false;
+            }
 
-            // 1. Lưu / cập nhật từng KhachHang trong ctxKhachHangs
-            List<KhachHang> savedKHs = new ArrayList<>();
-            for (KhachHang kh : ctxKhachHangs) {
+            // 1. Lưu / cập nhật từng KhachHang theo từng ghế đã chọn
+            Map<String, KhachHang> savedKhachHangBySeat = new LinkedHashMap<>();
+            for (Ghe ghe : ctxGhes) {
+                String key = seatKey(ghe);
+                KhachHang kh = ctxKhachHangBySeat.get(key);
+                if (kh == null) {
+                    throw new IllegalStateException("Thiếu khách hàng cho ghế " + key);
+                }
+                boolean khOk;
                 if (kh.getMaKhachHang() != null) {
-                    daoKH.update(kh);
+                    khOk = daoKH.update(kh);
                 } else {
                     kh.setMaKhachHang(genId("KH"));
-                    daoKH.insert(kh);
+                    khOk = daoKH.insert(kh);
                 }
-                savedKHs.add(kh);
+                if (!khOk) throw new IllegalStateException("Không thể lưu khách hàng " + key);
+                savedKhachHangBySeat.put(key, kh);
             }
 
-            // 2. Tạo HoaDon (không còn maKhachHang — tách sang HoaDonKhachHang)
+            // 2. Tạo HoaDon; khách hàng của từng vé được lưu ở ChiTietHoaDon
             String maHD = daoHD.phatSinhMaHoaDon();
             HoaDon hd   = new HoaDon(maHD, currentUser, LocalDateTime.now());
-            daoHD.insert(hd);
+            if (!daoHD.insert(hd)) throw new IllegalStateException("Không thể tạo hóa đơn " + maHD);
             ctxSavedHoaDon = hd;
 
-            // 3. Link HoaDon ↔ từng KhachHang qua bảng junction
-            for (KhachHang kh : savedKHs) {
-                HoaDonKhachHang link = new HoaDonKhachHang(
-                    daoHDKH.phatSinhMaHDKH(), hd, kh);
-                daoHDKH.insert(link);
-            }
-
-            // 4. Tạo Ve + ChiTietHoaDon (+ ApDungKM) — giá tính riêng cho từng ghế
+            // 3. Tạo Ve + ChiTietHoaDon (+ ApDungKM) — mỗi chi tiết hóa đơn gắn đúng khách của ghế
             for (Ghe ghe : ctxGhes) {
                 double finalPrice = finalPriceForSeat(ghe);
                 ChiTietGia priceDetail = priceDetailForSeat(ghe);
                 List<ChiTietKhuyenMai> appliedPromos = selectedPromotionsForSeat(ghe);
 
+                if (daoVe.existsSoldSeat(ctxLich.getMaLich(), ghe != null ? ghe.getMaGhe() : null)) {
+                    throw new IllegalStateException("Ghế " + seatDisplay(ghe) + " vừa được bán, vui lòng chọn lại ghế");
+                }
+                if (currentUser != null && !daoGiuCho.hasActiveHold(currentUser.getMaNV(), ctxLich.getMaLich(), ghe.getMaGhe())) {
+                    throw new IllegalStateException("Giữ chỗ của ghế " + seatDisplay(ghe) + " đã hết hạn, vui lòng chọn lại ghế");
+                }
                 Ve ve = new Ve(genId("VE"), ctxLich, ghe, TrangThaiVe.DA_BAN, null, null);
-                daoVe.insert(ve);
+                if (!daoVe.insert(ve)) throw new IllegalStateException("Không thể tạo vé cho ghế " + seatKey(ghe));
 
+                KhachHang khachHang = savedKhachHangBySeat.get(seatKey(ghe));
                 ChiTietHoaDon cthd = new ChiTietHoaDon(
-                    genId("CTHD"), hd, ve, priceDetail, BigDecimal.valueOf(finalPrice));
-                daoCTHD.insert(cthd);
+                    genId("CTHD"), hd, ve, khachHang, priceDetail, BigDecimal.valueOf(finalPrice));
+                if (!daoCTHD.insert(cthd)) throw new IllegalStateException("Không thể tạo chi tiết hóa đơn cho vé " + ve.getMaVe());
 
                 for (ChiTietKhuyenMai km : appliedPromos) {
                     ApDungKM adkm = new ApDungKM(genId("ADKM"), cthd, km);
-                    daoADKM.insert(adkm);
+                    if (!daoADKM.insert(adkm)) throw new IllegalStateException("Không thể lưu khuyến mãi cho vé " + ve.getMaVe());
                 }
             }
+            txCon.commit();
+            txCon.setAutoCommit(oldAutoCommit);
+            releaseCurrentHolds();
+            return true;
 
         } catch (Exception ex) {
+            try {
+                if (txCon != null) {
+                    txCon.rollback();
+                    txCon.setAutoCommit(oldAutoCommit);
+                }
+            } catch (Exception rollbackEx) {
+                rollbackEx.printStackTrace();
+            }
             ex.printStackTrace();
             NotionMessageDialog.showMessageDialog(this,
                 "Lỗi khi lưu giao dịch: " + ex.getMessage(),
                 "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return false;
         }
     }
 
@@ -575,10 +972,11 @@ public class BanVeModule extends JPanel implements AppModule {
 
     @Override
     public void reset() {
+        releaseCurrentHolds();
         ctxGaDi   = null; ctxGaDen = null; ctxNgayDiFrom = null; ctxNgayDiTo = null;
         ctxLich   = null; ctxPriceMap.clear(); ctxPriceDetailMap.clear();
         ctxGhes.clear();
-        ctxKhachHangs.clear();
+        ctxKhachHangBySeat.clear();
         ctxChiTietKMsBySeat.clear();
         ctxPaymentType = null;
         ctxSavedHoaDon = null;

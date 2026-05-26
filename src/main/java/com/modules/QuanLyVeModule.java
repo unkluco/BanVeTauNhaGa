@@ -2,7 +2,6 @@ package com.modules;
 
 import com.dao.DAO_Ve;
 import com.dao.DAO_ChiTietHoaDon;
-import com.dao.DAO_HoaDonKhachHang;
 import com.entity.KhachHang;
 import com.entity.Ve;
 import com.entity.ChiTietHoaDon;
@@ -36,24 +35,17 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     private Consumer<Object> callback;
 
     // --- UI ---
-    private JTextField   txtSearchHoaDon;
-    private JTextField   txtSearchVe;
+    private JTextField   txtSearchKeyword;
     private JTable       table;
     private VeTableModel tableModel;
-    private JComboBox<String> cboTrangThai;
 
-    // --- Pagination ---
-    private int currentPage = 1;
-    private int rowsPerPage = 10;
-    private int totalRecords = 0;
     private JLabel lblPageInfo;
-    private JPanel paginationPanel;
 
     // --- Data ---
     private List<Ve> allData      = new ArrayList<>();
     private List<Ve> filteredData = new ArrayList<>();
+    private List<VeTableModel.VeRow> allRows = new ArrayList<>();
     private DAO_ChiTietHoaDon   daoChiTietHoaDon = new DAO_ChiTietHoaDon();
-    private DAO_HoaDonKhachHang daoHDKH          = new DAO_HoaDonKhachHang();
 
     // --- Stats ---
     private JLabel lblStatTongHoaDon;
@@ -87,7 +79,6 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     private static final Font FONT_BADGE   = new Font("Segoe UI", Font.BOLD, 11);
     private static final Font FONT_HEADER  = new Font("Segoe UI", Font.BOLD, 11);
     private static final Font FONT_SMALL   = new Font("Segoe UI", Font.PLAIN, 12);
-    private static final Font FONT_BTN     = new Font("Segoe UI", Font.BOLD, 13);
     private static final Font FONT_STAT_NUM = new Font("Segoe UI", Font.BOLD, 28);
     private static final Font FONT_STAT_LBL = new Font("Segoe UI", Font.BOLD, 10);
 
@@ -130,7 +121,9 @@ public class QuanLyVeModule extends JPanel implements AppModule {
 
         JPanel search = buildSearchSection();
         search.setAlignmentX(Component.LEFT_ALIGNMENT);
-        search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 112));
+        NotionTheme.lockMaxWidthToPreferredHeight(search);
+        // Handoff: search card tính chiều cao từ nội dung để chịu được font/DPI khác nhau.
+        // Cảnh báo: stats phía trên vẫn giữ chiều cao cố định vì là cụm KPI đồng đều.
 
         mainContent.add(header);
         mainContent.add(Box.createVerticalStrut(20));
@@ -280,7 +273,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         JLabel title = new JLabel("Bộ lọc vé");
         title.setFont(new Font("Segoe UI", Font.BOLD, 14));
         title.setForeground(ON_SURFACE);
-        JLabel subtitle = new JLabel("Tra cứu theo mã hóa đơn hoặc mã vé");
+        JLabel subtitle = new JLabel("Tra cứu theo mã vé, hóa đơn, hành khách, ga hoặc trạng thái");
         subtitle.setFont(FONT_SMALL);
         subtitle.setForeground(ON_SURF_VAR);
         header.add(title, BorderLayout.WEST);
@@ -301,38 +294,23 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
         };
 
-        // --- Column 1: Search HD ---
-        JPanel p1 = new JPanel(new BorderLayout(0, 4));
-        p1.setOpaque(false);
-        JLabel l1 = new JLabel("TÌM THEO MÃ HÓA ĐƠN");
-        l1.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        l1.setForeground(ON_SURF_VAR);
-        txtSearchHoaDon = createSearchField("Ví dụ: HD001");
-        txtSearchHoaDon.getDocument().addDocumentListener(liveSearch);
-        p1.add(l1, BorderLayout.NORTH);
-        p1.add(createSearchBox(txtSearchHoaDon), BorderLayout.CENTER);
+        JPanel searchPanel = new JPanel(new BorderLayout(0, 4));
+        searchPanel.setOpaque(false);
+        JLabel label = new JLabel("TỪ KHÓA");
+        label.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        label.setForeground(ON_SURF_VAR);
+        txtSearchKeyword = createSearchField("Nhập mã vé, mã hóa đơn, tên khách, ga, trạng thái...");
+        txtSearchKeyword.getDocument().addDocumentListener(liveSearch);
+        searchPanel.add(label, BorderLayout.NORTH);
+        searchPanel.add(createSearchBox(txtSearchKeyword), BorderLayout.CENTER);
 
         gbc.gridx = 0;
-        gbc.weightx = 0.5;
+        gbc.weightx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        bgPanel.add(p1, gbc);
+        bgPanel.add(searchPanel, gbc);
 
-        // --- Column 2: Search Ve ---
-        JPanel p2 = new JPanel(new BorderLayout(0, 4));
-        p2.setOpaque(false);
-        JLabel l2 = new JLabel("TÌM THEO MÃ VÉ");
-        l2.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        l2.setForeground(ON_SURF_VAR);
-        txtSearchVe = createSearchField("Ví dụ: V001");
-        txtSearchVe.getDocument().addDocumentListener(liveSearch);
-        p2.add(l2, BorderLayout.NORTH);
-        p2.add(createSearchBox(txtSearchVe), BorderLayout.CENTER);
-
-        gbc.gridx = 1;
-        bgPanel.add(p2, gbc);
-
-        // Handoff: module vé hiện chỉ có tìm kiếm nên không đặt nút Bỏ lọc cạnh search.
-        // Cảnh báo: nếu thêm filter thật, đưa Bỏ lọc xuống grid filter riêng và không clear search.
+        // Handoff: tìm kiếm vé gom về một keyword chung để đồng bộ UX với các module quản lý khác.
+        // Rủi ro: lọc theo hóa đơn/khách cần gọi DAO phụ nên danh sách lớn có thể cần cache row về sau.
 
         wrapper.add(header, BorderLayout.NORTH);
         wrapper.add(bgPanel, BorderLayout.CENTER);
@@ -358,7 +336,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
 
         card.add(buildTableHeader(), BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
-        card.add(buildPaginationBar(), BorderLayout.SOUTH);
+        card.add(buildTableFooter(), BorderLayout.SOUTH);
 
         return card;
     }
@@ -474,7 +452,21 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseExited(MouseEvent e) { hoveredRow = -1; table.repaint(); }
+            @Override public void mousePressed(MouseEvent e) { showVeQuickActions(e); }
+            @Override public void mouseReleased(MouseEvent e) { showVeQuickActions(e); }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e) || e.getClickCount() != 2) return;
+                int row = table.rowAtPoint(e.getPoint());
+                int col = table.columnAtPoint(e.getPoint());
+                if (row < 0 || col == 6) return;
+                var veRow = tableModel.getRowAt(row);
+                if (veRow != null) openVeDetailDialog(veRow);
+            }
         });
+        // Handoff: thân dòng vé mở bằng double-click; các nút Xem/Hoàn vé vẫn single-click.
+        // Cảnh báo: nếu bật sorter sau này cần convertRowIndexToModel trước getRowAt.
 
         // Header style
         JTableHeader header = table.getTableHeader();
@@ -496,16 +488,16 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             }
         });
 
-        // Columns: Mã vé, Hành khách, Ga đi, Ga đến, Khởi hành, Trạng thái, Thao tác
+        // Columns: Mã vé, Mã hóa đơn, Hành khách, Tuyến, Khởi hành, Trạng thái, Thao tác
         TableColumnModel colModel = table.getColumnModel();
-        int[] widths = {110, 170, 110, 110, 140, 120, 160};
+        int[] widths = {110, 130, 170, 220, 140, 120, 160};
         for (int i = 0; i < widths.length; i++) {
             colModel.getColumn(i).setPreferredWidth(widths[i]);
         }
 
         colModel.getColumn(0).setCellRenderer(new RowCellRenderer(FONT_MONO, PRIMARY));
-        colModel.getColumn(1).setCellRenderer(new RowCellRenderer(FONT_BOLD, ON_SURFACE));
-        colModel.getColumn(2).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURFACE));
+        colModel.getColumn(1).setCellRenderer(new RowCellRenderer(FONT_MONO, ON_SURF_VAR));
+        colModel.getColumn(2).setCellRenderer(new RowCellRenderer(FONT_BOLD, ON_SURFACE));
         colModel.getColumn(3).setCellRenderer(new RowCellRenderer(FONT_BODY, ON_SURFACE));
         colModel.getColumn(4).setCellRenderer(new RowCellRenderer(FONT_SMALL, ON_SURF_VAR));
         colModel.getColumn(5).setCellRenderer(new TrangThaiBadgeRenderer());
@@ -516,40 +508,14 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         JScrollPane sp = new JScrollPane(table);
         sp.setBorder(BorderFactory.createEmptyBorder());
         sp.getViewport().setBackground(CARD_BG);
-        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        sp.setWheelScrollingEnabled(false);
-
-        // Recalc rowsPerPage when viewport resizes (window resize, etc.)
-        sp.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentResized(java.awt.event.ComponentEvent e) {
-                int newRows = calcRowsFromViewport();
-                if (newRows > 0 && newRows != rowsPerPage) {
-                    rowsPerPage = newRows;
-                    if (!isRefreshing) refreshTable();
-                }
-            }
-        });
+        sp.setWheelScrollingEnabled(true);
 
         return sp;
     }
 
-    private boolean isRefreshing = false;
-
-    private int calcRowsFromViewport() {
-        if (table == null || !(table.getParent() instanceof JViewport vp)) return 0;
-        int viewH = vp.getHeight();
-        int rh = table.getRowHeight();
-        if (rh <= 0) rh = 56;
-        int headerH = table.getTableHeader().getHeight();
-        if (headerH <= 0) headerH = table.getTableHeader().getPreferredSize().height;
-        if (headerH <= 0) headerH = 44;
-        int available = viewH - headerH;
-        return available > 0 ? Math.max(1, available / rh + 1) : 0;
-    }
-
-    private JPanel buildPaginationBar() {
+    private JPanel buildTableFooter() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createCompoundBorder(
@@ -561,11 +527,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         lblPageInfo.setFont(FONT_SMALL);
         lblPageInfo.setForeground(ON_SURF_VAR);
 
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        paginationPanel.setOpaque(false);
-
         bar.add(lblPageInfo, BorderLayout.WEST);
-        bar.add(paginationPanel, BorderLayout.EAST);
         return bar;
     }
 
@@ -607,6 +569,9 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             }
         };
         field.setFont(FONT_BODY);
+        field.setColumns(1);
+        field.setMinimumSize(new Dimension(0, 38));
+        field.setPreferredSize(new Dimension(0, 38));
         field.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1),
                 new EmptyBorder(6, 12, 6, 12)
@@ -636,28 +601,6 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         // Cảnh báo: placeholder tự vẽ nên x bắt đầu gần 2px trong field, không cộng lại padding wrapper.
     }
 
-    private JButton createSearchButton() {
-        JButton btn = new JButton("Tìm") {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isPressed() ? PRIMARY.darker() : getModel().isRollover() ? PRIMARY.brighter() : PRIMARY);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 10, 10));
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_BTN);
-        btn.setForeground(Color.WHITE);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(70, 38));
-        return btn;
-    }
-
     // =================================================================
     //  DATA
     // =================================================================
@@ -676,6 +619,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
                 } catch (Exception e) {
                     allData = new ArrayList<>();
                 }
+                rebuildRowCache();
                 updateStats();
                 applyFilter();
             }
@@ -699,197 +643,84 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     // =================================================================
 
     private void applyFilter() {
-        String kwHD = txtSearchHoaDon.getText().trim().toLowerCase();
-        String kwVe = txtSearchVe.getText().trim().toLowerCase();
+        String keyword = txtSearchKeyword.getText().trim().toLowerCase();
 
         filteredData = new ArrayList<>();
-        for (Ve ve : allData) {
-            // Tab filter
+        List<VeTableModel.VeRow> rows = new ArrayList<>();
+        for (VeTableModel.VeRow row : allRows) {
+            Ve ve = row.ve();
             if (activeTabIndex == 1 && ve.getTrangThai() != TrangThaiVe.DA_BAN) continue;
             if (activeTabIndex == 2 && ve.getTrangThai() != TrangThaiVe.DA_HUY) continue;
-            
-            // Search filters
-            if (!kwVe.isEmpty() && !ve.getMaVe().toLowerCase().contains(kwVe)) continue;
-            
-            if (!kwHD.isEmpty()) {
-                ChiTietHoaDon cthd = daoChiTietHoaDon.findByVe(ve.getMaVe());
-                if (cthd == null || cthd.getHoaDon() == null 
-                    || !cthd.getHoaDon().getMaHoaDon().toLowerCase().contains(kwHD)) {
-                    continue;
-                }
-            }
+            if (!keyword.isEmpty() && !matchesKeyword(row, keyword)) continue;
 
             filteredData.add(ve);
+            rows.add(row);
         }
-        totalRecords = filteredData.size();
-        currentPage = 1;
-        refreshTable();
+        refreshTable(rows);
+        // Handoff: keyword chung tìm qua vé/hóa đơn/khách/ga/trạng thái để thay hai ô search cũ.
+        // Rủi ro: cache row được rebuild khi loadData, nếu dữ liệu liên quan đổi ngoài module cần load lại để đồng bộ.
     }
 
-    private void searchByHoaDon() {
-        String keyword = txtSearchHoaDon.getText().trim();
-        if (keyword.isEmpty()) {
-            applyFilter();
-            return;
-        }
-        filteredData = new ArrayList<>();
-        for (Ve ve : allData) {
-            // Tim hoa don qua ChiTietHoaDon
-            ChiTietHoaDon cthd = daoChiTietHoaDon.findByVe(ve.getMaVe());
-            if (cthd != null && cthd.getHoaDon() != null
-                    && cthd.getHoaDon().getMaHoaDon().toLowerCase().contains(keyword.toLowerCase())) {
-                filteredData.add(ve);
-            }
-        }
-        totalRecords = filteredData.size();
-        currentPage = 1;
-        refreshTable();
+    private boolean matchesKeyword(VeTableModel.VeRow row, String keyword) {
+        Ve ve = row.ve();
+        String trangThai = ve.getTrangThai() != null ? ve.getTrangThai().toString() : "";
+        String haystack = String.join(" ",
+                safe(ve.getMaVe()), safe(row.maHoaDon()), safe(row.tenKhachHang()), safe(row.tuyen()),
+                safe(row.khoiHanh()), safe(trangThai), statusLabel(ve.getTrangThai())).toLowerCase();
+        return haystack.contains(keyword);
     }
 
-    private void searchByMaVe() {
-        String keyword = txtSearchVe.getText().trim();
-        if (keyword.isEmpty()) {
-            applyFilter();
-            return;
-        }
-        filteredData = new ArrayList<>();
-        for (Ve ve : allData) {
-            if (ve.getMaVe().toLowerCase().contains(keyword.toLowerCase())) {
-                filteredData.add(ve);
-            }
-        }
-        totalRecords = filteredData.size();
-        currentPage = 1;
-        refreshTable();
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 
-    // =================================================================
-    //  PAGINATION
-    // =================================================================
-
-    private void refreshTable() {
-        isRefreshing = true;
-        try {
-            int vpRows = calcRowsFromViewport();
-            if (vpRows > 0) {
-                rowsPerPage = vpRows;
-            } else {
-                // First load: viewport not ready
-                // Overhead: border(56) + header(70) + stats(110+20) + search(90+20) + cardHeader(60) + tableHeader(44) + pagination(56) ≈ 530
-                int screenH = Toolkit.getDefaultToolkit().getScreenSize().height;
-                int rh = (table != null && table.getRowHeight() > 0) ? table.getRowHeight() : 56;
-                rowsPerPage = Math.max(3, (screenH - 530) / rh);
-            }
-
-        int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / rowsPerPage));
-        if (currentPage > totalPages) currentPage = totalPages;
-
-        int start = (currentPage - 1) * rowsPerPage;
-        int end = Math.min(start + rowsPerPage, totalRecords);
-
-        List<Ve> pageData = filteredData.subList(start, end);
-
-        // Load route info from Ve -> Lich -> Tuyen, customer from ChiTietHoaDon -> HoaDon -> KhachHang
-        List<VeTableModel.VeRow> rows = new ArrayList<>();
-        for (Ve ve : pageData) {
-            String gaDi = "", gaDen = "", khoiHanh = "", tenKhachHang = "";
-            try {
-                if (ve.getLich() != null && ve.getLich().getTuyen() != null) {
-                    Tuyen tuyen = ve.getLich().getTuyen();
-                    gaDi = tuyen.getGaDi() != null ? tuyen.getGaDi().getTenGa() : "";
-                    gaDen = tuyen.getGaDen() != null ? tuyen.getGaDen().getTenGa() : "";
-                }
-                if (ve.getLich() != null && ve.getLich().getThoiGianBatDau() != null) {
-                    khoiHanh = ve.getLich().getThoiGianBatDau().format(FMT_DATETIME);
-                }
-                ChiTietHoaDon cthd = daoChiTietHoaDon.findByVe(ve.getMaVe());
-                if (cthd != null && cthd.getHoaDon() != null) {
-                    List<KhachHang> khs = daoHDKH.findKhachHangByHoaDon(
-                            cthd.getHoaDon().getMaHoaDon());
-                    if (khs != null && !khs.isEmpty()) {
-                        String first = khs.get(0).getHoTen();
-                        tenKhachHang = (first != null ? first : "")
-                                + (khs.size() > 1 ? " (+" + (khs.size() - 1) + ")" : "");
-                    }
-                }
-            } catch (Exception ignored) {}
-            rows.add(new VeTableModel.VeRow(ve, gaDi, gaDen, khoiHanh, tenKhachHang));
-        }
-
+    private void refreshTable(List<VeTableModel.VeRow> rows) {
         tableModel.setData(rows);
+        int totalRecords = rows.size();
 
         lblPageInfo.setText(totalRecords == 0
                 ? "Không tìm thấy vé nào"
-                : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " vé");
-
-        rebuildPagination(totalPages);
-        } finally {
-            isRefreshing = false;
-        }
+                : "Hiển thị " + totalRecords + " vé");
     }
 
-    private void rebuildPagination(int totalPages) {
-        paginationPanel.removeAll();
-        addNavButton("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
-        for (int i = 1; i <= totalPages; i++) {
-            if (totalPages > 7) {
-                if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-                    addPageButton(i);
-                } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("…");
-                    dots.setFont(FONT_SMALL);
-                    dots.setForeground(ON_SURF_VAR);
-                    dots.setBorder(new EmptyBorder(0, 6, 0, 6));
-                    paginationPanel.add(dots);
-                }
-            } else {
-                addPageButton(i);
+    private void rebuildRowCache() {
+        allRows = new ArrayList<>();
+        for (Ve ve : allData) allRows.add(buildRow(ve));
+    }
+
+    private VeTableModel.VeRow buildRow(Ve ve) {
+        String maHoaDon = "", tuyenText = "", khoiHanh = "", tenKhachHang = "";
+        try {
+            if (ve.getLich() != null && ve.getLich().getTuyen() != null) {
+                Tuyen tuyen = ve.getLich().getTuyen();
+                String gaDi = tuyen.getGaDi() != null ? tuyen.getGaDi().getTenGa() : "";
+                String gaDen = tuyen.getGaDen() != null ? tuyen.getGaDen().getTenGa() : "";
+                String maTuyen = tuyen.getMaTuyen() != null ? tuyen.getMaTuyen() : "";
+                tuyenText = formatTuyen(maTuyen, gaDi, gaDen);
             }
-        }
-        addNavButton("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
-        paginationPanel.revalidate();
-        paginationPanel.repaint();
-    }
-
-    private void addPageButton(int page) {
-        JButton btn = new JButton(String.valueOf(page)) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (page == currentPage) {
-                    g2.setColor(PRIMARY);
-                    g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 8, 8));
-                }
-                g2.dispose();
-                super.paintComponent(g);
+            if (ve.getLich() != null && ve.getLich().getThoiGianBatDau() != null) {
+                khoiHanh = ve.getLich().getThoiGianBatDau().format(FMT_DATETIME);
             }
-        };
-        btn.setFont(FONT_HEADER);
-        btn.setPreferredSize(new Dimension(32, 32));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setForeground(page == currentPage ? Color.WHITE : ON_SURF_VAR);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(e -> { currentPage = page; refreshTable(); });
-        paginationPanel.add(btn);
+            ChiTietHoaDon cthd = daoChiTietHoaDon.findByVe(ve.getMaVe());
+            if (cthd != null) {
+                if (cthd.getHoaDon() != null) maHoaDon = cthd.getHoaDon().getMaHoaDon();
+                KhachHang kh = cthd.getKhachHang();
+                if (kh != null && kh.getHoTen() != null) tenKhachHang = kh.getHoTen();
+            }
+        } catch (Exception ignored) {}
+        return new VeTableModel.VeRow(ve, maHoaDon, tuyenText, khoiHanh, tenKhachHang);
     }
 
-    private void addNavButton(String symbol, boolean enabled, Runnable action) {
-        JButton btn = new JButton(symbol);
-        btn.setFont(FONT_BODY);
-        btn.setPreferredSize(new Dimension(32, 32));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setForeground(enabled ? ON_SURF_VAR : OUTLINE);
-        btn.setEnabled(enabled);
-        btn.setCursor(enabled ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
-        btn.addActionListener(e -> action.run());
-        paginationPanel.add(btn);
+    private String formatTuyen(String maTuyen, String gaDi, String gaDen) {
+        String hanhTrinh = (gaDi.isBlank() && gaDen.isBlank()) ? "" : gaDi + " → " + gaDen;
+        if (!hanhTrinh.isBlank()) return hanhTrinh;
+        return maTuyen == null ? "" : maTuyen;
+        // Handoff: cột tuyến ưu tiên tên hành trình để bảng dễ đọc, không kèm mã tuyến gây chật cột.
+        // Cảnh báo: mã tuyến chỉ là fallback khi DAO không load được tên ga đi/ga đến.
+    }
+
+    private String statusLabel(TrangThaiVe status) {
+        return status == TrangThaiVe.DA_HUY ? "Đã hủy" : "Đã thanh toán";
     }
 
     // =================================================================
@@ -898,8 +729,8 @@ public class QuanLyVeModule extends JPanel implements AppModule {
 
     // Non-static inner class de setValueAt co the truy cap allData va DAO
     private class VeTableModel extends AbstractTableModel {
-        record VeRow(Ve ve, String gaDi, String gaDen, String khoiHanh, String tenKhachHang) {}
-        private final String[] COLUMNS = {"MÃ VÉ", "HÀNH KHÁCH", "GA ĐI", "GA ĐẾN", "KHỞI HÀNH", "TRẠNG THÁI", "THAO TÁC"};
+        record VeRow(Ve ve, String maHoaDon, String tuyen, String khoiHanh, String tenKhachHang) {}
+        private final String[] COLUMNS = {"MÃ VÉ", "MÃ HÓA ĐƠN", "HÀNH KHÁCH", "TUYẾN", "KHỞI HÀNH", "TRẠNG THÁI", "THAO TÁC"};
         private List<VeRow> data = new ArrayList<>();
 
         void setData(List<VeRow> data) {
@@ -922,9 +753,9 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             Ve ve = row.ve();
             return switch (c) {
                 case 0 -> ve.getMaVe();
-                case 1 -> row.tenKhachHang();
-                case 2 -> row.gaDi();
-                case 3 -> row.gaDen();
+                case 1 -> row.maHoaDon();
+                case 2 -> row.tenKhachHang();
+                case 3 -> row.tuyen();
                 case 4 -> row.khoiHanh();
                 case 5 -> ve.getTrangThai() != null ? ve.getTrangThai() : TrangThaiVe.DA_BAN;
                 case 6 -> ve.getTrangThai();
@@ -1109,34 +940,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             btnRefund.addActionListener(e -> {
                 fireEditingStopped();
                 var veRow = tableModel.getRowAt(editingRow);
-                if (veRow != null) {
-                    Ve ve = veRow.ve();
-                    if (ve.getTrangThai() == TrangThaiVe.DA_HUY) {
-                        NotionMessageDialog.showMessageDialog(QuanLyVeModule.this,
-                                "Vé này đã được hủy trước đó.",
-                                "Thông báo", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-                    Window owner = SwingUtilities.getWindowAncestor(QuanLyVeModule.this);
-                    HoanVeDialog dialog = new HoanVeDialog(
-                            owner, ve, veRow.tenKhachHang(),
-                            veRow.gaDi() + " → " + veRow.gaDen(),
-                            veRow.khoiHanh());
-                    dialog.setVisible(true);
-
-                    if (dialog.isConfirmed()) {
-                        boolean ok = new DAO_Ve().huyVe(ve.getMaVe(), dialog.getLyDo());
-                        if (ok) {
-                            NotionMessageDialog.showMessageDialog(QuanLyVeModule.this,
-                                    "Hoàn vé thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                            loadData();
-                        } else {
-                            NotionMessageDialog.showMessageDialog(QuanLyVeModule.this,
-                                    "Không thể hoàn vé. Vui lòng thử lại.",
-                                    "Hoàn vé thất bại", JOptionPane.ERROR_MESSAGE);
-                        }
-                    }
-                }
+                if (veRow != null) refundTicket(veRow);
             });
         }
 
@@ -1163,17 +967,68 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     }
 
     // =================================================================
+    private void showVeQuickActions(MouseEvent e) {
+        if (!e.isPopupTrigger()) return;
+        int row = table.rowAtPoint(e.getPoint());
+        if (row < 0) return;
+        table.setRowSelectionInterval(row, row);
+        var veRow = tableModel.getRowAt(row);
+        if (veRow == null) return;
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem view = new JMenuItem("Xem chi tiết");
+        view.addActionListener(ev -> openVeDetailDialog(veRow));
+        JMenuItem refund = new JMenuItem("Hoàn vé");
+        refund.setEnabled(veRow.ve().getTrangThai() != TrangThaiVe.DA_HUY);
+        refund.addActionListener(ev -> refundTicket(veRow));
+        menu.add(view);
+        menu.addSeparator();
+        menu.add(refund);
+        menu.show(table, e.getX(), e.getY());
+    }
+
+
+    private void refundTicket(VeTableModel.VeRow veRow) {
+        Ve ve = veRow.ve();
+        if (ve.getTrangThai() == TrangThaiVe.DA_HUY) {
+            NotionMessageDialog.showMessageDialog(this,
+                    "Vé này đã được hủy trước đó.",
+                    "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        HoanVeDialog dialog = new HoanVeDialog(
+                owner, ve, veRow.tenKhachHang(),
+                veRow.tuyen(),
+                veRow.khoiHanh());
+        dialog.setVisible(true);
+
+        if (dialog.isConfirmed()) {
+            boolean ok = new DAO_Ve().huyVe(ve.getMaVe(), dialog.getLyDo());
+            if (ok) {
+                NotionMessageDialog.showMessageDialog(this,
+                        "Hoàn vé thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                loadData();
+            } else {
+                NotionMessageDialog.showMessageDialog(this,
+                        "Không thể hoàn vé. Vui lòng thử lại.",
+                        "Hoàn vé thất bại", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        // Handoff: nút bảng và menu chuột phải dùng chung luồng hoàn vé để giữ kiểm tra DA_HUY nhất quán.
+        // Cảnh báo: nếu sau này thêm phí hoàn/hạn hoàn, cập nhật một hàm này thay vì từng entry point.
+    }
+
     public void applySearchVe(String text) {
-        txtSearchVe.setText(text);
-        searchByMaVe();
+        txtSearchKeyword.setText(text != null ? text.trim() : "");
+        applyFilter();
     }
 
     /**
      * Nhận keyword từ Dashboard — tìm trên maVe và maHoaDon (qua ChiTietHoaDon).
      */
     public void applySearchFromDashboard(String keyword) {
-        txtSearchVe.setText(keyword != null ? keyword.trim() : "");
-        searchByMaVe();
+        txtSearchKeyword.setText(keyword != null ? keyword.trim() : "");
+        applyFilter();
     }
 
     private void openVeDetailDialog(VeTableModel.VeRow veRow) {
@@ -1191,19 +1046,12 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             }
         }
 
-        List<KhachHang> khList = "—".equals(maHoaDon) ? new ArrayList<>() : daoHDKH.findKhachHangByHoaDon(maHoaDon);
+        KhachHang khachHang = cthd != null ? cthd.getKhachHang() : null;
         String hanhKhach = "—";
         String cccd = "—";
-        if (!khList.isEmpty()) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < khList.size(); i++) {
-                KhachHang kh = khList.get(i);
-                if (i > 0) sb.append(", ");
-                sb.append(kh.getHoTen() == null ? "—" : kh.getHoTen());
-            }
-            hanhKhach = sb.toString();
-            String firstCccd = khList.get(0).getCccd();
-            if (firstCccd != null && !firstCccd.isBlank()) cccd = firstCccd;
+        if (khachHang != null) {
+            hanhKhach = khachHang.getHoTen() == null || khachHang.getHoTen().isBlank() ? "—" : khachHang.getHoTen();
+            if (khachHang.getCccd() != null && !khachHang.getCccd().isBlank()) cccd = khachHang.getCccd();
         } else if (veRow.tenKhachHang() != null && !veRow.tenKhachHang().isBlank()) {
             hanhKhach = veRow.tenKhachHang();
         }
@@ -1232,8 +1080,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         fields.put("Mã hóa đơn", maHoaDon);
         fields.put("Hành khách", hanhKhach);
         fields.put("CCCD", cccd);
-        fields.put("Ga đi", veRow.gaDi());
-        fields.put("Ga đến", veRow.gaDen());
+        fields.put("Tuyến", veRow.tuyen());
         fields.put("Khởi hành", veRow.khoiHanh());
         fields.put("Mã lịch", maLich);
         fields.put("Mã đoàn tàu", maDoanTau);
@@ -1268,10 +1115,8 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         btnPanel.setVisible(has);
     }
     @Override public void reset() {
-        txtSearchHoaDon.setText("");
-        txtSearchVe.setText("");
+        txtSearchKeyword.setText("");
         activeTabIndex = 0;
-        currentPage = 1;
         loadData();
     }
 }

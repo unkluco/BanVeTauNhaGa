@@ -41,7 +41,11 @@
       "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/entity/Tuyen.java -m \"getTenTuyen\" \"getMaTuyen\" \"getGaDi\" \"getGaDen\" --json)",
       "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/entity/DoanTau.java -m \"getMaDoanTau\" \"getTenDoanTau\" --json)",
       "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/entity/Tuyen.java -m \"private \" \"public \" --json)",
-      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/modules/MenuModule.java -m \"QL_LICH_CHAY\" \"QL_DOAN_TAU\" \"default\" \"showPlaceholder\" --json)"
+      "Bash(python .claude/skills/Line-Locator/cut.py --file src/main/java/com/modules/MenuModule.java -m \"QL_LICH_CHAY\" \"QL_DOAN_TAU\" \"default\" \"showPlaceholder\" --json)",
+      "Skill(anthropic-skills:docx)",
+      "Skill(anthropic-skills:docx:*)",
+      "Bash(python \"C:\\\\Users\\\\ADMIN\\\\AppData\\\\Roaming\\\\Claude\\\\local-agent-mode-sessions\\\\skills-plugin\\\\cdef6e8a-52a1-423a-884c-3523b800072a\\\\87d0d9ff-18af-4722-91b8-488c2a32159d\\\\skills\\\\docx\\\\scripts\\\\office\\\\unpack.py\" \"document/9_REPORT FINAL.docx\" \"document/9_REPORT_unpacked/\")",
+      "Bash(pip install *)"
     ]
   }
 }

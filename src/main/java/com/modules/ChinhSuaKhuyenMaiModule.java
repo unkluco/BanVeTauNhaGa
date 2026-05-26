@@ -59,7 +59,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
     private static final Font FONT_LABEL  = new Font("Segoe UI", Font.BOLD, 10);
     private static final Font FONT_BTN    = new Font("Segoe UI", Font.BOLD, 13);
 
-    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DecimalFormat     PCT_FMT = new DecimalFormat("##.##");
 
     // ── State ──────────────────────────────────────────────────────────
@@ -69,14 +69,10 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
 
     private JTable                    table;
     private ChiTietKhuyenMaiTableModel tableModel;
-    private int currentPage   = 1;
-    private int rowsPerPage   = 10;
     private int totalRecords  = 0;
     private int hoveredRow    = -1;
-    private boolean isRefreshing = false;
 
     private JLabel lblPageInfo;
-    private JPanel paginationPanel;
     private List<ChiTietKhuyenMai> allData      = new ArrayList<>();
     private List<ChiTietKhuyenMai> filteredData = new ArrayList<>();
 
@@ -328,7 +324,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
 
         card.add(buildKMTableFilterBar(), BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
-        card.add(buildPaginationBar(),BorderLayout.SOUTH);
+        card.add(buildTableFooter(), BorderLayout.SOUTH);
         return card;
     }
 
@@ -388,32 +384,14 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
         JScrollPane sp = new JScrollPane(table);
         sp.setBorder(BorderFactory.createEmptyBorder());
         sp.getViewport().setBackground(CARD_BG);
-        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        sp.setWheelScrollingEnabled(false);
+        sp.setWheelScrollingEnabled(true);
 
-        sp.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override public void componentResized(java.awt.event.ComponentEvent e) {
-                int newRows = calcRowsFromViewport();
-                if (newRows > 0 && newRows != rowsPerPage && !isRefreshing) {
-                    rowsPerPage = newRows; refreshTable();
-                }
-            }
-        });
         return sp;
     }
 
-    private int calcRowsFromViewport() {
-        if (table == null || !(table.getParent() instanceof JViewport vp)) return 0;
-        int viewH = vp.getHeight();
-        int rh = table.getRowHeight() > 0 ? table.getRowHeight() : 52;
-        int headerH = table.getTableHeader().getHeight();
-        if (headerH <= 0) headerH = 40;
-        int avail = viewH - headerH;
-        return avail > 0 ? Math.max(1, avail / rh + 1) : 0;
-    }
-
-    private JPanel buildPaginationBar() {
+        private JPanel buildTableFooter() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createCompoundBorder(
@@ -423,11 +401,8 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
         lblPageInfo = new JLabel();
         lblPageInfo.setFont(FONT_SMALL); lblPageInfo.setForeground(ON_SURF_VAR);
 
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        paginationPanel.setOpaque(false);
 
         bar.add(lblPageInfo,    BorderLayout.WEST);
-        bar.add(paginationPanel,BorderLayout.EAST);
         return bar;
     }
 
@@ -464,6 +439,8 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
             }
         };
         txtFilterSearch.setFont(FONT_BODY);
+        txtFilterSearch.setColumns(1);
+        txtFilterSearch.setMinimumSize(new Dimension(0, 38));
         txtFilterSearch.setPreferredSize(new Dimension(0, 38));
         txtFilterSearch.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         txtFilterSearch.setBorder(BorderFactory.createCompoundBorder(
@@ -490,6 +467,7 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
         cboFilterLoaiGhe.setMaximumSize(new Dimension(200, 38));
         cboFilterLoaiGhe.setBackground(CARD_BG);
         cboFilterLoaiGhe.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
+        NotionTheme.applyComboBoxSelection(cboFilterLoaiGhe);
         cboFilterLoaiGhe.addActionListener(e -> applyFilter());
 
         JButton btnReset = createSoftActionButton("Bỏ lọc", ON_SURFACE, CARD_BG, 82, 38);
@@ -542,7 +520,6 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
 
             if (matchKw && matchLg) filteredData.add(ct);
         }
-        currentPage = 1;
         refreshTable();
     }
 
@@ -561,72 +538,20 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
     }
 
     private void refreshTable() {
-        isRefreshing = true;
-        try {
-            int vpRows = calcRowsFromViewport();
-            if (vpRows > 0) rowsPerPage = vpRows;
-            totalRecords = filteredData.size();
-            int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / rowsPerPage));
-            if (currentPage > totalPages) currentPage = totalPages;
-            int start = (currentPage - 1) * rowsPerPage;
-            int end   = Math.min(start + rowsPerPage, totalRecords);
-            tableModel.setData(filteredData.subList(start, end));
-            lblPageInfo.setText(totalRecords == 0
-                    ? "Không tìm thấy chi tiết nào"
-                    : "Hiển thị " + (start+1) + " – " + end + " / " + totalRecords + " bản ghi");
-            rebuildPagination(totalPages);
-        } finally {
-            isRefreshing = false;
-        }
+        tableModel.setData(filteredData);
+        lblPageInfo.setText(totalRecords == 0
+                ? "Không tìm thấy bản ghi nào"
+                : "Hiển thị " + totalRecords + " bản ghi");
     }
 
-    private void rebuildPagination(int totalPages) {
-        paginationPanel.removeAll();
-        addNavBtn("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
-        for (int i = 1; i <= totalPages; i++) {
-            final int pg = i;
-            JButton btn = new JButton(String.valueOf(pg)) {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    if (pg == currentPage) {
-                        g2.setColor(PRIMARY);
-                        g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 8, 8));
-                    }
-                    g2.dispose(); super.paintComponent(g);
-                }
-            };
-            btn.setFont(FONT_HEADER);
-            btn.setPreferredSize(new Dimension(32, 32));
-            btn.setMargin(new java.awt.Insets(0,0,0,0));
-            btn.setFocusPainted(false); btn.setBorderPainted(false); btn.setContentAreaFilled(false);
-            btn.setForeground(pg == currentPage ? AppColors.SURFACE : ON_SURF_VAR);
-            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            btn.addActionListener(e -> { currentPage = pg; refreshTable(); });
-            paginationPanel.add(btn);
-        }
-        addNavBtn("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
-        paginationPanel.revalidate(); paginationPanel.repaint();
-    }
 
-    private void addNavBtn(String sym, boolean enabled, Runnable action) {
-        JButton btn = new JButton(sym);
-        btn.setFont(FONT_BODY);
-        btn.setPreferredSize(new Dimension(32, 32));
-        btn.setMargin(new java.awt.Insets(0,0,0,0));
-        btn.setFocusPainted(false); btn.setBorderPainted(false); btn.setContentAreaFilled(false);
-        btn.setForeground(enabled ? ON_SURF_VAR : OUTLINE);
-        btn.setEnabled(enabled);
-        btn.setCursor(enabled ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
-        btn.addActionListener(e -> action.run());
-        paginationPanel.add(btn);
-    }
-
-    // ── Actions ────────────────────────────────────────────────────────
+            // ── Actions ────────────────────────────────────────────────────────
 
     private void openSuaKhuyenMaiDialog() {
+        // Handoff: edit mode mutates khuyenMai in-place only when KhuyenMaiDialog updates directly.
+        // Risk: clone edits keep this screen on the old KM, so caller may need list reload to open the new one.
         Window owner = SwingUtilities.getWindowAncestor(this);
-        SuaKhuyenMaiDialog dlg = new SuaKhuyenMaiDialog(owner, khuyenMai, () -> {
+        KhuyenMaiDialog dlg = new KhuyenMaiDialog(owner, khuyenMai, () -> {
             lblInfoTen.setText(khuyenMai.getTenKhuyenMai() != null ? khuyenMai.getTenKhuyenMai() : "—");
             lblInfoMoTa.setText(khuyenMai.getMoTa() != null ? khuyenMai.getMoTa() : "—");
             lblInfoBatDau.setText(khuyenMai.getThoiGianBatDau() != null
@@ -655,16 +580,20 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (res != JOptionPane.YES_OPTION) return;
         boolean activateClone = false;
+        String cloneTenKhuyenMai = null;
         if (usageCount > 0) {
+            cloneTenKhuyenMai = promptCloneTenKhuyenMai(khuyenMai.getTenKhuyenMai());
+            if (cloneTenKhuyenMai == null) return;
             activateClone = confirmActivateClonedKhuyenMai();
         }
         final boolean shouldClone = usageCount > 0;
         final boolean shouldActivateClone = activateClone;
+        final String newCloneTenKhuyenMai = cloneTenKhuyenMai;
         new SwingWorker<Boolean, Void>() {
             @Override protected Boolean doInBackground() {
                 if (shouldClone) {
                     return new DAO_KhuyenMai().cloneKhuyenMaiWithDetailsRemovingDetail(
-                            khuyenMai, ctkm, shouldActivateClone) != null;
+                            khuyenMai, ctkm, shouldActivateClone, newCloneTenKhuyenMai) != null;
                 }
                 return new DAO_ChiTietKhuyenMai().delete(ctkm.getMaChiTietKM());
             }
@@ -695,6 +624,25 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
                         + "Bạn có muốn nhân bản khuyến mãi và bỏ chi tiết \"" + ctkm.getMaChiTietKM() + "\" khỏi bản mới không?",
                 "Chi tiết khuyến mãi đã khóa", JOptionPane.WARNING_MESSAGE, "Hủy", "Đồng ý");
         return choice == JOptionPane.YES_OPTION;
+    }
+
+    private String promptCloneTenKhuyenMai(String defaultTenKhuyenMai) {
+        JTextField field = new JTextField(defaultTenKhuyenMai == null ? "" : defaultTenKhuyenMai);
+        field.setFont(FONT_BODY);
+        field.setForeground(ON_SURFACE);
+        field.selectAll();
+        while (true) {
+            int choice = NotionMessageDialog.showConfirmDialog(this,
+                    new Object[]{"Nhập tên cho khuyến mãi mới:", field},
+                    "Tên khuyến mãi mới", JOptionPane.QUESTION_MESSAGE, "Hủy", "Tiếp tục");
+            if (choice != JOptionPane.YES_OPTION) return null;
+            String value = field.getText().trim();
+            if (!value.isEmpty()) return value;
+            NotionMessageDialog.showMessageDialog(this,
+                    "Vui lòng nhập tên khuyến mãi mới.", "Thiếu tên khuyến mãi", JOptionPane.WARNING_MESSAGE);
+        }
+        // Handoff: xóa detail KM đã áp dụng tạo bản clone có tên do user đặt để tránh nhầm bản cũ/mới.
+        // Rủi ro: hủy ở bước này phải dừng clone-remove và giữ nguyên chi tiết hiện tại.
     }
 
     private boolean confirmActivateClonedKhuyenMai() {
@@ -983,12 +931,13 @@ public class ChinhSuaKhuyenMaiModule extends JPanel implements AppModule {
 
     @Override
     public void reset() {
-        currentPage = 1;
         if (txtFilterSearch != null) txtFilterSearch.setText("");
         if (cboFilterLoaiGhe != null) cboFilterLoaiGhe.setSelectedIndex(0);
         if (tableModel != null) applyFilter();
     }
 }
+
+
 
 
 

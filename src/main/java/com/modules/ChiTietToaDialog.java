@@ -63,7 +63,7 @@ public class ChiTietToaDialog extends JDialog {
         installDismissOnOutsideClick();
         pack();
         setMinimumSize(new Dimension(820, 560));
-        setLocationRelativeTo(owner);
+        ModuleLauncher.centerDialog(this, owner);
     }
 
     // =========================================================================
@@ -107,7 +107,7 @@ public class ChiTietToaDialog extends JDialog {
 
         root.add(footer, BorderLayout.SOUTH);
 
-        setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
+        setContentPane(ModuleLauncher.buildShadowWrapper(root));
     }
 
     private void installDismissOnOutsideClick() {

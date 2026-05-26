@@ -101,8 +101,6 @@ public class ThemToaDialog extends AbstractFormDialog<ToaTau> {
                 new EmptyBorder(12, 14, 12, 14)
         ));
         info.setAlignmentX(Component.LEFT_ALIGNMENT);
-        info.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
-        info.setPreferredSize(new Dimension(0, 120));
 
         JLabel lblTitle = new JLabel("Tự động tạo ghế");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -122,6 +120,9 @@ public class ThemToaDialog extends AbstractFormDialog<ToaTau> {
         info.add(Box.createVerticalStrut(4));
         info.add(lblRule);
         updateSeatCountHint();
+        NotionTheme.lockMaxWidthToPreferredHeight(info);
+        // Handoff: card hướng dẫn tự theo nội dung để không cắt text khi font/DPI khác.
+        // Cảnh báo: nếu thêm dòng động sau này, gọi lại helper sau khi cập nhật nội dung.
         return info;
     }
 

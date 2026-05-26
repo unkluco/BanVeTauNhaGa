@@ -231,12 +231,14 @@ public class ChinhSuaLichChayDialog extends AbstractFormDialog<Lich> {
     private JComboBox<Tuyen> createTuyenCombo() {
         JComboBox<Tuyen> combo = new JComboBox<>();
         combo.setRenderer(buildTuyenRenderer());
+        NotionTheme.applyComboBoxSelection(combo);
         return combo;
     }
 
     private JComboBox<DoanTau> createDoanTauCombo() {
         JComboBox<DoanTau> combo = new JComboBox<>();
         combo.setRenderer(buildDoanTauRenderer());
+        NotionTheme.applyComboBoxSelection(combo);
         return combo;
     }
 

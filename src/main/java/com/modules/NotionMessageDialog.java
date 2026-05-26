@@ -63,14 +63,14 @@ public final class NotionMessageDialog {
         dialog.setUndecorated(true);
         dialog.setResizable(false);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        dialog.setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
+        dialog.setContentPane(ModuleLauncher.buildShadowWrapper(root));
         dialog.getRootPane().registerKeyboardAction(e -> {
             state.value = JOptionPane.CLOSED_OPTION;
             dialog.dispose();
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
         dialog.pack();
         dialog.setMinimumSize(new Dimension(MIN_WIDTH, dialog.getPreferredSize().height));
-        dialog.setLocationRelativeTo(parent);
+        ModuleLauncher.centerDialog(dialog, parent);
         dialog.setVisible(true);
         return state.value;
     }

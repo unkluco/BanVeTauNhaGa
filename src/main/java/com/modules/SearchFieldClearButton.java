@@ -15,6 +15,7 @@ final class SearchFieldClearButton {
     }
 
     static void install(JPanel searchBox, JTextField field, Runnable afterClear) {
+        stabilizeFieldSize(field);
         JButton clearButton = new JButton("X");
         clearButton.setVisible(false);
         clearButton.setFocusable(false);
@@ -36,5 +37,14 @@ final class SearchFieldClearButton {
         searchBox.add(clearButton, BorderLayout.EAST);
         // Handoff: nút X chỉ thuộc thanh tìm kiếm và tự hiện khi field có input.
         // Cảnh báo: afterClear không thay thế DocumentListener, chỉ dùng cho các filter cần refresh phụ trợ.
+    }
+
+    private static void stabilizeFieldSize(JTextField field) {
+        field.setColumns(1);
+        int height = Math.max(36, field.getPreferredSize().height);
+        field.setMinimumSize(new Dimension(0, height));
+        field.setPreferredSize(new Dimension(0, height));
+        // Handoff: JTextField không được tự tăng preferred width theo chữ nhập làm phình thanh tìm kiếm.
+        // Cảnh báo: chỉ dùng cho search box có layout cấp cha chịu trách nhiệm chia chiều ngang.
     }
 }

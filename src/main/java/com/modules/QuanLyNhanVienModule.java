@@ -34,12 +34,9 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     private NhanVienTableModel tableModel;
 
     // --- Pagination ---
-    private int currentPage  = 1;
-    private int rowsPerPage  = 10;
     private int totalRecords = 0;
 
     private JLabel  lblPageInfo;
-    private JPanel  paginationPanel;
     private JLabel  lblTotalCount;
     private JLabel  lblActiveCount;
     private JLabel  lblLeaveCount;
@@ -263,8 +260,10 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         };
         card.setOpaque(false);
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
         card.add(buildFilterBar(), BorderLayout.CENTER);
+        NotionTheme.lockMaxWidthToPreferredHeight(card);
+        // Handoff: card filter nhân viên lấy chiều cao tự nhiên sau khi add đủ nội dung, không hard-code.
+        // Cảnh báo: nếu filter thêm/bớt dòng runtime, cần revalidate và khóa lại max height theo preferred.
         return card;
     }
 
@@ -300,7 +299,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
 
         card.add(tableHeader, BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
-        card.add(buildPaginationBar(), BorderLayout.SOUTH);
+        card.add(buildTableFooter(), BorderLayout.SOUTH);
 
         return card;
     }
@@ -497,6 +496,9 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
 
         // Double-click row → open edit dialog; single-click button col → same
         table.addMouseListener(new MouseAdapter() {
+            @Override public void mousePressed(MouseEvent e) { showNhanVienQuickActions(e); }
+            @Override public void mouseReleased(MouseEvent e) { showNhanVienQuickActions(e); }
+
             @Override
             public void mouseClicked(MouseEvent e) {
                 int viewRow = table.rowAtPoint(e.getPoint());
@@ -517,36 +519,11 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         sp.setWheelScrollingEnabled(true);
 
-        sp.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentResized(java.awt.event.ComponentEvent e) {
-                int newRows = calcRowsFromViewport();
-                if (newRows > 0 && newRows != rowsPerPage) {
-                    rowsPerPage = newRows;
-                    if (!isRefreshing) refreshTable();
-                }
-            }
-        });
-
         return sp;
     }
 
-    private boolean isRefreshing = false;
 
-    private int calcRowsFromViewport() {
-        if (table == null || !(table.getParent() instanceof JViewport vp)) return 0;
-        int viewH = vp.getHeight();
-        int rh = table.getRowHeight();
-        if (rh <= 0) rh = 56;
-        int headerH = table.getTableHeader().getHeight();
-        if (headerH <= 0) headerH = table.getTableHeader().getPreferredSize().height;
-        if (headerH <= 0) headerH = 44;
-        int available = viewH - headerH;
-        // +1 de lap day khoang trong con lai (hang cuoi co the bi cat mot chut nhung khong sao)
-        return available > 0 ? Math.max(1, available / rh + 1) : 0;
-    }
-
-    private JPanel buildPaginationBar() {
+        private JPanel buildTableFooter() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createCompoundBorder(
@@ -558,11 +535,8 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         lblPageInfo.setFont(FONT_SMALL);
         lblPageInfo.setForeground(ON_SURF_VAR);
 
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        paginationPanel.setOpaque(false);
 
         bar.add(lblPageInfo, BorderLayout.WEST);
-        bar.add(paginationPanel, BorderLayout.EAST);
 
         return bar;
     }
@@ -604,6 +578,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         cbo.setPreferredSize(new Dimension(180, 38));
         cbo.setBackground(NotionTheme.CARD);
         cbo.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
+        NotionTheme.applyComboBoxSelection(cbo);
         return cbo;
         // Handoff: combo nhân viên đồng bộ kích thước/border với Quản lý khách hàng.
         // Cảnh báo: không setMaximumSize để GridBag có thể co giãn trong MenuModule.
@@ -622,7 +597,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
 
     private void openThemNhanVienDialog() {
         Window owner = SwingUtilities.getWindowAncestor(this);
-        ThemNhanVienDialog dlg = new ThemNhanVienDialog(owner, this::loadData);
+        NhanVienDialog dlg = NhanVienDialog.create(owner, this::loadData);
         dlg.setVisible(true);
     }
 
@@ -694,7 +669,6 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
 
         totalRecords = filteredData.size();
         updateStats(filteredData);
-        currentPage = 1;
         refreshTable();
     }
 
@@ -703,107 +677,14 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     // =================================================================
 
     private void refreshTable() {
-        isRefreshing = true;
-        try {
-            // Calc from viewport, fallback to screen estimate
-            int vpRows = calcRowsFromViewport();
-            if (vpRows > 0) {
-                rowsPerPage = vpRows;
-            } else {
-                // First load: viewport not ready, estimate from screen
-                // Module overhead đồng bộ Khách hàng để table/pagination cùng nhịp khi viewport chưa sẵn sàng.
-                int screenH = Toolkit.getDefaultToolkit().getScreenSize().height;
-                int rh = (table != null && table.getRowHeight() > 0) ? table.getRowHeight() : 56;
-                rowsPerPage = Math.max(5, (screenH - 300) / rh);
-            }
-
-        int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / rowsPerPage));
-        if (currentPage > totalPages) currentPage = totalPages;
-
-        int start = (currentPage - 1) * rowsPerPage;
-        int end = Math.min(start + rowsPerPage, totalRecords);
-
-        tableModel.setData(filteredData.subList(start, end));
-
+        tableModel.setData(filteredData);
         lblPageInfo.setText(totalRecords == 0
-                ? "Không tìm thấy nhân viên nào"
-                : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " nhân viên");
-
-        rebuildPagination(totalPages);
-        } finally {
-            isRefreshing = false;
-        }
+                ? "Không tìm thấy bản ghi nào"
+                : "Hiển thị " + totalRecords + " bản ghi");
     }
 
-    private void rebuildPagination(int totalPages) {
-        paginationPanel.removeAll();
 
-        addNavButton("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
-
-        for (int i = 1; i <= totalPages; i++) {
-            if (totalPages > 7) {
-                if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-                    addPageButton(i);
-                } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("…");
-                    dots.setFont(FONT_SMALL);
-                    dots.setForeground(ON_SURF_VAR);
-                    dots.setBorder(new EmptyBorder(0, 6, 0, 6));
-                    paginationPanel.add(dots);
-                }
-            } else {
-                addPageButton(i);
-            }
-        }
-
-        addNavButton("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
-
-        paginationPanel.revalidate();
-        paginationPanel.repaint();
-    }
-
-    private void addPageButton(int page) {
-        JButton btn = new JButton(String.valueOf(page)) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (page == currentPage) {
-                    g2.setColor(PRIMARY);
-                    g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 8, 8));
-                }
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_HEADER);
-        btn.setPreferredSize(new Dimension(32, 32));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setForeground(page == currentPage ? Color.WHITE : ON_SURF_VAR);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(e -> { currentPage = page; refreshTable(); });
-        paginationPanel.add(btn);
-    }
-
-    private void addNavButton(String symbol, boolean enabled, Runnable action) {
-        JButton btn = new JButton(symbol);
-        btn.setFont(FONT_BODY);
-        btn.setPreferredSize(new Dimension(32, 32));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setForeground(enabled ? ON_SURF_VAR : OUTLINE);
-        btn.setEnabled(enabled);
-        btn.setCursor(enabled ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
-        btn.addActionListener(e -> action.run());
-        paginationPanel.add(btn);
-    }
-
-    // =================================================================
+                // =================================================================
     //  TABLE MODEL
     // =================================================================
 
@@ -822,7 +703,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
 
         @Override
         public boolean isCellEditable(int r, int c) {
-            return false; // all edits go through SuaNhanVienDialog
+            return false; // all edits go through NhanVienDialog edit mode
         }
 
         @Override
@@ -841,7 +722,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
 
         @Override
         public void setValueAt(Object value, int r, int c) {
-            // no-op — all edits go through SuaNhanVienDialog
+            // no-op — all edits go through NhanVienDialog edit mode
         }
 
         NhanVien getNhanVienAt(int r) {
@@ -1049,9 +930,23 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     //  EDIT ACTION (placeholder)
     // =================================================================
 
+    private void showNhanVienQuickActions(MouseEvent e) {
+        if (!e.isPopupTrigger()) return;
+        int viewRow = table.rowAtPoint(e.getPoint());
+        if (viewRow < 0) return;
+        table.setRowSelectionInterval(viewRow, viewRow);
+        NhanVien nv = tableModel.getNhanVienAt(table.convertRowIndexToModel(viewRow));
+        if (nv == null) return;
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem edit = new JMenuItem("Sửa");
+        edit.addActionListener(ev -> onEditNhanVien(nv));
+        menu.add(edit);
+        menu.show(table, e.getX(), e.getY());
+    }
+
     private void onEditNhanVien(NhanVien nv) {
         Window owner = SwingUtilities.getWindowAncestor(this);
-        SuaNhanVienDialog dlg = new SuaNhanVienDialog(owner, nv, this::loadData);
+        NhanVienDialog dlg = NhanVienDialog.edit(owner, nv, this::loadData);
         dlg.setVisible(true);
     }
 
@@ -1072,7 +967,6 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         txtSearch.setText("");
         cboVaiTro.setSelectedIndex(0);
         cboTrangThai.setSelectedIndex(0);
-        currentPage = 1;
         loadData();
     }
 }

@@ -16,8 +16,13 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class QuanLyDoanTauModule extends JPanel implements AppModule {
@@ -70,23 +75,19 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
     private static final Font FONT_BODY   = new Font("Segoe UI", Font.PLAIN, 14);
     private static final Font FONT_BOLD   = new Font("Segoe UI", Font.BOLD, 14);
     private static final Font FONT_SMALL  = new Font("Segoe UI", Font.PLAIN, 12);
-    private static final Font FONT_BTN    = new Font("Segoe UI", Font.BOLD, 14);
     private static final Font FONT_CARD_TAG = new Font("Segoe UI", Font.BOLD, 12);
 
     // --- Widgets ---
     private JTextField txtSearch;
     private JCheckBox  cbGheCung, cbGheMem, cbGiuongNam;
     private JPanel     cardsPanel;
+    private JPanel     cardsHost;
     private JScrollPane scrollPane;
-    private JPanel     paginationPanel;
     private JLabel     lblStatTotal;
     private JLabel     lblStatActive;
     private JLabel     lblStatInactive;
 
-    private int currentPage  = 1;
-    private int rowsPerPage  = 8; // Auto calculates based on grid
-    private int gridCols     = 2;
-    private boolean isRefreshing = false;
+    private int gridCols     = 3;
 
     public QuanLyDoanTauModule() {
         setLayout(new BorderLayout());
@@ -104,7 +105,9 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         stats.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
         JPanel filterCard = buildFilterBar();
         filterCard.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filterCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 178));
+        NotionTheme.lockMaxWidthToPreferredHeight(filterCard);
+        // Handoff: filter card tự khóa theo preferred height sau khi build xong để hợp nhiều DPI.
+        // Cảnh báo: không đổi chiều cao card đoàn tàu trong grid vì cần đồng đều theo thiết kế.
         top.add(header);
         top.add(Box.createVerticalStrut(16));
         top.add(stats);
@@ -261,11 +264,16 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         content.setOpaque(true);
         content.setBackground(SURFACE);
 
-        cardsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
+        cardsPanel = new JPanel(new GridLayout(0, gridCols, 15, 15));
         cardsPanel.setOpaque(true);
         cardsPanel.setBackground(SURFACE);
 
-        scrollPane = new JScrollPane(cardsPanel);
+        cardsHost = new JPanel(new BorderLayout());
+        cardsHost.setOpaque(true);
+        cardsHost.setBackground(SURFACE);
+        cardsHost.add(cardsPanel, BorderLayout.NORTH);
+
+        scrollPane = new JScrollPane(cardsHost);
         scrollPane.setOpaque(true);
         scrollPane.setBackground(SURFACE);
         scrollPane.getViewport().setOpaque(true);
@@ -274,36 +282,12 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         scrollPane.getVerticalScrollBar().setUnitIncrement(20);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-        scrollPane.addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                int w = scrollPane.getWidth();
-                int h = scrollPane.getHeight();
-                int cardW = 340; // Wider cards for train makeup details
-                int cols = Math.max(1, (w - 15) / (cardW + 20));
-                int rH = 185 + 20;
-                int rows = Math.max(2, h / rH);
-                int newItems = cols * rows;
-                
-                if (gridCols != cols) {
-                    gridCols = cols;
-                }
-                
-                if (newItems != rowsPerPage) {
-                    rowsPerPage = newItems;
-                    if (!isRefreshing) refreshCards();
-                } else if (!isRefreshing) {
-                    refreshCards();
-                }
-            }
+        scrollPane.getViewport().addComponentListener(new ComponentAdapter() {
+            @Override public void componentResized(ComponentEvent e) { updateGridColumns(); }
         });
 
         content.add(scrollPane, BorderLayout.CENTER);
         
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
-        paginationPanel.setOpaque(true);
-        paginationPanel.setBackground(SURFACE);
-        content.add(paginationPanel, BorderLayout.SOUTH);
 
         return content;
     }
@@ -476,45 +460,41 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
             lblStatActive.setText(String.valueOf(filteredData.stream().filter(r -> "Đang hoạt động".equals(normalizeStatus(r.doanTau.getTrangThai()))).count()));
             lblStatInactive.setText(String.valueOf(filteredData.stream().filter(r -> "Ngừng hoạt động".equals(normalizeStatus(r.doanTau.getTrangThai()))).count()));
         }
-        currentPage = 1;
         refreshCards();
     }
 
     private void refreshCards() {
-        isRefreshing = true;
-        try {
-            int total = filteredData.size();
-            int totalPages = (total == 0) ? 1 : (int) Math.ceil((double) total / rowsPerPage);
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            int start = (currentPage - 1) * rowsPerPage;
-            int end   = Math.min(start + rowsPerPage, total);
-            List<DoanTauRow> pageData = filteredData.subList(start, end);
-
-            int w = scrollPane.getWidth();
-            int cardW = 340;
-            if (gridCols > 0) {
-                cardW = (w - (gridCols + 1) * 20) / gridCols;
-                cardW = Math.max(cardW, 300);
+        updateGridColumns();
+        cardsPanel.removeAll();
+        if (filteredData.isEmpty()) {
+            cardsPanel.setLayout(new BorderLayout());
+            cardsPanel.add(buildEmptyState());
+        } else {
+            cardsPanel.setLayout(new GridLayout(0, gridCols, 15, 15));
+            for (DoanTauRow r : filteredData) {
+                cardsPanel.add(buildDoanTauCard(r, 300));
             }
-
-            cardsPanel.removeAll();
-            cardsPanel.setPreferredSize(new Dimension(w - 25, 0));
-            if (pageData.isEmpty()) {
-                cardsPanel.add(buildEmptyState());
-            } else {
-                for (DoanTauRow r : pageData) {
-                    cardsPanel.add(buildDoanTauCard(r, cardW));
-                }
-            }
-            cardsPanel.revalidate();
-            cardsPanel.repaint();
-
-            rebuildPagination(totalPages, total);
-        } finally {
-            isRefreshing = false;
         }
+        cardsPanel.revalidate();
+        cardsPanel.repaint();
+        cardsHost.revalidate();
+        cardsHost.repaint();
     }
+
+    private void updateGridColumns() {
+        if (cardsPanel == null || scrollPane == null) return;
+        if (filteredData.isEmpty()) return;
+        int nextCols = 3;
+        if (nextCols != gridCols || !(cardsPanel.getLayout() instanceof GridLayout)) {
+            gridCols = nextCols;
+            cardsPanel.setLayout(new GridLayout(0, gridCols, 15, 15));
+            cardsPanel.revalidate();
+        }
+        // Handoff: đoàn tàu cố định 3 card mỗi hàng để đồng bộ mật độ hiển thị với yêu cầu nghiệp vụ.
+        // Rủi ro: nếu container quá hẹp, cần đổi sang Math.max(1, width / 330) để tránh ép card.
+    }
+
+
 
     // =====================================================================
     //  Actions
@@ -556,6 +536,36 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         parent.add(newModule, BorderLayout.CENTER);
         parent.revalidate();
         parent.repaint();
+    }
+
+    private void showDoanTauQuickActions(MouseEvent e, DoanTauRow row) {
+        if (!e.isPopupTrigger()) return;
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem view = new JMenuItem("Xem chi tiết");
+        view.addActionListener(ev -> openChiTiet(row));
+        JMenuItem edit = new JMenuItem("Sửa");
+        edit.addActionListener(ev -> openEditModule(row.doanTau));
+        JMenuItem toggle = new JMenuItem("Đổi trạng thái hoạt động");
+        toggle.addActionListener(ev -> toggleDoanTauTrangThai(row));
+        menu.add(view);
+        menu.add(edit);
+        menu.addSeparator();
+        menu.add(toggle);
+        menu.show(e.getComponent(), e.getX(), e.getY());
+    }
+
+    private void toggleDoanTauTrangThai(DoanTauRow row) {
+        String current = normalizeStatus(row.doanTau.getTrangThai());
+        String next = "Ngừng hoạt động".equals(current) ? "Đang hoạt động" : "Ngừng hoạt động";
+        int confirm = NotionMessageDialog.showConfirmDialog(this,
+                "Chuyển đoàn tàu " + row.doanTau.getMaDoanTau() + " sang trạng thái " + next + "?",
+                "Đổi trạng thái đoàn tàu", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+        boolean ok = daoDoanTau.updateTrangThai(row.doanTau.getMaDoanTau(), next);
+        if (ok) loadData();
+        else NotionMessageDialog.showMessageDialog(this, "Không thể cập nhật trạng thái đoàn tàu.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        // Handoff: menu nhanh chỉ đổi trạng thái vận hành, không xóa thành phần toa hay lịch liên quan.
+        // Cảnh báo: nếu bổ sung trạng thái bảo trì cho đoàn tàu, cần đổi menu từ toggle sang chọn trạng thái.
     }
 
     private void deleteRow(DoanTauRow row) {
@@ -612,13 +622,11 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
                 super.paintComponent(g);
             }
         };
-        badge.setFont(FONT_CARD_TAG);
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
         badge.setForeground(fg);
-        badge.setBorder(new EmptyBorder(0, 14, 0, 14));
+        badge.setBorder(new EmptyBorder(4, 10, 4, 10));
         badge.setHorizontalAlignment(SwingConstants.CENTER);
         badge.setVerticalAlignment(SwingConstants.CENTER);
-        badge.setPreferredSize(new Dimension(142, 34));
-        badge.setMinimumSize(new Dimension(126, 34));
         return badge;
     }
 
@@ -635,50 +643,13 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
                 super.paintComponent(g);
             }
         };
-        chip.setFont(FONT_CARD_TAG);
+        chip.setFont(new Font("Consolas", Font.BOLD, 14));
         chip.setForeground(TEXT_MUTED);
-        chip.setBorder(new EmptyBorder(0, 12, 0, 12));
+        chip.setBorder(new EmptyBorder(4, 8, 4, 8));
         chip.setHorizontalAlignment(SwingConstants.CENTER);
-        chip.setPreferredSize(new Dimension(176, 34));
-        chip.setMinimumSize(new Dimension(142, 34));
-        // Handoff: các tag đầu card dùng cùng font/height để mã, trạng thái và nút không lệch nhịp.
-        // Nếu muốn mã nổi bật hơn, đổi màu/weight nhẹ chứ tránh quay lại monospace lớn gây thô.
+        // Handoff: chip mã đoàn tàu đã thu gọn theo mẫu card toa để header thoáng hơn khi chia 3 cột.
+        // Cảnh báo: mã quá dài có thể cần tooltip hoặc ellipsis nếu đổi chuẩn mã.
         return chip;
-    }
-
-    private void addHeaderCell(JPanel header, JComponent component, int gridx, double weightx, Insets insets) {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = gridx;
-        gbc.gridy = 0;
-        gbc.weightx = weightx;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.anchor = GridBagConstraints.CENTER;
-        gbc.insets = insets;
-        header.add(component, gbc);
-    }
-
-    private JButton createStatusToggleButton(DoanTauRow row) {
-        String status = normalizeStatus(row.doanTau.getTrangThai());
-        boolean stopped = "Ngừng hoạt động".equals(status);
-        String next = stopped ? "Đang hoạt động" : "Ngừng hoạt động";
-
-        JButton btn = createIconButton(LineIcons.Name.EDIT, "Đổi trạng thái", AppColors.WARNING_LIGHT);
-        btn.setToolTipText("Chuyển sang: " + next);
-        btn.addActionListener(e -> {
-            int confirm = NotionMessageDialog.showConfirmDialog(this,
-                    "Chuyển trạng thái đoàn tàu “" + row.doanTau.getTenDoanTau() + "” sang “" + next + "”?",
-                    "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-            if (confirm != JOptionPane.YES_OPTION) return;
-
-            if (!daoDoanTau.updateTrangThai(row.doanTau.getMaDoanTau(), next)) {
-                NotionMessageDialog.showMessageDialog(this,
-                        "Không thể cập nhật trạng thái đoàn tàu.",
-                        "Lỗi", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            loadData();
-        });
-        return btn;
     }
 
     // =====================================================================
@@ -692,7 +663,7 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
 
     private JPanel buildDoanTauCard(DoanTauRow row, int width) {
         final Color statusAccent = resolveStatusAccent(row.doanTau.getTrangThai());
-        final Color stripAccent = AppColors.withAlpha(statusAccent, 145);
+        final Color stripAccent = AppColors.withAlpha(statusAccent, 170);
         final boolean configured = row.tongSoToa() > 0;
         JPanel card = new JPanel(new BorderLayout()) {
             boolean isHovered = false;
@@ -701,8 +672,10 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
                     @Override public void mouseEntered(MouseEvent e) { isHovered = true; repaint(); }
                     @Override public void mouseExited(MouseEvent e)  { isHovered = false; repaint(); }
                     @Override public void mouseClicked(MouseEvent e) {
-                        if (SwingUtilities.isLeftMouseButton(e)) openEditModule(row.doanTau);
+                        if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2) openEditModule(row.doanTau);
                     }
+                    @Override public void mousePressed(MouseEvent e) { showDoanTauQuickActions(e, row); }
+                    @Override public void mouseReleased(MouseEvent e) { showDoanTauQuickActions(e, row); }
                 });
             }
             @Override
@@ -714,19 +687,19 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
                 int h = getHeight();
                 
                 // Shadow
-                g2.setColor(new Color(0, 0, 0, isHovered ? 14 : 7));
-                g2.fillRoundRect(3, 4, w - 6, h - 5, 20, 20);
+                g2.setColor(new Color(0, 0, 0, isHovered ? 12 : 6));
+                g2.fillRoundRect(3, 4, w - 6, h - 5, 16, 16);
                 
                 // Card Background
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(2, 0, w - 6, h - 6, 20, 20);
+                g2.fillRoundRect(2, 0, w - 6, h - 6, 16, 16);
                 
                 // Accent code border
-                g2.setColor(isHovered ? AppColors.withAlpha(statusAccent, 150) : OUTLINE);
-                g2.setStroke(new BasicStroke(isHovered ? 1.5f : 1f));
-                g2.drawRoundRect(2, 0, w - 6, h - 6, 20, 20);
+                g2.setColor(isHovered ? statusAccent : OUTLINE);
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(2, 0, w - 6, h - 6, 16, 16);
 
-                RoundRectangle2D.Float clipRect = new RoundRectangle2D.Float(2, 0, w - 6, h - 6, 20, 20);
+                RoundRectangle2D.Float clipRect = new RoundRectangle2D.Float(2, 0, w - 6, h - 6, 16, 16);
                 g2.clip(clipRect);
                 g2.setColor(stripAccent);
                 g2.fillRect(2, 0, 6, h);
@@ -735,108 +708,98 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
             }
         };
         card.setOpaque(false);
-        card.setPreferredSize(new Dimension(width, 185));
-        card.setMaximumSize(new Dimension(width, 185));
-        card.setBorder(new EmptyBorder(16, 20, 16, 20));
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        card.setPreferredSize(new Dimension(width, 126));
+        card.setMaximumSize(new Dimension(width, 126));
+        card.setBorder(new EmptyBorder(12, 20, 12, 12));
 
-        JPanel content = new JPanel(new BorderLayout(0, 14));
+        JPanel content = new JPanel(new BorderLayout());
         content.setOpaque(false);
 
-        JPanel header = new JPanel(new GridBagLayout());
+        JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
 
-        JButton btnEdit = buildTextActionButton("Chỉnh sửa", PRIMARY, PRIMARY_LIGHT);
+        JButton btnView = createIconButton(LineIcons.Name.SEARCH, "Xem chi tiết", PRIMARY_LIGHT);
+        btnView.addActionListener(e -> openChiTiet(row));
+        btnView.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { e.consume(); }
+        });
+        JButton btnEdit = createIconButton(LineIcons.Name.EDIT, "Chỉnh sửa", PRIMARY_LIGHT);
         btnEdit.addActionListener(e -> openEditModule(row.doanTau));
         btnEdit.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) { e.consume(); }
         });
 
         JLabel codeChip = createCodeChip(row.doanTau.getMaDoanTau());
-        JLabel statusBadge = buildStatusBadge(row.doanTau.getTrangThai());
-        addHeaderCell(header, codeChip, 0, 1.0, new Insets(0, 0, 0, 10));
-        addHeaderCell(header, statusBadge, 1, 0.0, new Insets(0, 0, 0, 10));
-        addHeaderCell(header, btnEdit, 2, 0.0, new Insets(0, 0, 0, 0));
-        // Handoff: hàng top card dùng GridBag 3 vùng để mã/trạng thái/nút không đè nhau khi card co.
-        // Nếu thêm action mới, tăng chiều cao/card width hoặc chuyển action xuống hàng riêng thay vì ép vào đây.
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        actions.setOpaque(false);
+        actions.add(btnView);
+        actions.add(btnEdit);
+        header.add(codeChip, BorderLayout.WEST);
+        header.add(actions, BorderLayout.EAST);
+        // Handoff: header card đoàn tàu theo mẫu toa: mã bên trái, action icon bên phải.
+        // Nếu thêm action trạng thái, giữ cùng vùng actions thay vì đưa vào body.
         content.add(header, BorderLayout.NORTH);
-
-        JPanel main = new JPanel(new BorderLayout(18, 0));
-        main.setOpaque(false);
 
         JPanel info = new JPanel();
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
         info.setOpaque(false);
         JLabel lblName = new JLabel(row.doanTau.getTenDoanTau() != null ? row.doanTau.getTenDoanTau() : "Chưa đặt tên đoàn tàu");
-        lblName.setFont(new Font("Segoe UI", Font.BOLD, 21));
-        lblName.setForeground(TEXT_MAIN);
+        lblName.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblName.setForeground(statusAccent);
         lblName.setAlignmentX(Component.LEFT_ALIGNMENT);
         String dauMay = row.doanTau.getDauMay() != null ? row.doanTau.getDauMay().getMaDauMay() : "Chưa gán đầu máy";
         JLabel lblMeta = new JLabel("Đầu máy: " + dauMay);
         lblMeta.setFont(FONT_SMALL);
         lblMeta.setForeground(TEXT_MUTED);
         lblMeta.setAlignmentX(Component.LEFT_ALIGNMENT);
+        info.add(Box.createVerticalStrut(8));
         info.add(lblName);
-        info.add(Box.createVerticalStrut(6));
+        info.add(Box.createVerticalStrut(4));
         info.add(lblMeta);
-        main.add(info, BorderLayout.CENTER);
+        JLabel lblTotal = new JLabel(row.tongSoToa() + " toa" + (configured ? " đã cấu hình" : " cần cấu hình"));
+        lblTotal.setFont(FONT_SMALL);
+        lblTotal.setForeground(TEXT_MUTED);
+        lblTotal.setAlignmentX(Component.LEFT_ALIGNMENT);
+        info.add(Box.createVerticalStrut(4));
+        info.add(lblTotal);
+        content.add(info, BorderLayout.CENTER);
 
-        JPanel summary = new JPanel();
-        summary.setLayout(new BoxLayout(summary, BoxLayout.Y_AXIS));
-        summary.setOpaque(false);
-        summary.setPreferredSize(new Dimension(150, 0));
-        JLabel lblTotal = new JLabel(row.tongSoToa() + " toa");
-        lblTotal.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblTotal.setForeground(statusAccent);
-        lblTotal.setAlignmentX(Component.RIGHT_ALIGNMENT);
-        JLabel lblSummary = new JLabel(configured ? "Đã có thành phần" : "Cần cấu hình toa");
-        lblSummary.setFont(FONT_SMALL);
-        lblSummary.setForeground(TEXT_MUTED);
-        lblSummary.setAlignmentX(Component.RIGHT_ALIGNMENT);
-        summary.add(lblTotal);
-        summary.add(Box.createVerticalStrut(4));
-        summary.add(lblSummary);
-        main.add(summary, BorderLayout.EAST);
-        content.add(main, BorderLayout.CENTER);
-
-        JPanel chips = new JPanel(new GridLayout(1, 3, 8, 0));
+        JPanel chips = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         chips.setOpaque(false);
+        chips.add(buildStatusBadge(row.doanTau.getTrangThai()));
         if (!configured) {
-            chips.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
             chips.add(createBadge("Chưa cấu hình toa", NotionTheme.YELLOW, WARNING_FG));
         } else {
-            chips.add(buildChip(row.soToaGheCung + " Ghế cứng", C_CUNG));
-            chips.add(buildChip(row.soToaGheMem + " Ghế mềm", C_MEM));
-            chips.add(buildChip(row.soToaGiuongNam + " Giường nằm", C_GIUONG));
+            chips.add(buildChip(row.soToaGheCung + " cứng", C_CUNG));
+            chips.add(buildChip(row.soToaGheMem + " mềm", C_MEM));
+            chips.add(buildChip(row.soToaGiuongNam + " giường", C_GIUONG));
         }
         content.add(chips, BorderLayout.SOUTH);
+        // Handoff: footer đoàn tàu đặt trạng thái trước các tag thành phần để người dùng quét nhanh.
+        // Rủi ro: nếu thêm nhiều loại toa, cần tăng chiều cao card hoặc rút gọn label tag.
 
         card.add(content, BorderLayout.CENTER);
+        // Handoff: vùng card đoàn tàu chỉ mở khi double-click, tránh mở nhầm khi chọn/scroll.
+        // Các nút action trong header vẫn giữ single-click vì là hành động rõ ràng.
         return card;
     }
 
-    private JButton buildTextActionButton(String text, Color accent, Color tint) {
-        JButton button = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? tint : CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(AppColors.withAlpha(accent, getModel().isRollover() ? 150 : 90));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        button.setFont(FONT_CARD_TAG);
-        button.setForeground(accent);
-        button.setPreferredSize(new Dimension(126, 34));
-        button.setMinimumSize(new Dimension(116, 34));
-        button.setMaximumSize(new Dimension(126, 34));
-        button.setContentAreaFilled(false);
-        button.setBorderPainted(false);
-        button.setFocusPainted(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return button;
+    private void openChiTiet(DoanTauRow row) {
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+        fields.put("Mã đoàn tàu", row.doanTau.getMaDoanTau());
+        fields.put("Tên đoàn tàu", row.doanTau.getTenDoanTau());
+        fields.put("Đầu máy", row.doanTau.getDauMay() != null ? row.doanTau.getDauMay().getMaDauMay() : null);
+        fields.put("Tổng số toa", String.valueOf(row.tongSoToa()));
+        fields.put("Toa ghế cứng", String.valueOf(row.soToaGheCung));
+        fields.put("Toa ghế mềm", String.valueOf(row.soToaGheMem));
+        fields.put("Toa giường nằm", String.valueOf(row.soToaGiuongNam));
+        fields.put("Trạng thái", normalizeStatus(row.doanTau.getTrangThai()));
+        EntityDetailModule detail = new EntityDetailModule("Đoàn tàu", resolveStatusAccent(row.doanTau.getTrangThai()), row.doanTau.getTenDoanTau(), row.doanTau.getMaDoanTau(), fields);
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        ModuleLauncher.asDialog(detail, owner instanceof JFrame frame ? frame : null, ignored -> {});
+        // Handoff: kính lúp đoàn tàu mở detail tổng hợp thành phần toa thay vì vào màn chỉnh sửa.
+        // Rủi ro: số lượng toa lấy từ cache filteredData; gọi loadData sau chỉnh sửa để đồng bộ.
     }
 
     private JPanel buildChip(String text, Color accent) {
@@ -854,11 +817,10 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
             }
         };
         p.setOpaque(false);
-        p.setBorder(new EmptyBorder(7, 10, 7, 10));
-        p.setPreferredSize(new Dimension(124, 36));
+        p.setBorder(new EmptyBorder(4, 8, 4, 8));
 
         JLabel lbl = new JLabel(text, SwingConstants.CENTER);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
         lbl.setForeground(accent);
         p.add(lbl, BorderLayout.CENTER);
         return p;
@@ -904,78 +866,6 @@ public class QuanLyDoanTauModule extends JPanel implements AppModule {
         lbl.setForeground(TEXT_MUTED);
         p.add(lbl);
         return p;
-    }
-
-    // ====================================================================
-    //  PAGINATION
-    // ====================================================================
-
-    private void rebuildPagination(int totalPages, int total) {
-        paginationPanel.removeAll();
-
-        if (total > 0) {
-            JLabel info = new JLabel("Hiển thị trang " + currentPage + " / " + totalPages + " (" + total + " đội tàu)");
-            info.setFont(FONT_SMALL);
-            info.setForeground(TEXT_MUTED);
-            paginationPanel.add(info);
-            paginationPanel.add(Box.createHorizontalStrut(15));
-        }
-
-        if (totalPages > 1) {
-            JButton btnPrev = makePaginBtn("<");
-            btnPrev.setEnabled(currentPage > 1);
-            btnPrev.addActionListener(e -> { currentPage--; refreshCards(); });
-            paginationPanel.add(btnPrev);
-
-            int startP = Math.max(1, currentPage - 2);
-            int endP   = Math.min(totalPages, startP + 4);
-            for (int p = startP; p <= endP; p++) {
-                final int page = p;
-                JButton btn = makePaginBtn(String.valueOf(p));
-                if (p == currentPage) {
-                    btn.setForeground(Color.WHITE);
-                    btn.putClientProperty("active", true);
-                }
-                btn.addActionListener(e -> { currentPage = page; refreshCards(); });
-                paginationPanel.add(btn);
-            }
-
-            JButton btnNext = makePaginBtn(">");
-            btnNext.setEnabled(currentPage < totalPages);
-            btnNext.addActionListener(e -> { currentPage++; refreshCards(); });
-            paginationPanel.add(btnNext);
-        }
-
-        paginationPanel.revalidate();
-        paginationPanel.repaint();
-    }
-
-    private JButton makePaginBtn(String label) {
-        JButton btn = new JButton(label) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Object active = getClientProperty("active");
-                if (Boolean.TRUE.equals(active)) {
-                    g2.setColor(PRIMARY);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                } else if (getModel().isRollover()) {
-                    g2.setColor(OUTLINE);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                }
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_BOLD);
-        btn.setForeground(TEXT_MAIN);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setPreferredSize(new Dimension(36, 36));
-        return btn;
     }
 
     private JPanel createFilterGroup(String label, JComponent input) {

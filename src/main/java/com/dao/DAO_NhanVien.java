@@ -59,7 +59,7 @@ public class DAO_NhanVien {
         if (con == null) return false;
 
         String sql = "INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, " +
-                     "email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) " +
+                     "email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, nv.getMaNV());
@@ -72,7 +72,7 @@ public class DAO_NhanVien {
             ps.setString(8, nv.getTrangThai() != null ? nv.getTrangThai().toDbValue() : TrangThaiNhanVien.DANG_LAM.toDbValue());
             // new fields
             ps.setString(9, nv.getEmail());
-            ps.setString(10, nv.getGaLamViec());
+            ps.setString(10, nv.getMaGaLamViec());
             ps.setNString(11, nv.getDiaChiThuongTru());
             if (nv.getNgaySinh() != null) {
                 ps.setDate(12, Date.valueOf(nv.getNgaySinh()));
@@ -94,7 +94,7 @@ public class DAO_NhanVien {
         if (con == null) return false;
 
         String sql = "UPDATE NhanVien SET hoTen = ?, [password] = ?, vaiTro = ?, soDienThoai = ?, cccd = ?, " +
-                     "diaChiTamTru = ?, trangThai = ?, email = ?, gaLamViec = ?, diaChiThuongTru = ?, " +
+                     "diaChiTamTru = ?, trangThai = ?, email = ?, maGaLamViec = ?, diaChiThuongTru = ?, " +
                      "ngaySinh = ?, gioiTinh = ?, quocTich = ? WHERE maNV = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setNString(1, nv.getHoTen());
@@ -106,7 +106,7 @@ public class DAO_NhanVien {
             ps.setString(7, nv.getTrangThai() != null ? nv.getTrangThai().toDbValue() : TrangThaiNhanVien.DANG_LAM.toDbValue());
             // new fields
             ps.setString(8, nv.getEmail());
-            ps.setString(9, nv.getGaLamViec());
+            ps.setString(9, nv.getMaGaLamViec());
             ps.setNString(10, nv.getDiaChiThuongTru());
             if (nv.getNgaySinh() != null) {
                 ps.setDate(11, Date.valueOf(nv.getNgaySinh()));
@@ -184,10 +184,11 @@ public class DAO_NhanVien {
     public boolean existsBySoDienThoai(String sdt, String excludeMaNV) {
         Connection con = ConnectDB.getCon();
         if (con == null || sdt == null || sdt.isBlank()) return false;
-        String sql = "SELECT 1 FROM NhanVien WHERE soDienThoai = ? AND maNV <> ?";
+        String sql = "SELECT 1 FROM NhanVien WHERE soDienThoai = ? AND (? IS NULL OR maNV <> ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, sdt);
             ps.setString(2, excludeMaNV);
+            ps.setString(3, excludeMaNV);
             try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
         } catch (SQLException e) {
             System.err.println("Lỗi khi kiểm tra trùng SĐT nhân viên: " + e.getMessage());
@@ -198,10 +199,11 @@ public class DAO_NhanVien {
     public boolean existsByCccd(String cccd, String excludeMaNV) {
         Connection con = ConnectDB.getCon();
         if (con == null || cccd == null || cccd.isBlank()) return false;
-        String sql = "SELECT 1 FROM NhanVien WHERE cccd = ? AND maNV <> ?";
+        String sql = "SELECT 1 FROM NhanVien WHERE cccd = ? AND (? IS NULL OR maNV <> ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, cccd);
             ps.setString(2, excludeMaNV);
+            ps.setString(3, excludeMaNV);
             try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
         } catch (SQLException e) {
             System.err.println("Lỗi khi kiểm tra trùng CCCD nhân viên: " + e.getMessage());
@@ -212,10 +214,11 @@ public class DAO_NhanVien {
     public boolean existsByEmail(String email, String excludeMaNV) {
         Connection con = ConnectDB.getCon();
         if (con == null || email == null || email.isBlank()) return false;
-        String sql = "SELECT 1 FROM NhanVien WHERE email = ? AND maNV <> ?";
+        String sql = "SELECT 1 FROM NhanVien WHERE email = ? AND (? IS NULL OR maNV <> ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, email);
             ps.setString(2, excludeMaNV);
+            ps.setString(3, excludeMaNV);
             try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
         } catch (SQLException e) {
             System.err.println("Lỗi khi kiểm tra trùng email nhân viên: " + e.getMessage());
@@ -307,7 +310,7 @@ public class DAO_NhanVien {
 
         // new fields – guard against column-not-found on older schema
         try { nv.setEmail(rs.getString("email")); } catch (SQLException ignored) {}
-        try { nv.setGaLamViec(rs.getString("gaLamViec")); } catch (SQLException ignored) {}
+        try { nv.setMaGaLamViec(rs.getString("maGaLamViec")); } catch (SQLException ignored) {}
         try { nv.setDiaChiThuongTru(rs.getNString("diaChiThuongTru")); } catch (SQLException ignored) {}
         try {
             Date d = rs.getDate("ngaySinh");

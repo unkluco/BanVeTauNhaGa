@@ -170,9 +170,12 @@ public class ChinhSuaChiTietGiaDialog extends AbstractFormDialog<ChiTietGia> {
         DAO_Gia daoGia = new DAO_Gia();
         int soldTicketCount = daoGia.countSoldTicketsUsingGia(gia.getMaGia());
         boolean activateClone = false;
+        String cloneMoTa = null;
         List<String> conflictsToDeactivate = new ArrayList<>();
         if (!isAddMode && soldTicketCount > 0) {
             if (!confirmCloneUsedGiaDetail(soldTicketCount)) return;
+            cloneMoTa = promptCloneMoTa(gia.getMoTa());
+            if (cloneMoTa == null) return;
             activateClone = confirmActivateClonedGiaDetail();
             if (activateClone) {
                 List<Gia> conflicts = daoGia.findOverlappingActive(gia.getMaGia(), gia.getThoiGianBatDau(), gia.getThoiGianKetThuc());
@@ -183,6 +186,7 @@ public class ChinhSuaChiTietGiaDialog extends AbstractFormDialog<ChiTietGia> {
             }
         }
         final boolean shouldActivateClone = activateClone;
+        final String newCloneMoTa = cloneMoTa;
         final List<String> deactivateIds = List.copyOf(conflictsToDeactivate);
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         new SwingWorker<Boolean, Void>() {
@@ -190,7 +194,7 @@ public class ChinhSuaChiTietGiaDialog extends AbstractFormDialog<ChiTietGia> {
             protected Boolean doInBackground() {
                 DAO_ChiTietGia dao = new DAO_ChiTietGia();
                 if (!isAddMode && soldTicketCount > 0) {
-                    return daoGia.cloneGiaWithDetailsReplacingDetail(gia, result, shouldActivateClone, deactivateIds) != null;
+                    return daoGia.cloneGiaWithDetailsReplacingDetail(gia, result, shouldActivateClone, deactivateIds, newCloneMoTa) != null;
                 }
                 return isAddMode ? dao.insert(result) : dao.update(result);
             }
@@ -231,6 +235,24 @@ public class ChinhSuaChiTietGiaDialog extends AbstractFormDialog<ChiTietGia> {
         int choice = NotionMessageDialog.showConfirmDialog(this, message, "Chi tiết giá đã khóa",
                 JOptionPane.WARNING_MESSAGE, "Hủy", "Đồng ý");
         return choice == JOptionPane.YES_OPTION;
+    }
+
+    private String promptCloneMoTa(String defaultMoTa) {
+        JTextField field = createTextField();
+        field.setText(defaultMoTa == null ? "" : defaultMoTa);
+        field.selectAll();
+        while (true) {
+            int choice = NotionMessageDialog.showConfirmDialog(this,
+                    new Object[]{"Nhập mô tả / tên cho kỳ giá mới:", field},
+                    "Tên kỳ giá mới", JOptionPane.QUESTION_MESSAGE, "Hủy", "Tiếp tục");
+            if (choice != JOptionPane.YES_OPTION) return null;
+            String value = field.getText().trim();
+            if (!value.isEmpty()) return value;
+            NotionMessageDialog.showMessageDialog(this,
+                    "Vui lòng nhập mô tả / tên kỳ giá mới.", "Thiếu tên kỳ giá", JOptionPane.WARNING_MESSAGE);
+        }
+        // Handoff: dùng khi sửa chi tiết của Gia đã bán để user đặt tên riêng cho bản clone.
+        // Rủi ro: hủy ở bước này sẽ dừng clone và giữ nguyên dữ liệu cũ.
     }
 
     private boolean confirmActivateClonedGiaDetail() {
@@ -297,8 +319,8 @@ public class ChinhSuaChiTietGiaDialog extends AbstractFormDialog<ChiTietGia> {
             label.setOpaque(true);
             label.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
             label.setFont(NotionTheme.BODY);
-            label.setBackground(isSelected ? NotionTheme.ACCENT_SOFT : NotionTheme.CARD);
-            label.setForeground(NotionTheme.TEXT);
+            label.setBackground(isSelected ? NotionTheme.POPUP_SELECTION : NotionTheme.CARD);
+            label.setForeground(isSelected ? NotionTheme.POPUP_SELECTION_TEXT : NotionTheme.TEXT);
             return label;
         });
         return combo;

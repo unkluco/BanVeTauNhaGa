@@ -5,6 +5,8 @@ import com.dao.DAO_ChiTietHoaDon;
 import com.dao.DAO_HoaDonKhachHang;
 import com.entity.*;
 import com.enums.TrangThaiVe;
+import com.lowagie.text.pdf.BaseFont;
+import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -12,6 +14,10 @@ import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
@@ -43,6 +49,7 @@ public class ChiTietHoaDonDialog extends JDialog {
     private final DAO_ApDungKM        daoKM   = new DAO_ApDungKM();
     private final DAO_HoaDonKhachHang daoHDKH = new DAO_HoaDonKhachHang();
     private final boolean embedded;
+    private boolean suppressAutoDismiss;
 
     // Formatters
     private static final NumberFormat     VND_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
@@ -83,7 +90,7 @@ public class ChiTietHoaDonDialog extends JDialog {
         installDismissOnOutsideClick();
         pack();
         setMinimumSize(new Dimension(1150, 640));
-        setLocationRelativeTo(owner);
+        ModuleLauncher.centerDialog(this, owner);
     }
 
     private ChiTietHoaDonDialog(HoaDon hoaDon, boolean embedded) {
@@ -103,7 +110,7 @@ public class ChiTietHoaDonDialog extends JDialog {
     // =========================================================================
 
     private void buildUI() {
-        setContentPane(ThemNhanVienDialog.buildShadowWrapper(buildInvoicePanel(true)));
+        setContentPane(ModuleLauncher.buildShadowWrapper(buildInvoicePanel(true)));
     }
 
     private JPanel buildInvoicePanel(boolean includeFooter) {
@@ -139,7 +146,7 @@ public class ChiTietHoaDonDialog extends JDialog {
         addWindowFocusListener(new WindowAdapter() {
             @Override public void windowLostFocus(WindowEvent e) {
                 SwingUtilities.invokeLater(() -> {
-                    if (isShowing() && !isFocused()) dispose();
+                    if (isShowing() && !isFocused() && !suppressAutoDismiss) dispose();
                 });
             }
         });
@@ -364,9 +371,9 @@ public class ChiTietHoaDonDialog extends JDialog {
         top.add(titleRow, BorderLayout.WEST);
         top.add(sep, BorderLayout.SOUTH);
 
-        // 11-column table
+        // 12-column table
         String[] cols = {
-            "STT", "Mã vé", "Ga đi", "Ga đến",
+            "STT", "Mã vé", "Hành khách", "Ga đi", "Ga đến",
             "Đoàn tàu", "Ngày đi", "Loại ghế",
             "Ghế số", "Trạng thái", "KM", "Thành tiền"
         };
@@ -394,7 +401,7 @@ public class ChiTietHoaDonDialog extends JDialog {
         th.setReorderingAllowed(false);
 
         // Column widths (total ~1045px — comfortable in 1150px dialog)
-        int[] widths = {40, 80, 130, 130, 120, 110, 110, 70, 100, 70, 110};
+        int[] widths = {40, 80, 150, 120, 120, 110, 100, 100, 65, 90, 60, 105};
         for (int i = 0; i < widths.length; i++)
             tbl.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
 
@@ -405,10 +412,10 @@ public class ChiTietHoaDonDialog extends JDialog {
         DefaultTableCellRenderer center = new DefaultTableCellRenderer();
         center.setHorizontalAlignment(SwingConstants.CENTER);
         tbl.getColumnModel().getColumn(0).setCellRenderer(center);  // STT
-        tbl.getColumnModel().getColumn(7).setCellRenderer(center);  // Ghế số
-        tbl.getColumnModel().getColumn(8).setCellRenderer(new TrangThaiRenderer());
-        tbl.getColumnModel().getColumn(9).setCellRenderer(new KmRenderer());
-        tbl.getColumnModel().getColumn(10).setCellRenderer(new ItemAmountRenderer());
+        tbl.getColumnModel().getColumn(8).setCellRenderer(center);  // Ghế số
+        tbl.getColumnModel().getColumn(9).setCellRenderer(new TrangThaiRenderer());
+        tbl.getColumnModel().getColumn(10).setCellRenderer(new KmRenderer());
+        tbl.getColumnModel().getColumn(11).setCellRenderer(new ItemAmountRenderer());
 
         JScrollPane scroll = new JScrollPane(tbl);
         scroll.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
@@ -421,7 +428,7 @@ public class ChiTietHoaDonDialog extends JDialog {
     }
 
     private Object[][] buildTableData() {
-        Object[][] data = new Object[chiTietList.size()][11];
+        Object[][] data = new Object[chiTietList.size()][12];
         for (int i = 0; i < chiTietList.size(); i++) {
             ChiTietHoaDon ct = chiTietList.get(i);
             Ve ve = ct.getVe();
@@ -434,6 +441,8 @@ public class ChiTietHoaDonDialog extends JDialog {
             String soGhe     = "—";
             String trangThai = "—";
             String maVe      = "—";
+            String hanhKhach = ct.getKhachHang() != null && ct.getKhachHang().getHoTen() != null
+                    ? ct.getKhachHang().getHoTen() : "—";
 
             if (ve != null) {
                 maVe      = ve.getMaVe();
@@ -479,15 +488,16 @@ public class ChiTietHoaDonDialog extends JDialog {
 
             data[i][0]  = i + 1;
             data[i][1]  = maVe;
-            data[i][2]  = gaDi;
-            data[i][3]  = gaDen;
-            data[i][4]  = doanTau;
-            data[i][5]  = ngayDi;
-            data[i][6]  = loaiGhe;
-            data[i][7]  = soGhe;
-            data[i][8]  = trangThai;
-            data[i][9]  = kmText;
-            data[i][10] = ct.getGiaTien();
+            data[i][2]  = hanhKhach;
+            data[i][3]  = gaDi;
+            data[i][4]  = gaDen;
+            data[i][5]  = doanTau;
+            data[i][6]  = ngayDi;
+            data[i][7]  = loaiGhe;
+            data[i][8]  = soGhe;
+            data[i][9]  = trangThai;
+            data[i][10] = kmText;
+            data[i][11] = ct.getGiaTien();
         }
         return data;
     }
@@ -600,9 +610,13 @@ public class ChiTietHoaDonDialog extends JDialog {
         bar.setBackground(CARD_BG);
         bar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, OUTLINE));
 
+        JButton btnExportPdf = styledBtn("Xuất PDF", AppColors.SUCCESS_DARK, AppColors.SURFACE);
+        btnExportPdf.addActionListener(e -> exportInvoicePdf());
+
         JButton btnClose = styledBtn("Đóng", PRIMARY, AppColors.SURFACE);
         btnClose.addActionListener(e -> dispose());
 
+        bar.add(btnExportPdf);
         bar.add(btnClose);
         return bar;
     }
@@ -616,6 +630,306 @@ public class ChiTietHoaDonDialog extends JDialog {
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return b;
     }
+
+
+
+    public void exportInvoicePdf() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Xuất hóa đơn PDF");
+        chooser.setSelectedFile(new java.io.File(safeFileName(hoaDon.getMaHoaDon()) + ".pdf"));
+        suppressAutoDismiss = true;
+        int choice;
+        try {
+            choice = chooser.showSaveDialog(this);
+        } finally {
+            suppressAutoDismiss = false;
+        }
+        if (choice != JFileChooser.APPROVE_OPTION) return;
+
+        Path output = chooser.getSelectedFile().toPath();
+        if (!output.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+            output = output.resolveSibling(output.getFileName() + ".pdf");
+        }
+        Path target = output;
+        new SwingWorker<Void, Void>() {
+            @Override protected Void doInBackground() throws Exception {
+                writeInvoicePdf(target);
+                return null;
+            }
+            @Override protected void done() {
+                suppressAutoDismiss = true;
+                try {
+                    get();
+                    NotionMessageDialog.showMessageDialog(ChiTietHoaDonDialog.this,
+                            "Đã xuất hóa đơn PDF thành công:\n" + target,
+                            "Xuất PDF", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    NotionMessageDialog.showMessageDialog(ChiTietHoaDonDialog.this,
+                            "Xuất hóa đơn PDF thất bại: " + ex.getMessage(),
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    suppressAutoDismiss = false;
+                }
+            }
+        }.execute();
+        // Handoff: xuất PDF chạy nền để dialog không đứng hình khi render nhiều vé.
+        // Cảnh báo: layout PDF dùng HTML riêng, nếu đổi field hóa đơn cần cập nhật buildInvoicePdfHtml().
+    }
+
+    private void writeInvoicePdf(Path output) throws Exception {
+        if (output.getParent() != null) Files.createDirectories(output.getParent());
+        ITextRenderer renderer = new ITextRenderer();
+        registerPdfFonts(renderer);
+        renderer.setDocumentFromString(buildInvoicePdfHtml());
+        renderer.layout();
+        try (OutputStream out = new FileOutputStream(output.toFile())) {
+            renderer.createPDF(out);
+        }
+    }
+
+    private void registerPdfFonts(ITextRenderer renderer) {
+        try {
+            String windir = System.getenv("WINDIR") != null ? System.getenv("WINDIR") : "C:/Windows";
+            Path arial = Path.of(windir, "Fonts", "arial.ttf");
+            if (Files.exists(arial)) renderer.getFontResolver().addFont(arial.toString(), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            Path arialBold = Path.of(windir, "Fonts", "arialbd.ttf");
+            if (Files.exists(arialBold)) renderer.getFontResolver().addFont(arialBold.toString(), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+        } catch (Exception ignored) {}
+    }
+
+    private String buildInvoicePdfHtml() {
+        String ngayLap = hoaDon.getNgayLap() != null ? hoaDon.getNgayLap().format(DT_FMT) : "—";
+        String ngayShort = hoaDon.getNgayLap() != null ? hoaDon.getNgayLap().format(D_FMT) : "—";
+        String nhanVien = hoaDon.getNhanVien() != null ? text(hoaDon.getNhanVien().getHoTen()) : "—";
+        String maNhanVien = hoaDon.getNhanVien() != null ? text(hoaDon.getNhanVien().getMaNV()) : "—";
+        String khachHang = khachHangNamesJoined();
+        String buyerPhone = firstCustomerPhone();
+        String buyerId = firstCustomerId();
+        String invoiceCode = safeFileName(hoaDon.getMaHoaDon()) + "-" + Integer.toHexString(Math.abs(hoaDon.getMaHoaDon().hashCode())).toUpperCase(Locale.ROOT);
+        BigDecimal tong = chiTietList.stream().map(ChiTietHoaDon::getGiaTien).filter(v -> v != null).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        StringBuilder rows = new StringBuilder();
+        for (int i = 0; i < chiTietList.size(); i++) {
+            ChiTietHoaDon ct = chiTietList.get(i);
+            TicketPdfRow row = toTicketPdfRow(ct);
+            rows.append("<tr")
+                    .append(i % 2 == 1 ? " class=\"even\"" : "")
+                    .append(">")
+                    .append(td("center", String.valueOf(i + 1)))
+                    .append(td("desc", row.hanhTrinh() + "<br/><span class=\"subline\">Mã vé: " + row.maVe() + "</span>"))
+                    .append(td("center", "Vé"))
+                    .append(td("center", "1"))
+                    .append(td("right", money(ct.getGiaTien())))
+                    .append(td("right", money(ct.getGiaTien())))
+                    .append("</tr>");
+        }
+
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <meta charset=\"UTF-8\" />
+                  <style>
+                    @page { size: A4; margin: 14mm 12mm; }
+                    body { font-family: Arial, sans-serif; color: #111827; font-size: 10.5px; }
+                    .paper { border: 1.4px solid #123b63; padding: 12px 14px 10px 14px; }
+                    table { border-collapse: collapse; }
+                    .top-note { width: 100%%; font-size: 8.5px; color: #23415f; margin-bottom: 4px; }
+                    .header { width: 100%%; border-bottom: 1.4px solid #123b63; margin-bottom: 8px; }
+                    .logoBox { width: 118px; height: 56px; border: 1px solid #123b63; text-align: center; vertical-align: middle; color: #123b63; font-size: 18px; font-weight: bold; }
+                    .title { text-align: center; vertical-align: top; }
+                    .title .vn { font-size: 18px; color: #b91c1c; font-weight: bold; margin-top: 4px; }
+                    .title .en { font-size: 12px; color: #111827; font-weight: bold; margin-top: 2px; }
+                    .title .date { margin-top: 8px; font-size: 10.5px; }
+                    .meta { width: 138px; font-size: 10px; line-height: 1.55; vertical-align: top; }
+                    .meta b { color: #b91c1c; }
+                    .party { width: 100%%; margin-top: 5px; }
+                    .party td { border-bottom: 1px solid #7f9db9; padding: 3px 4px; vertical-align: top; }
+                    .party .label { width: 128px; color: #123b63; font-weight: bold; }
+                    .party .value { font-weight: bold; }
+                    .items { width: 100%%; margin-top: 8px; border: 1.2px solid #123b63; }
+                    .items th { border: 1px solid #123b63; padding: 5px 4px; text-align: center; font-weight: bold; background: #f3f6f9; }
+                    .items td { border: 1px solid #123b63; padding: 5px 4px; vertical-align: top; }
+                    .items tr.even td { background: #fbfcfd; }
+                    .center { text-align: center; } .right { text-align: right; } .desc { line-height: 1.35; }
+                    .subline { color: #4b5563; font-size: 9.5px; }
+                    .summary { width: 100%%; border-left: 1.2px solid #123b63; border-right: 1.2px solid #123b63; border-bottom: 1.2px solid #123b63; }
+                    .summary td { border: 1px solid #123b63; padding: 5px 6px; }
+                    .summary .sumLabel { text-align: right; font-weight: bold; }
+                    .summary .sumAmount { text-align: right; font-weight: bold; width: 150px; }
+                    .amountWords { width: 100%%; border-left: 1.2px solid #123b63; border-right: 1.2px solid #123b63; border-bottom: 1.2px solid #123b63; }
+                    .amountWords td { padding: 6px; font-style: italic; }
+                    .sign { width: 100%%; margin-top: 18px; }
+                    .sign td { width: 33.33%%; text-align: center; vertical-align: top; font-weight: bold; }
+                    .sign .hint { font-weight: normal; font-style: italic; font-size: 9.5px; margin-top: 2px; }
+                    .sign .space { height: 70px; }
+                    .lookup { width: 100%%; margin-top: 14px; border-top: 1px solid #123b63; color: #123b63; font-size: 9px; }
+                    .lookup td { padding-top: 7px; vertical-align: middle; }
+                    .qr { width: 52px; height: 52px; border: 1px solid #123b63; text-align: center; font-size: 8px; color: #123b63; }
+                  </style>
+                </head>
+                <body>
+                <div class=\"paper\">
+                  <table class=\"top-note\"><tr><td>Đơn vị cung cấp dịch vụ bán vé tàu: Hệ thống Azure Rail</td><td class=\"right\">Mã tra cứu: %s</td></tr></table>
+                  <table class=\"header\"><tr>
+                    <td class=\"logoBox\">AZURE<br/>RAIL</td>
+                    <td class=\"title\"><div class=\"vn\">HÓA ĐƠN BÁN VÉ TÀU</div><div class=\"en\">RAILWAY TICKET INVOICE</div><div class=\"date\">Ngày (Date) %s</div></td>
+                    <td class=\"meta\">Mẫu số: <b>AR/01</b><br/>Ký hiệu: <b>AR%s</b><br/>Số: <b>%s</b><br/>NV lập: %s</td>
+                  </tr></table>
+
+                  <table class=\"party\">
+                    <tr><td class=\"label\">Đơn vị bán hàng</td><td class=\"value\">CÔNG TY VẬN TẢI ĐƯỜNG SẮT AZURE RAIL</td></tr>
+                    <tr><td class=\"label\">Mã số thuế</td><td>0100000000</td></tr>
+                    <tr><td class=\"label\">Địa chỉ</td><td>Nhà ga trung tâm Azure Rail, Việt Nam</td></tr>
+                    <tr><td class=\"label\">Điện thoại / Email</td><td>1900 0000  •  support@azurerail.vn</td></tr>
+                    <tr><td class=\"label\">Họ tên người mua hàng</td><td class=\"value\">%s</td></tr>
+                    <tr><td class=\"label\">MST/CCCD</td><td>%s</td></tr>
+                    <tr><td class=\"label\">Điện thoại</td><td>%s</td></tr>
+                    <tr><td class=\"label\">Hình thức thanh toán</td><td>Tiền mặt / Chuyển khoản</td></tr>
+                  </table>
+
+                  <table class=\"items\">
+                    <thead><tr><th style=\"width:34px\">STT<br/>(No)</th><th>Tên hàng hóa, dịch vụ<br/>(Description)</th><th style=\"width:55px\">ĐVT<br/>(Unit)</th><th style=\"width:45px\">SL<br/>(Qty)</th><th style=\"width:86px\">Đơn giá<br/>(Unit price)</th><th style=\"width:96px\">Thành tiền<br/>(Amount)</th></tr></thead>
+                    <tbody>%s</tbody>
+                  </table>
+                  <table class=\"summary\">
+                    <tr><td class=\"sumLabel\" colspan=\"5\">Cộng tiền hàng (Total amount excl. VAT):</td><td class=\"sumAmount\">%s</td></tr>
+                    <tr><td>Thuế suất GTGT (VAT rate):</td><td colspan=\"3\">Giá vé đã bao gồm thuế/phí theo quy định</td><td class=\"sumLabel\">Tiền thuế GTGT:</td><td class=\"sumAmount\">—</td></tr>
+                    <tr><td class=\"sumLabel\" colspan=\"5\">Tổng cộng tiền thanh toán (Total payment):</td><td class=\"sumAmount\">%s</td></tr>
+                  </table>
+                  <table class=\"amountWords\"><tr><td>Số tiền viết bằng chữ (Amount in words): <b>%s</b></td></tr></table>
+
+                  <table class=\"sign\"><tr>
+                    <td>Người mua hàng<div class=\"hint\">Ký, ghi rõ họ tên</div><div class=\"space\"></div>%s</td>
+                    <td>Người bán hàng<div class=\"hint\">Ký, ghi rõ họ tên</div><div class=\"space\"></div>%s</td>
+                    <td>Thủ trưởng đơn vị<div class=\"hint\">Ký điện tử / đóng dấu nếu có</div><div class=\"space\"></div></td>
+                  </tr></table>
+
+                  <table class=\"lookup\"><tr><td>Tra cứu hóa đơn tại: https://azurerail.vn/tra-cuu &nbsp; | &nbsp; Mã tra cứu: <b>%s</b><br/>Hóa đơn chỉ có giá trị khi thông tin tra cứu khớp với hệ thống.</td><td class=\"qr\">QR<br/>TRA CỨU</td></tr></table>
+                </div>
+                </body>
+                </html>
+                """.formatted(
+                    html(invoiceCode), html(ngayLap), html(ngayShort.replace("/", "")), html(hoaDon.getMaHoaDon()), html(maNhanVien),
+                    html(khachHang), html(buyerId), html(buyerPhone.isBlank() ? "—" : buyerPhone), rows,
+                    html(money(tong)), html(money(tong)), html(amountInVietnamese(tong)), html(khachHang), html(nhanVien), html(invoiceCode));
+    }
+
+    private TicketPdfRow toTicketPdfRow(ChiTietHoaDon ct) {
+        Ve ve = ct.getVe();
+        String maVe = ve != null ? text(ve.getMaVe()) : "—";
+        String gaDi = "—", gaDen = "—", doanTau = "—", thoiGian = "—", choNgoi = "—";
+        if (ve != null) {
+            Ghe ghe = ve.getGhe();
+            if (ghe != null) {
+                String toa = ghe.getToaTau() != null ? text(ghe.getToaTau().getMaToaTau()) : "—";
+                String loai = ghe.getToaTau() != null && ghe.getToaTau().getLoaiGhe() != null ? ghe.getToaTau().getLoaiGhe().toString() : "—";
+                choNgoi = "Toa " + toa + " / Ghế " + ghe.getSoGhe() + "<br/>" + loai;
+            }
+            Lich lich = ve.getLich();
+            if (lich != null) {
+                if (lich.getThoiGianBatDau() != null) thoiGian = lich.getThoiGianBatDau().format(DT_FMT);
+                if (lich.getDoanTau() != null) doanTau = text(lich.getDoanTau().getMaDoanTau()) + "<br/>" + text(lich.getDoanTau().getTenDoanTau());
+                Tuyen tuyen = lich.getTuyen();
+                if (tuyen != null) {
+                    gaDi = tuyen.getGaDi() != null ? text(tuyen.getGaDi().getTenGa()) : text(tuyen.getMaTuyen());
+                    gaDen = tuyen.getGaDen() != null ? text(tuyen.getGaDen().getTenGa()) : "—";
+                }
+            }
+        }
+        KhachHang kh = ct.getKhachHang();
+        String hanhKhach = kh != null && kh.getHoTen() != null ? text(kh.getHoTen()) : "—";
+        return new TicketPdfRow(maVe, gaDi + " → " + gaDen, doanTau, thoiGian, choNgoi + "<br/>" + hanhKhach);
+    }
+
+    private String td(String cssClass, String value) {
+        return "<td" + (cssClass == null || cssClass.isBlank() ? "" : " class=\"" + cssClass + "\"") + ">" + html(value).replace("&lt;br/&gt;", "<br/>") + "</td>";
+    }
+
+    private String money(BigDecimal value) {
+        return VND_FMT.format(value != null ? value : BigDecimal.ZERO) + " ₫";
+    }
+
+    private String text(String value) {
+        return value == null || value.isBlank() ? "—" : value;
+    }
+
+    private String html(Object value) {
+        String raw = value == null ? "" : value.toString();
+        return raw.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+
+    private String firstCustomerPhone() {
+        if (khachHangList.isEmpty()) return "";
+        String phone = khachHangList.get(0).getSoDienThoai();
+        return phone == null ? "" : phone.trim();
+    }
+
+    private String firstCustomerId() {
+        if (khachHangList.isEmpty()) return "—";
+        String id = khachHangList.get(0).getCccd();
+        return id == null || id.isBlank() ? "—" : id.trim();
+    }
+
+    private String amountInVietnamese(BigDecimal value) {
+        long amount = value == null ? 0L : value.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+        if (amount == 0) return "Không đồng.";
+        return capitalize(readNumber(amount)) + " đồng.";
+    }
+
+    private String readNumber(long number) {
+        String[] units = {"", " nghìn", " triệu", " tỷ"};
+        StringBuilder result = new StringBuilder();
+        int unitIndex = 0;
+        while (number > 0 && unitIndex < units.length) {
+            int group = (int) (number % 1000);
+            if (group > 0) {
+                String groupText = readThreeDigits(group, number >= 1000);
+                result.insert(0, groupText + units[unitIndex] + (result.length() > 0 ? " " : ""));
+            }
+            number /= 1000;
+            unitIndex++;
+        }
+        return result.toString().trim();
+    }
+
+    private String readThreeDigits(int number, boolean full) {
+        String[] digit = {"không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"};
+        int hundred = number / 100;
+        int ten = (number % 100) / 10;
+        int one = number % 10;
+        StringBuilder text = new StringBuilder();
+        if (hundred > 0 || full) text.append(digit[hundred]).append(" trăm");
+        if (ten > 1) {
+            if (text.length() > 0) text.append(' ');
+            text.append(digit[ten]).append(" mươi");
+            if (one == 1) text.append(" mốt");
+            else if (one == 5) text.append(" lăm");
+            else if (one > 0) text.append(' ').append(digit[one]);
+        } else if (ten == 1) {
+            if (text.length() > 0) text.append(' ');
+            text.append("mười");
+            if (one == 5) text.append(" lăm");
+            else if (one > 0) text.append(' ').append(digit[one]);
+        } else if (one > 0) {
+            if (text.length() > 0) text.append(" lẻ ");
+            text.append(digit[one]);
+        }
+        return text.toString();
+    }
+
+    private String capitalize(String text) {
+        return text == null || text.isBlank() ? "" : text.substring(0, 1).toUpperCase(Locale.ROOT) + text.substring(1);
+    }
+
+    private String safeFileName(String value) {
+        String raw = value == null || value.isBlank() ? "hoa-don" : value;
+        return raw.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+    private record TicketPdfRow(String maVe, String hanhTrinh, String doanTau, String thoiGian, String choNgoi) {}
+
 
     // =========================================================================
     //  RENDERERS

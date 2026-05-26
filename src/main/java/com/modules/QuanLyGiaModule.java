@@ -40,13 +40,10 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
     private GiaTableModel     tableModel;
 
     // --- Pagination ---
-    private int currentPage  = 1;
-    private int rowsPerPage  = 10;
     private int totalRecords = 0;
 
     private JLabel  lblPageInfo;
     private JLabel  lblTableMeta;
-    private JPanel  paginationPanel;
 
     // --- Data ---
     private List<Gia> allData      = new ArrayList<>();
@@ -193,7 +190,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
 
         btnAddNew = createPrimaryButton("+ Thêm giá mới");
         btnAddNew.setPreferredSize(new Dimension(150, 42));
-        btnAddNew.addActionListener(e -> openThemGiaDialog());
+        btnAddNew.addActionListener(e -> openGiaDialog());
 
         JPanel rightWrapper = new JPanel(new GridBagLayout());
         rightWrapper.setOpaque(false);
@@ -219,7 +216,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
 
         card.add(buildTableTopBar(), BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
-        card.add(buildPaginationBar(), BorderLayout.SOUTH);
+        card.add(buildTableFooter(), BorderLayout.SOUTH);
 
         return card;
     }
@@ -556,7 +553,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
             if (py + popup.getHeight() > screen.height) py = anchorLoc.y   - popup.getHeight() - 2;
             popup.setLocation(px, py);
         } catch (IllegalComponentStateException ex) {
-            popup.setLocationRelativeTo(owner);
+            ModuleLauncher.centerDialog(popup, owner);
         }
 
         popup.setVisible(true);
@@ -597,7 +594,22 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
                 hoveredRow = -1;
                 table.repaint();
             }
+
+            @Override public void mousePressed(MouseEvent e) { showGiaQuickActions(e); }
+            @Override public void mouseReleased(MouseEvent e) { showGiaQuickActions(e); }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e) || e.getClickCount() != 2) return;
+                int row = table.rowAtPoint(e.getPoint());
+                int col = table.columnAtPoint(e.getPoint());
+                if (row < 0 || col == 5) return;
+                Gia gia = tableModel.getGiaAt(row);
+                if (gia != null) onEditGia(gia);
+            }
         });
+        // Handoff: thân dòng bảng giá mở bằng double-click; nút Chỉnh sửa vẫn single-click.
+        // Cảnh báo: nếu bật sorter sau này, cần convertRowIndexToModel trước khi lấy dữ liệu.
 
         // Header style
         JTableHeader header = table.getTableHeader();
@@ -643,39 +655,15 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         JScrollPane sp = new JScrollPane(table);
         sp.setBorder(BorderFactory.createEmptyBorder());
         sp.getViewport().setBackground(CARD_BG);
-        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        sp.setWheelScrollingEnabled(false);
-
-        sp.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentResized(java.awt.event.ComponentEvent e) {
-                int newRows = calcRowsFromViewport();
-                if (newRows > 0 && newRows != rowsPerPage) {
-                    rowsPerPage = newRows;
-                    if (!isRefreshing) refreshTable();
-                }
-            }
-        });
+        sp.setWheelScrollingEnabled(true);
 
         return sp;
     }
 
-    private boolean isRefreshing = false;
 
-    private int calcRowsFromViewport() {
-        if (table == null || !(table.getParent() instanceof JViewport vp)) return 0;
-        int viewH = vp.getHeight();
-        int rh = table.getRowHeight();
-        if (rh <= 0) rh = 56;
-        int headerH = table.getTableHeader().getHeight();
-        if (headerH <= 0) headerH = table.getTableHeader().getPreferredSize().height;
-        if (headerH <= 0) headerH = 44;
-        int available = viewH - headerH;
-        return available > 0 ? Math.max(1, available / rh + 1) : 0;
-    }
-
-    private JPanel buildPaginationBar() {
+        private JPanel buildTableFooter() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createCompoundBorder(
@@ -687,11 +675,8 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         lblPageInfo.setFont(FONT_SMALL);
         lblPageInfo.setForeground(ON_SURF_VAR);
 
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        paginationPanel.setOpaque(false);
 
         bar.add(lblPageInfo, BorderLayout.WEST);
-        bar.add(paginationPanel, BorderLayout.EAST);
 
         return bar;
     }
@@ -745,6 +730,7 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
                 return lbl;
             }
         });
+        NotionTheme.applyComboBoxSelection(cbo);
         return cbo;
     }
 
@@ -759,9 +745,50 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
     //  DATA
     // =================================================================
 
-    private void openThemGiaDialog() {
+
+    private void showGiaQuickActions(MouseEvent e) {
+        if (!e.isPopupTrigger()) return;
+        int row = table.rowAtPoint(e.getPoint());
+        if (row < 0) return;
+        table.setRowSelectionInterval(row, row);
+        Gia gia = tableModel.getGiaAt(row);
+        if (gia == null) return;
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem edit = new JMenuItem("Sửa");
+        edit.addActionListener(ev -> onEditGia(gia));
+        JMenuItem toggle = new JMenuItem(gia.isTrangThai() ? "Ngừng áp dụng" : "Bật áp dụng");
+        toggle.addActionListener(ev -> toggleGiaTrangThai(gia));
+        menu.add(edit);
+        menu.addSeparator();
+        menu.add(toggle);
+        menu.show(table, e.getX(), e.getY());
+    }
+
+    private void toggleGiaTrangThai(Gia gia) {
+        DAO_Gia daoGia = new DAO_Gia();
+        Gia updated = new Gia(gia.getMaGia(), gia.getThoiGianBatDau(), gia.getThoiGianKetThuc(), gia.getMoTa(), !gia.isTrangThai());
+        List<String> conflictsToDeactivate = new ArrayList<>();
+        if (updated.isTrangThai()) {
+            List<Gia> conflicts = daoGia.findOverlappingActive(updated.getMaGia(), updated.getThoiGianBatDau(), updated.getThoiGianKetThuc());
+            if (!conflicts.isEmpty()) {
+                String ids = conflicts.stream().map(Gia::getMaGia).reduce((a, b) -> a + ", " + b).orElse("");
+                int choice = NotionMessageDialog.showConfirmDialog(this,
+                        "Kỳ giá muốn bật bị trùng thời gian với: " + ids + "\\n\\nBạn có muốn ngừng các kỳ giá trùng rồi bật kỳ này không?",
+                        "Trùng kỳ giá", JOptionPane.WARNING_MESSAGE, "Hủy", "Ngừng kỳ trùng");
+                if (choice != JOptionPane.YES_OPTION) return;
+                conflictsToDeactivate = conflicts.stream().map(Gia::getMaGia).toList();
+            }
+        }
+        boolean ok = daoGia.updateWithDeactivatedConflicts(updated, conflictsToDeactivate);
+        if (ok) loadData();
+        else NotionMessageDialog.showMessageDialog(this, "Không thể cập nhật trạng thái kỳ giá.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        // Handoff: quick toggle giá vẫn đi qua updateWithDeactivatedConflicts để giữ rule không trùng kỳ đang áp dụng.
+        // Cảnh báo: chỉ đổi trạng thái, không clone vì clone chỉ dành cho sửa nội dung giá đã dùng trên vé.
+    }
+
+    private void openGiaDialog() {
         Window owner = SwingUtilities.getWindowAncestor(this);
-        ThemGiaDialog dlg = new ThemGiaDialog(owner, this::loadData);
+        GiaDialog dlg = new GiaDialog(owner, this::loadData);
         dlg.setVisible(true);
     }
 
@@ -828,7 +855,6 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         }
 
         totalRecords = filteredData.size();
-        currentPage = 1;
         refreshTable();
     }
 
@@ -848,107 +874,14 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
     // =================================================================
 
     private void refreshTable() {
-        isRefreshing = true;
-        try {
-            int vpRows = calcRowsFromViewport();
-            if (vpRows > 0) {
-                rowsPerPage = vpRows;
-            } else {
-                int screenH = Toolkit.getDefaultToolkit().getScreenSize().height;
-                int rh = (table != null && table.getRowHeight() > 0) ? table.getRowHeight() : 56;
-                rowsPerPage = Math.max(5, (screenH - 320) / rh);
-            }
-
-            int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / rowsPerPage));
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            int start = (currentPage - 1) * rowsPerPage;
-            int end = Math.min(start + rowsPerPage, totalRecords);
-
-            tableModel.setData(filteredData.subList(start, end));
-
-            lblPageInfo.setText(totalRecords == 0
-                    ? "Không tìm thấy kỳ giá nào"
-                    : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " kỳ giá");
-            if (lblTableMeta != null) {
-                lblTableMeta.setText(totalRecords + " bản ghi");
-            }
-
-            rebuildPagination(totalPages);
-        } finally {
-            isRefreshing = false;
-        }
+        tableModel.setData(filteredData);
+        lblPageInfo.setText(totalRecords == 0
+                ? "Không tìm thấy bản ghi nào"
+                : "Hiển thị " + totalRecords + " bản ghi");
     }
 
-    private void rebuildPagination(int totalPages) {
-        paginationPanel.removeAll();
 
-        addNavButton("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
-
-        for (int i = 1; i <= totalPages; i++) {
-            if (totalPages > 7) {
-                if (i == 1 || i == totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-                    addPageButton(i);
-                } else if (i == currentPage - 2 || i == currentPage + 2) {
-                    JLabel dots = new JLabel("…");
-                    dots.setFont(FONT_SMALL);
-                    dots.setForeground(ON_SURF_VAR);
-                    dots.setBorder(new EmptyBorder(0, 6, 0, 6));
-                    paginationPanel.add(dots);
-                }
-            } else {
-                addPageButton(i);
-            }
-        }
-
-        addNavButton("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
-
-        paginationPanel.revalidate();
-        paginationPanel.repaint();
-    }
-
-    private void addPageButton(int page) {
-        JButton btn = new JButton(String.valueOf(page)) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (page == currentPage) {
-                    g2.setColor(PRIMARY);
-                    g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 8, 8));
-                }
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(FONT_HEADER);
-        btn.setPreferredSize(new Dimension(32, 32));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setForeground(page == currentPage ? Color.WHITE : ON_SURF_VAR);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(e -> { currentPage = page; refreshTable(); });
-        paginationPanel.add(btn);
-    }
-
-    private void addNavButton(String symbol, boolean enabled, Runnable action) {
-        JButton btn = new JButton(symbol);
-        btn.setFont(FONT_BODY);
-        btn.setPreferredSize(new Dimension(32, 32));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setForeground(enabled ? ON_SURF_VAR : OUTLINE);
-        btn.setEnabled(enabled);
-        btn.setCursor(enabled ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
-        btn.addActionListener(e -> action.run());
-        paginationPanel.add(btn);
-    }
-
-    // =================================================================
+                // =================================================================
     //  TABLE MODEL
     // =================================================================
 
@@ -1218,7 +1151,6 @@ public class QuanLyGiaModule extends JPanel implements AppModule {
         cboTrangThai.setSelectedIndex(0);
         dpTuNgay.setValue(null);
         dpDenNgay.setValue(null);
-        currentPage = 1;
         loadData();
     }
 }

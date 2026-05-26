@@ -14,6 +14,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -58,7 +59,7 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
     private static final Color PROMO_BORDER  = AppColors.WARNING;
     private static final Color PROMO_FG      = AppColors.WARNING_DARK;
 
-    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final NumberFormat VND_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
 
     // Promotions valid by route/time
@@ -96,12 +97,12 @@ public class BanVeStep5bModule extends JPanel implements AppModule {
         promoById.clear();
 
         String maTuyen = (tuyen != null) ? tuyen.getMaTuyen() : null;
-        LocalDateTime refTime = departureTime;
+        LocalDate refDate = departureTime.toLocalDate();
 
         for (KhuyenMai km : daoKM.getAll()) {
             if (km == null || !km.isTrangThai()) continue;
-            if (km.getThoiGianBatDau() != null && refTime.isBefore(km.getThoiGianBatDau())) continue;
-            if (km.getThoiGianKetThuc() != null && refTime.isAfter(km.getThoiGianKetThuc())) continue;
+            if (km.getThoiGianBatDau() != null && refDate.isBefore(km.getThoiGianBatDau())) continue;
+            if (km.getThoiGianKetThuc() != null && refDate.isAfter(km.getThoiGianKetThuc())) continue;
 
             for (ChiTietKhuyenMai ctg : daoCTKM.findByKhuyenMai(km.getMaKhuyenMai())) {
                 if (ctg == null) continue;

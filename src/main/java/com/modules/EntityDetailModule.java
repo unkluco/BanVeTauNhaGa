@@ -116,8 +116,23 @@ public class EntityDetailModule extends JPanel implements AppModule {
         scroll.setBorder(null);
         scroll.getViewport().setBackground(CARD_BG);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
+        Dimension natural = body.getPreferredSize();
+        scroll.setPreferredSize(new Dimension(Math.max(520, natural.width), Math.min(natural.height, maxBodyHeight())));
+        // Handoff: cap chiều cao body để ModuleLauncher.pack() không kéo dialog vượt màn hình.
+        // Rủi ro: nếu header/footer đổi chiều cao lớn, cần giảm tỷ lệ maxBodyHeight để vẫn vừa màn hình.
         return scroll;
+    }
+
+    private int maxBodyHeight() {
+        try {
+            return Math.max(280, (int) (Toolkit.getDefaultToolkit().getScreenSize().height * 0.62));
+        } catch (HeadlessException ex) {
+            return 520;
+        }
+        // Handoff: giới hạn theo màn hình hiện tại, fallback cố định khi chạy headless/test.
+        // Rủi ro: đa màn hình có DPI khác nhau vẫn dùng Toolkit screen mặc định của JVM.
     }
 
     private JPanel buildFieldRow(String label, String value, boolean alt) {

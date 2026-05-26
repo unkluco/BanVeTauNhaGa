@@ -7,7 +7,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.connectDB.ConnectDB;
 import com.entity.Ghe;
@@ -129,6 +131,145 @@ public class DAO_GiuCho {
             System.err.println("Lỗi khi xóa giữ chỗ hết hạn: " + e.getMessage());
         }
         return 0;
+    }
+
+    public Map<String, LocalDateTime> findActiveHeldSeatsByOther(String maNV, String maLich) {
+        Map<String, LocalDateTime> holds = new HashMap<>();
+        Connection con = ConnectDB.getCon();
+        if (con == null || maLich == null || maLich.isBlank()) return holds;
+
+        String sql = "SELECT maGhe, thoiGianHetHan FROM GiuCho WHERE maLich = ? AND maNV <> ? AND thoiGianHetHan > GETDATE()";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maLich);
+            ps.setString(2, maNV == null ? "" : maNV);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Timestamp ts = rs.getTimestamp("thoiGianHetHan");
+                    holds.put(rs.getString("maGhe"), ts == null ? null : ts.toLocalDateTime());
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi tìm ghế giữ bởi nhân viên khác: " + e.getMessage());
+        }
+        return holds;
+        // Handoff: trả map nhẹ cho UI tô màu/tooltip, tránh mapRow kéo DAO phụ cho từng ghế.
+        // Risk: chỉ tính giữ chỗ còn hạn; bản ghi hết hạn được dọn trước khi chọn ghế.
+    }
+
+    public Map<String, LocalDateTime> findActiveHeldSeatsByNhanVien(String maNV, String maLich) {
+        Map<String, LocalDateTime> holds = new HashMap<>();
+        Connection con = ConnectDB.getCon();
+        if (con == null || isBlank(maNV) || isBlank(maLich)) return holds;
+
+        String sql = "SELECT maGhe, thoiGianHetHan FROM GiuCho WHERE maNV = ? AND maLich = ? AND thoiGianHetHan > GETDATE()";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            ps.setString(2, maLich);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Timestamp ts = rs.getTimestamp("thoiGianHetHan");
+                    holds.put(rs.getString("maGhe"), ts == null ? null : ts.toLocalDateTime());
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi tìm ghế giữ bởi nhân viên hiện tại: " + e.getMessage());
+        }
+        return holds;
+        // Handoff: dùng riêng cho tooltip ghế mình đang chọn, không tự gia hạn thời gian.
+        // Risk: nếu giữ chỗ hết hạn giữa màn hình, bước tiếp theo vẫn là nơi chặn nghiệp vụ.
+    }
+
+    public boolean tryHoldSeat(String maNV, String maLich, String maGhe, int ttlSeconds) {
+        deleteExpired();
+        Connection con = ConnectDB.getCon();
+        if (con == null || isBlank(maNV) || isBlank(maLich) || isBlank(maGhe)) return false;
+
+        String sql = "INSERT INTO GiuCho (maGiuCho, maNV, maLich, maGhe, thoiGianHetHan) " +
+                "SELECT ?, ?, ?, ?, DATEADD(SECOND, ?, GETDATE()) " +
+                "WHERE NOT EXISTS (SELECT 1 FROM GiuCho WHERE maLich = ? AND maGhe = ? AND maNV <> ? AND thoiGianHetHan > GETDATE())";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, com.util.MaTuDong.generate("GC"));
+            ps.setString(2, maNV);
+            ps.setString(3, maLich);
+            ps.setString(4, maGhe);
+            ps.setInt(5, Math.max(1, ttlSeconds));
+            ps.setString(6, maLich);
+            ps.setString(7, maGhe);
+            ps.setString(8, maNV);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi giữ ghế: " + e.getMessage());
+        }
+        return false;
+        // Handoff: insert có điều kiện để giảm race khi 2 nhân viên bấm cùng lúc.
+        // Risk: cần unique index (maLich, maGhe) trong SQL để DB chặn tuyệt đối các lượt trùng.
+    }
+
+    public boolean releaseSeat(String maNV, String maLich, String maGhe) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || isBlank(maNV) || isBlank(maLich) || isBlank(maGhe)) return false;
+
+        String sql = "DELETE FROM GiuCho WHERE maNV = ? AND maLich = ? AND maGhe = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            ps.setString(2, maLich);
+            ps.setString(3, maGhe);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi bỏ giữ ghế: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean hasExpiredHold(String maNV, String maLich) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || isBlank(maNV) || isBlank(maLich)) return false;
+
+        String sql = "SELECT TOP 1 1 FROM GiuCho WHERE maNV = ? AND maLich = ? AND thoiGianHetHan <= GETDATE()";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            ps.setString(2, maLich);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi kiểm tra giữ chỗ hết hạn: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean hasActiveHold(String maNV, String maLich, String maGhe) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || isBlank(maNV) || isBlank(maLich) || isBlank(maGhe)) return false;
+
+        String sql = "SELECT TOP 1 1 FROM GiuCho WHERE maNV = ? AND maLich = ? AND maGhe = ? AND thoiGianHetHan > GETDATE()";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            ps.setString(2, maLich);
+            ps.setString(3, maGhe);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi kiểm tra giữ chỗ còn hạn: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public boolean deleteByNhanVienAndLich(String maNV, String maLich) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || isBlank(maNV) || isBlank(maLich)) return false;
+
+        String sql = "DELETE FROM GiuCho WHERE maNV = ? AND maLich = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            ps.setString(2, maLich);
+            ps.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi xóa giữ chỗ theo nhân viên/lịch: " + e.getMessage());
+        }
+        return false;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private GiuCho mapRow(ResultSet rs) throws SQLException {

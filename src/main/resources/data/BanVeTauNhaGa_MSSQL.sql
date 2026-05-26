@@ -32,11 +32,11 @@ CREATE TABLE NhanVien (
     [password] VARCHAR(255) NOT NULL,
     vaiTro VARCHAR(20) NOT NULL CHECK (vaiTro IN ('BAN_VE', 'DIEU_PHOI', 'ADMIN')),
     soDienThoai VARCHAR(15) NOT NULL,
-    cccd VARCHAR(20) NULL,
+    cccd VARCHAR(12) NOT NULL CONSTRAINT UQ_NhanVien_CCCD UNIQUE CONSTRAINT CK_NhanVien_CCCD_12Digits CHECK (cccd NOT LIKE '%[^0-9]%' AND LEN(cccd) = 12),
     diaChiTamTru NVARCHAR(255) NULL,
     trangThai VARCHAR(20) NOT NULL DEFAULT 'DANG_LAM' CHECK (trangThai IN ('DANG_LAM', 'NGHI_PHEP', 'DA_NGHI')),
     email VARCHAR(100) NULL,
-    gaLamViec VARCHAR(20) NULL,
+    maGaLamViec VARCHAR(20) NULL,
     diaChiThuongTru NVARCHAR(255) NULL,
     ngaySinh DATE NULL,
     gioiTinh VARCHAR(5) NULL CHECK (gioiTinh IN ('NAM', 'NU')),
@@ -47,7 +47,7 @@ CREATE TABLE NhanVien (
 CREATE TABLE KhachHang (
     maKhachHang VARCHAR(20) PRIMARY KEY,
     hoTen NVARCHAR(100) NOT NULL,
-    cccd VARCHAR(20) NOT NULL,
+    cccd VARCHAR(12) NOT NULL CONSTRAINT UQ_KhachHang_CCCD UNIQUE CONSTRAINT CK_KhachHang_CCCD_12Digits CHECK (cccd NOT LIKE '%[^0-9]%' AND LEN(cccd) = 12),
     soDienThoai VARCHAR(15) NOT NULL,
     email VARCHAR(100) NULL,
     diaChiThuongTru NVARCHAR(255) NULL,
@@ -98,11 +98,11 @@ CREATE TABLE Gia (
 CREATE TABLE KhuyenMai (
     maKhuyenMai VARCHAR(20) PRIMARY KEY,
     tenKhuyenMai NVARCHAR(100) NOT NULL,
-    thoiGianBatDau DATETIME NOT NULL,
-    thoiGianKetThuc DATETIME NOT NULL,
+    thoiGianBatDau DATE NOT NULL,
+    thoiGianKetThuc DATE NOT NULL,
     moTa NVARCHAR(255),
     trangThai BIT NOT NULL DEFAULT 0,
-    CHECK (thoiGianKetThuc > thoiGianBatDau)
+    CHECK (thoiGianKetThuc >= thoiGianBatDau)
 );
 
 -- 8. Tuyen (FK -> Ga x2)
@@ -219,10 +219,12 @@ CREATE TABLE ChiTietHoaDon (
     maChiTietHD VARCHAR(20) PRIMARY KEY,
     maHoaDon VARCHAR(30) NOT NULL,
     maVe VARCHAR(20) NOT NULL UNIQUE,
+    maKhachHang VARCHAR(20) NOT NULL,
     maChiTietGia VARCHAR(20) NOT NULL,
     giaTien DECIMAL(18,2) NOT NULL CHECK (giaTien > 0),
     FOREIGN KEY (maHoaDon) REFERENCES HoaDon(maHoaDon),
     FOREIGN KEY (maVe) REFERENCES Ve(maVe),
+    FOREIGN KEY (maKhachHang) REFERENCES KhachHang(maKhachHang),
     FOREIGN KEY (maChiTietGia) REFERENCES ChiTietGia(maChiTietGia)
 );
 
@@ -246,82 +248,83 @@ CREATE TABLE GiuCho (
     FOREIGN KEY (maLich) REFERENCES Lich(maLich),
     FOREIGN KEY (maGhe) REFERENCES Ghe(maGhe)
 );
+CREATE UNIQUE INDEX UQ_GiuCho_Lich_Ghe ON GiuCho(maLich, maGhe);
 
 -- ============================================================
 -- DU LIEU MAU
 -- ============================================================
 
 -- ==================== 1. NhanVien ====================
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('ad', N'Quản trị viên', 'ad', 'ADMIN', '0900000000', '001080000001', N'120 Lê Duẩn, Hoàn Kiếm, Hà Nội', 'DANG_LAM', 'admin@azurerail.vn', 'GA20260504100159', N'120 Lê Duẩn, Hoàn Kiếm, Hà Nội', '1980-01-01', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260504120358', N'Nguyễn Văn An', 'Pass@123', 'BAN_VE', '0901234567', '001085001234', N'15 Phố Huế, Hai Bà Trưng, Hà Nội', 'DANG_LAM', 'an.nguyenvan@azurerail.vn', 'GA20260504100159', N'45 Nguyễn Trãi, Thanh Xuân, Hà Nội', '1995-03-12', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260504140557', N'Trần Thị Bình', 'Pass@456', 'BAN_VE', '0912345678', '001085002345', N'23 Trần Hưng Đạo, Hoàn Kiếm, Hà Nội', 'DANG_LAM', 'binh.tranthithi@azurerail.vn', 'GA20260504100159', N'67 Bạch Mai, Hai Bà Trưng, Hà Nội', '1997-07-25', 'NU', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260504160756', N'Lê Hoàng Cường', 'Pass@789', 'DIEU_PHOI', '0923456789', '038085003456', N'10 Đường Phan Bội Châu, TP Vinh, Nghệ An', 'DANG_LAM', 'cuong.lehoang@azurerail.vn', 'GA20260504180955', N'88 Lê Lợi, TP Vinh, Nghệ An', '1990-11-08', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260504201155', N'Phạm Minh Đức', 'Pass@101', 'BAN_VE', '0934567890', '038085004567', N'34 Nguyễn Sỹ Sách, TP Vinh, Nghệ An', 'DANG_LAM', 'duc.phamminhh@azurerail.vn', 'GA20260504180955', N'12 Quang Trung, TP Vinh, Nghệ An', '1993-05-17', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260504221354', N'Hoàng Thị Elysa', 'Pass@102', 'BAN_VE', '0945678901', '046085005678', N'5 Bùi Thị Xuân, TP Huế, Thừa Thiên Huế', 'NGHI_PHEP', 'elysa.hoangthit@azurerail.vn', 'GA20260505001553', N'22 Hùng Vương, TP Huế, Thừa Thiên Huế', '1998-09-30', 'NU', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260505021752', N'Võ Văn Phúc', 'Pass@103', 'DIEU_PHOI', '0956789012', '046085006789', N'18 Điện Biên Phủ, TP Huế, Thừa Thiên Huế', 'DANG_LAM', 'phuc.vovan@azurerail.vn', 'GA20260505001553', N'99 Lê Thánh Tôn, TP Huế, Thừa Thiên Huế', '1988-02-14', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260505041951', N'Đặng Thùy Giang', 'Pass@104', 'BAN_VE', '0967890123', '048085007890', N'56 Hải Phòng, Thanh Khê, Đà Nẵng', 'DANG_LAM', 'giang.dangthuy@azurerail.vn', 'GA20260505062150', N'30 Nguyễn Văn Linh, Hải Châu, Đà Nẵng', '1996-12-03', 'NU', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260505082350', N'Bùi Quốc Huy', 'Pass@105', 'BAN_VE', '0978901234', '048085008901', N'72 Trần Phú, Hải Châu, Đà Nẵng', 'DANG_LAM', 'huy.buiquoc@azurerail.vn', 'GA20260505062150', N'14 Lê Duẩn, Hải Châu, Đà Nẵng', '1994-06-20', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260505102549', N'Ngô Thanh Inh', 'Pass@106', 'DIEU_PHOI', '0989012345', '079085009012', N'20 Nguyễn Thông, Quận 3, TP.HCM', 'DANG_LAM', 'inh.ngothanh@azurerail.vn', 'GA20260505122748', N'55 Võ Thị Sáu, Quận 3, TP.HCM', '1987-04-11', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260505142947', N'Lý Thị Kim', 'Pass@107', 'BAN_VE', '0990123456', '079085010123', N'8 Nam Kỳ Khởi Nghĩa, Quận 1, TP.HCM', 'NGHI_PHEP', 'kim.lythi@azurerail.vn', 'GA20260505122748', N'101 Cách Mạng Tháng 8, Quận 3, TP.HCM', '1999-08-16', 'NU', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260505163146', N'Trương Đình Lâm', 'Pass@108', 'BAN_VE', '0901122334', '001085011234', N'37 Kim Liên, Đống Đa, Hà Nội', 'DANG_LAM', 'lam.truongdinh@azurerail.vn', 'GA20260504100159', N'9 Phạm Ngọc Thạch, Đống Đa, Hà Nội', '1992-01-28', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260505183345', N'Phan Thị Mai', 'Pass@109', 'DIEU_PHOI', '0912233445', '001085012345', N'44 Hàng Bông, Hoàn Kiếm, Hà Nội', 'DANG_LAM', 'mai.phanthi@azurerail.vn', 'GA20260504100159', N'26 Tây Sơn, Đống Đa, Hà Nội', '1991-10-05', 'NU', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260505203545', N'Hồ Trọng Nam', 'Pass@110', 'BAN_VE', '0923344556', '038085013456', N'3 Lê Hồng Phong, TP Vinh, Nghệ An', 'DANG_LAM', 'nam.hotrong@azurerail.vn', 'GA20260504180955', N'77 Đinh Công Tráng, TP Vinh, Nghệ An', '1989-07-19', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260505223744', N'Dương Thị Oanh', 'Pass@111', 'BAN_VE', '0934455667', '046085014567', N'11 Chu Văn An, TP Huế, Thừa Thiên Huế', 'DANG_LAM', 'oanh.duongthit@azurerail.vn', 'GA20260505001553', N'50 Trần Cao Vân, TP Huế, Thừa Thiên Huế', '1996-03-22', 'NU', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260506003943', N'Tạ Minh Phong', 'Pass@112', 'DIEU_PHOI', '0945566778', '048085015678', N'29 Phan Châu Trinh, Hải Châu, Đà Nẵng', 'NGHI_PHEP', 'phong.taminh@azurerail.vn', 'GA20260505062150', N'63 Ông Ích Khiêm, Thanh Khê, Đà Nẵng', '1985-11-14', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260506024142', N'Vũ Thị Quỳnh', 'Pass@113', 'BAN_VE', '0956677889', '048085016789', N'6 Trần Quý Cáp, Hải Châu, Đà Nẵng', 'DANG_LAM', 'quynh.vuthi@azurerail.vn', 'GA20260505062150', N'18 Lê Văn Hiến, Ngũ Hành Sơn, Đà Nẵng', '1997-05-09', 'NU', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260506044341', N'Đinh Công Sơn', 'Pass@114', 'BAN_VE', '0967788990', '079085017890', N'40 Đinh Tiên Hoàng, Bình Thạnh, TP.HCM', 'DANG_LAM', 'son.dinhcong@azurerail.vn', 'GA20260505122748', N'82 Phan Đình Giót, Bình Thạnh, TP.HCM', '1993-09-27', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260506064540', N'Mai Thị Tâm', 'Pass@115', 'BAN_VE', '0978899001', '079085018901', N'13 Lý Tự Trọng, Quận 1, TP.HCM', 'DANG_LAM', 'tam.maithi@azurerail.vn', 'GA20260505122748', N'35 Trương Định, Quận 3, TP.HCM', '1998-02-06', 'NU', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260506084740', N'Lương Văn Uy', 'Pass@116', 'DIEU_PHOI', '0989900112', '001085019012', N'58 Giải Phóng, Hoàng Mai, Hà Nội', 'DANG_LAM', 'uy.luongvan@azurerail.vn', 'GA20260504100159', N'24 Trương Định, Hoàng Mai, Hà Nội', '1986-06-13', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260506104939', N'Cao Thị Vân', 'Pass@117', 'BAN_VE', '0990011223', '001085020123', N'19 Xã Đàn, Đống Đa, Hà Nội', 'DA_NGHI', 'van.caothi@azurerail.vn', 'GA20260504100159', N'7 La Thành, Đống Đa, Hà Nội', '1990-12-31', 'NU', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260506125138', N'Châu Quốc Xuân', 'Pass@118', 'BAN_VE', '0901233210', '079085021234', N'25 Bà Huyện Thanh Quan, Quận 3, TP.HCM', 'NGHI_PHEP', 'xuan.chauquoc@azurerail.vn', 'GA20260505122748', N'16 Đinh Tiên Hoàng, Quận 1, TP.HCM', '1995-08-21', 'NAM', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260506145337', N'Kiều Thị Yến', 'Pass@119', 'DIEU_PHOI', '0912344321', '046085022345', N'31 Trần Thị Lý, Hải Châu, Đà Nẵng', 'DA_NGHI', 'yen.kieuthit@azurerail.vn', 'GA20260505001553', N'48 Lê Lợi, TP Huế, Thừa Thiên Huế', '1988-04-17', 'NU', N'Việt Nam');
 
-INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, gaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
+INSERT INTO NhanVien (maNV, hoTen, [password], vaiTro, soDienThoai, cccd, diaChiTamTru, trangThai, email, maGaLamViec, diaChiThuongTru, ngaySinh, gioiTinh, quocTich) VALUES
 ('NV20260506165536', N'Trịnh Đức Zũng', 'Pass@120', 'BAN_VE', '0923455432', '038085023456', N'62 Nguyễn Viết Xuân, TP Vinh, Nghệ An', 'DA_NGHI', 'zung.trinhduc@azurerail.vn', 'GA20260504180955', N'33 Nguyễn Du, TP Vinh, Nghệ An', '1991-10-10', 'NAM', N'Việt Nam');
 
 -- ==================== 2. KhachHang (BANG MOI) ====================
@@ -664,11 +667,11 @@ INSERT INTO ChiTietGia VALUES ('CTG20260603215701', 'GIA20260525061035', 'TUY202
 INSERT INTO ChiTietGia VALUES ('CTG20260603235900', 'GIA20260525061035', 'TUY20260510021503', 'GIUONG_NAM', 2080000.00);
 
 -- ==================== 13. KhuyenMai (cau truc giong Gia: ky khuyen mai) ====================
-INSERT INTO KhuyenMai VALUES ('KM20260604020059', N'Khuyến mãi đối tượng ưu tiên hè 2026', '2026-05-08 00:00:00', '2026-07-31 23:59:59', N'Giảm giá cho trẻ em, sinh viên, người cao tuổi trong mùa hè 2026', 1);
-INSERT INTO KhuyenMai VALUES ('KM20260604040258', N'Khuyến mãi cao điểm cuối tháng 5', '2026-05-20 00:00:00', '2026-05-26 23:59:59', N'Chương trình giảm giá giai đoạn cao điểm cuối tháng 5', 0);
-INSERT INTO KhuyenMai VALUES ('KM20260604060457', N'Khuyến mãi mùa hè 2026', '2026-06-01 00:00:00', '2026-07-31 23:59:59', N'Giảm giá mùa hè khuyến khích du lịch bằng tàu hỏa', 0);
-INSERT INTO KhuyenMai VALUES ('KM20260604080657', N'Khuyến mãi cao điểm tháng 7', '2026-07-10 00:00:00', '2026-07-25 23:59:59', N'Giảm giá cho hành khách đặt vé giai đoạn cao điểm tháng 7', 0);
-INSERT INTO KhuyenMai VALUES ('KM20260604100856', N'Khuyến mãi cuối tháng 7', '2026-07-24 00:00:00', '2026-07-31 23:59:59', N'Chương trình giảm giá tuần cuối tháng 7', 0);
+INSERT INTO KhuyenMai VALUES ('KM20260604020059', N'Khuyến mãi đối tượng ưu tiên hè 2026', '2026-05-08', '2026-07-31', N'Giảm giá cho trẻ em, sinh viên, người cao tuổi trong mùa hè 2026', 1);
+INSERT INTO KhuyenMai VALUES ('KM20260604040258', N'Khuyến mãi cao điểm cuối tháng 5', '2026-05-20', '2026-05-26', N'Chương trình giảm giá giai đoạn cao điểm cuối tháng 5', 0);
+INSERT INTO KhuyenMai VALUES ('KM20260604060457', N'Khuyến mãi mùa hè 2026', '2026-06-01', '2026-07-31', N'Giảm giá mùa hè khuyến khích du lịch bằng tàu hỏa', 0);
+INSERT INTO KhuyenMai VALUES ('KM20260604080657', N'Khuyến mãi cao điểm tháng 7', '2026-07-10', '2026-07-25', N'Giảm giá cho hành khách đặt vé giai đoạn cao điểm tháng 7', 0);
+INSERT INTO KhuyenMai VALUES ('KM20260604100856', N'Khuyến mãi cuối tháng 7', '2026-07-24', '2026-07-31', N'Chương trình giảm giá tuần cuối tháng 7', 0);
 
 -- ==================== 13b. ChiTietKhuyenMai ====================
 -- KM20260604020059: Uu tien - giam tuy loai ghe (ghe cung giam it, giuong nam giam nhieu hon)
@@ -818,8 +821,8 @@ INSERT INTO HoaDonKhachHang VALUES ('HDKH20260614055920', 'HD20260613154526', 'K
 
 -- ==================== 16. ChiTietHoaDon (BANG MOI thay the ChiTietVe) ====================
 -- HD20260612152136: 2 ve ghe mem TUY20260509095910 (250k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD20260614140716', 'HD20260612152136', 'VE20260612172335', ctg.maChiTietGia, 100000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD20260614140716', 'HD20260612152136', 'VE20260612172335', 'KH20260506185736', ctg.maChiTietGia, 100000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -829,8 +832,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260612172335'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD20260630223037', 'HD20260612212733', 'VE20260612192534', ctg.maChiTietGia, 125000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD20260630223037', 'HD20260612212733', 'VE20260612192534', 'KH20260506205935', ctg.maChiTietGia, 125000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -841,8 +844,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260612192534'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260612212733: 1 ve giuong nam TUY20260509120109 (450k)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD20260702151020', 'HD20260613013131', 'VE20260612232932', ctg.maChiTietGia, 150000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD20260702151020', 'HD20260613013131', 'VE20260612232932', 'KH20260506230134', ctg.maChiTietGia, 150000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -853,8 +856,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260612232932'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260613013131: 1 ve ghe cung TUY20260509140308, sinh vien giam 15% (80k * 0.85 = 68k)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD20260702171219', 'HD20260613053530', 'VE20260613033331', ctg.maChiTietGia, 175000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD20260702171219', 'HD20260613053530', 'VE20260613033331', 'KH20260507010333', ctg.maChiTietGia, 175000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -865,8 +868,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260613033331'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260613053530: 4 ve noi chuyen HN->Vinh (180k ghe cung) + Vinh->Hue (200k ghe cung)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD20260702191419', 'HD20260613154526', 'VE20260613073729', ctg.maChiTietGia, 200000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD20260702191419', 'HD20260613154526', 'VE20260613073729', 'KH20260507030532', ctg.maChiTietGia, 200000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -876,8 +879,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260613073729'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD20260702211618', 'HD20260613053530', 'VE20260613093928', ctg.maChiTietGia, 225000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD20260702211618', 'HD20260613053530', 'VE20260613093928', 'KH20260506230134', ctg.maChiTietGia, 225000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -887,8 +890,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260613093928'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD20260702231817', 'HD20260613053530', 'VE20260613114127', ctg.maChiTietGia, 250000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD20260702231817', 'HD20260613053530', 'VE20260613114127', 'KH20260507010333', ctg.maChiTietGia, 250000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -898,8 +901,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260613114127'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD20260703012016', 'HD20260613053530', 'VE20260613134326', ctg.maChiTietGia, 275000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD20260703012016', 'HD20260613053530', 'VE20260613134326', 'KH20260506230134', ctg.maChiTietGia, 275000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -910,8 +913,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260613134326'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260613154526: 1 ve ghe mem TUY20260509160507 (600k), da huy
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD20260703032215', 'HD20260613154526', 'VE20260613174725', ctg.maChiTietGia, 300000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD20260703032215', 'HD20260613154526', 'VE20260613174725', 'KH20260507030532', ctg.maChiTietGia, 300000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1177,8 +1180,8 @@ INSERT INTO HoaDonKhachHang VALUES ('HDKH20260629014655', 'HD20260627050313', 'K
 
 -- ==================== ChiTietHoaDon (them 52 chi tiet, CTHD20260629034854 den CTHD20260629055053) ====================
 -- HD20260625102131: 2 ve ghe cung TUY20260509095910 HN->Vinh (180k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD20260703052414', 'HD20260625182927', 'VE20260621003814', ctg.maChiTietGia, 100000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD20260703052414', 'HD20260625182927', 'VE20260621003814', 'KH20260615163306', ctg.maChiTietGia, 100000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1188,8 +1191,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621003814'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX011', 'HD20260625203126', 'VE20260621044212', ctg.maChiTietGia, 125000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX011', 'HD20260625203126', 'VE20260621044212', 'KH20260615183505', ctg.maChiTietGia, 125000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1200,8 +1203,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621044212'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260625122330: 1 ve giuong nam TUY20260509095910 HN->Vinh (400k)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX012', 'HD20260625223326', 'VE20260621064411', ctg.maChiTietGia, 150000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX012', 'HD20260625223326', 'VE20260621064411', 'KH20260615203704', ctg.maChiTietGia, 150000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1212,8 +1215,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621064411'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260625142529: 3 ve ghe mem TUY20260509120109 Vinh->Hue (280k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX013', 'HD20260626003525', 'VE20260621084610', ctg.maChiTietGia, 175000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX013', 'HD20260626003525', 'VE20260621084610', 'KH20260615223903', ctg.maChiTietGia, 175000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1223,8 +1226,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621084610'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX014', 'HD20260626023724', 'VE20260621104809', ctg.maChiTietGia, 200000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX014', 'HD20260626023724', 'VE20260621104809', 'KH20260616004102', ctg.maChiTietGia, 200000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1234,8 +1237,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621104809'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX015', 'HD20260626043923', 'VE20260621125009', ctg.maChiTietGia, 225000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX015', 'HD20260626043923', 'VE20260621125009', 'KH20260616024302', ctg.maChiTietGia, 225000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1246,8 +1249,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621125009'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260625162728: 2 ve ghe cung TUY20260509140308 Hue->DN (80k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX016', 'HD20260626064122', 'VE20260621145208', ctg.maChiTietGia, 250000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX016', 'HD20260626064122', 'VE20260621145208', 'KH20260616044501', ctg.maChiTietGia, 250000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1257,8 +1260,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621145208'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX017', 'HD20260626084321', 'VE20260621165407', ctg.maChiTietGia, 275000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX017', 'HD20260626084321', 'VE20260621165407', 'KH20260616064700', ctg.maChiTietGia, 275000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1269,8 +1272,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621165407'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260625182927: 1 ve ghe mem TUY20260509200906 DN->Hue (120k)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX018', 'HD20260626104521', 'VE20260621185606', ctg.maChiTietGia, 300000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX018', 'HD20260626104521', 'VE20260621185606', 'KH20260616084859', ctg.maChiTietGia, 300000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1281,8 +1284,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621185606'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260625203126: 4 ve giuong nam TUY20260510021503 HN->SG (1,600k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX019', 'HD20260626124720', 'VE20260621205805', ctg.maChiTietGia, 100000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX019', 'HD20260626124720', 'VE20260621205805', 'KH20260616105058', ctg.maChiTietGia, 100000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1292,8 +1295,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621205805'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX020', 'HD20260626144919', 'VE20260621230004', ctg.maChiTietGia, 125000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX020', 'HD20260626144919', 'VE20260621230004', 'KH20260616125257', ctg.maChiTietGia, 125000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1303,8 +1306,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260621230004'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX021', 'HD20260626165118', 'VE20260622010204', ctg.maChiTietGia, 150000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX021', 'HD20260626165118', 'VE20260622010204', 'KH20260615082509', ctg.maChiTietGia, 150000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1314,8 +1317,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622010204'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX022', 'HD20260626185317', 'VE20260622030403', ctg.maChiTietGia, 175000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX022', 'HD20260626185317', 'VE20260622030403', 'KH20260615102708', ctg.maChiTietGia, 175000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1326,8 +1329,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622030403'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260625223326: 2 ve ghe mem TUY20260510021503 HN->SG (1,100k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX023', 'HD20260626205516', 'VE20260622050602', ctg.maChiTietGia, 200000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX023', 'HD20260626205516', 'VE20260622050602', 'KH20260615122907', ctg.maChiTietGia, 200000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1337,8 +1340,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622050602'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX024', 'HD20260626225716', 'VE20260622070801', ctg.maChiTietGia, 225000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX024', 'HD20260626225716', 'VE20260622070801', 'KH20260615183505', ctg.maChiTietGia, 225000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1349,8 +1352,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622070801'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626003525: 3 ve ghe cung TUY20260510041702 SG->HN (800k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX025', 'HD20260627005915', 'VE20260622091000', ctg.maChiTietGia, 250000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX025', 'HD20260627005915', 'VE20260622091000', 'KH20260615203704', ctg.maChiTietGia, 250000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1360,8 +1363,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622091000'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX026', 'HD20260627030114', 'VE20260622111200', ctg.maChiTietGia, 275000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX026', 'HD20260627030114', 'VE20260622111200', 'KH20260615223903', ctg.maChiTietGia, 275000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1371,8 +1374,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622111200'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX027', 'HD20260627050313', 'VE20260622131359', ctg.maChiTietGia, 300000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX027', 'HD20260627050313', 'VE20260622131359', 'KH20260616004102', ctg.maChiTietGia, 300000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1383,8 +1386,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622131359'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626023724: 2 ve giuong nam TUY20260510041702 SG->HN (1,600k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX028', 'HD20260612152136', 'VE20260622151558', ctg.maChiTietGia, 100000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX028', 'HD20260612152136', 'VE20260622151558', 'KH20260506185736', ctg.maChiTietGia, 100000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1394,8 +1397,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622151558'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX029', 'HD20260612212733', 'VE20260622171757', ctg.maChiTietGia, 125000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX029', 'HD20260612212733', 'VE20260622171757', 'KH20260506205935', ctg.maChiTietGia, 125000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1406,8 +1409,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622171757'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626043923: 1 ve ghe cung TUY20260510021503 HN->SG, sinh vien ap dung KM20260604020059 giam 20% (800k*0.8=640k)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX030', 'HD20260613013131', 'VE20260622191956', ctg.maChiTietGia, 150000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX030', 'HD20260613013131', 'VE20260622191956', 'KH20260506230134', ctg.maChiTietGia, 150000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1418,8 +1421,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622191956'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626064122: 2 ve ghe mem TUY20260509095910 HN->Vinh (250k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX031', 'HD20260613053530', 'VE20260622212155', ctg.maChiTietGia, 175000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX031', 'HD20260613053530', 'VE20260622212155', 'KH20260507010333', ctg.maChiTietGia, 175000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1429,8 +1432,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622212155'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX032', 'HD20260613154526', 'VE20260622232355', ctg.maChiTietGia, 200000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX032', 'HD20260613154526', 'VE20260622232355', 'KH20260507030532', ctg.maChiTietGia, 200000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1441,8 +1444,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260622232355'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626084321: 4 ve ghe cung TUY20260509160507 DN->SG (450k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX033', 'HD20260625102131', 'VE20260623012554', ctg.maChiTietGia, 225000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX033', 'HD20260625102131', 'VE20260623012554', 'KH20260615082509', ctg.maChiTietGia, 225000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1452,8 +1455,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623012554'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX034', 'HD20260625122330', 'VE20260623032753', ctg.maChiTietGia, 250000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX034', 'HD20260625122330', 'VE20260623032753', 'KH20260615102708', ctg.maChiTietGia, 250000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1463,8 +1466,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623032753'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX035', 'HD20260625142529', 'VE20260623052952', ctg.maChiTietGia, 275000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX035', 'HD20260625142529', 'VE20260623052952', 'KH20260615122907', ctg.maChiTietGia, 275000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1474,8 +1477,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623052952'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX036', 'HD20260625162728', 'VE20260623073151', ctg.maChiTietGia, 300000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX036', 'HD20260625162728', 'VE20260623073151', 'KH20260615143107', ctg.maChiTietGia, 300000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1486,8 +1489,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623073151'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626104521: 1 ve giuong nam TUY20260509180707 SG->DN (900k) - ve bi huy
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX037', 'HD20260625182927', 'VE20260623093350', ctg.maChiTietGia, 100000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX037', 'HD20260625182927', 'VE20260623093350', 'KH20260615163306', ctg.maChiTietGia, 100000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1498,8 +1501,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623093350'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626124720: 3 ve ghe cung TUY20260509120109 Vinh->Hue (200k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX038', 'HD20260625203126', 'VE20260623113550', ctg.maChiTietGia, 125000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX038', 'HD20260625203126', 'VE20260623113550', 'KH20260615183505', ctg.maChiTietGia, 125000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1509,8 +1512,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623113550'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX039', 'HD20260625223326', 'VE20260623133749', ctg.maChiTietGia, 150000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX039', 'HD20260625223326', 'VE20260623133749', 'KH20260615203704', ctg.maChiTietGia, 150000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1520,8 +1523,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623133749'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX040', 'HD20260626003525', 'VE20260623153948', ctg.maChiTietGia, 175000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX040', 'HD20260626003525', 'VE20260623153948', 'KH20260615223903', ctg.maChiTietGia, 175000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1532,8 +1535,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623153948'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626144919: 2 ve ghe mem TUY20260509221105 Hue->Vinh (280k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX041', 'HD20260626023724', 'VE20260623174147', ctg.maChiTietGia, 200000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX041', 'HD20260626023724', 'VE20260623174147', 'KH20260616004102', ctg.maChiTietGia, 200000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1543,8 +1546,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623174147'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX042', 'HD20260626043923', 'VE20260623194346', ctg.maChiTietGia, 225000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX042', 'HD20260626043923', 'VE20260623194346', 'KH20260616024302', ctg.maChiTietGia, 225000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1555,8 +1558,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623194346'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626165118: 2 ve ghe cung TUY20260509140308 Hue->DN (80k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX043', 'HD20260626064122', 'VE20260623214545', ctg.maChiTietGia, 250000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX043', 'HD20260626064122', 'VE20260623214545', 'KH20260616044501', ctg.maChiTietGia, 250000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1566,8 +1569,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623214545'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX044', 'HD20260626084321', 'VE20260623234745', ctg.maChiTietGia, 275000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX044', 'HD20260626084321', 'VE20260623234745', 'KH20260616064700', ctg.maChiTietGia, 275000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1578,8 +1581,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260623234745'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626185317: 3 ve ghe mem TUY20260509095910 HN->Vinh (250k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX045', 'HD20260626104521', 'VE20260624014944', ctg.maChiTietGia, 300000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX045', 'HD20260626104521', 'VE20260624014944', 'KH20260616084859', ctg.maChiTietGia, 300000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1589,8 +1592,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624014944'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX046', 'HD20260626124720', 'VE20260624035143', ctg.maChiTietGia, 100000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX046', 'HD20260626124720', 'VE20260624035143', 'KH20260616105058', ctg.maChiTietGia, 100000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1600,8 +1603,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624035143'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX047', 'HD20260626144919', 'VE20260624055342', ctg.maChiTietGia, 125000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX047', 'HD20260626144919', 'VE20260624055342', 'KH20260616125257', ctg.maChiTietGia, 125000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1612,8 +1615,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624055342'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626205516: 2 ve giuong nam TUY20260509120109 Vinh->Hue (450k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX048', 'HD20260626165118', 'VE20260624075541', ctg.maChiTietGia, 150000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX048', 'HD20260626165118', 'VE20260624075541', 'KH20260615082509', ctg.maChiTietGia, 150000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1623,8 +1626,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624075541'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX049', 'HD20260626185317', 'VE20260624095740', ctg.maChiTietGia, 175000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX049', 'HD20260626185317', 'VE20260624095740', 'KH20260615102708', ctg.maChiTietGia, 175000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1635,8 +1638,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624095740'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260626225716: 5 ve ghe cung TUY20260509095910 dip le 30/4, KM20260604040258 giam 10% (180k*0.9=162k)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX050', 'HD20260626205516', 'VE20260624115940', ctg.maChiTietGia, 200000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX050', 'HD20260626205516', 'VE20260624115940', 'KH20260615122907', ctg.maChiTietGia, 200000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1646,8 +1649,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624115940'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX051', 'HD20260626225716', 'VE20260624140139', ctg.maChiTietGia, 225000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX051', 'HD20260626225716', 'VE20260624140139', 'KH20260615183505', ctg.maChiTietGia, 225000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1657,8 +1660,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624140139'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX052', 'HD20260627005915', 'VE20260624160338', ctg.maChiTietGia, 250000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX052', 'HD20260627005915', 'VE20260624160338', 'KH20260615203704', ctg.maChiTietGia, 250000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1668,8 +1671,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624160338'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX053', 'HD20260627030114', 'VE20260624180537', ctg.maChiTietGia, 275000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX053', 'HD20260627030114', 'VE20260624180537', 'KH20260615223903', ctg.maChiTietGia, 275000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1679,8 +1682,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624180537'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX054', 'HD20260627050313', 'VE20260624200736', ctg.maChiTietGia, 300000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX054', 'HD20260627050313', 'VE20260624200736', 'KH20260616004102', ctg.maChiTietGia, 300000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1691,8 +1694,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624200736'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260627005915: 3 ve giuong nam TUY20260510021503 dip le 30/4, KM20260604040258 giam 12% (1600k*0.88=1408k)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX055', 'HD20260612152136', 'VE20260624220936', ctg.maChiTietGia, 100000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX055', 'HD20260612152136', 'VE20260624220936', 'KH20260506185736', ctg.maChiTietGia, 100000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1702,8 +1705,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260624220936'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX056', 'HD20260612212733', 'VE20260625001135', ctg.maChiTietGia, 125000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX056', 'HD20260612212733', 'VE20260625001135', 'KH20260506205935', ctg.maChiTietGia, 125000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1713,8 +1716,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260625001135'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX057', 'HD20260613013131', 'VE20260625021334', ctg.maChiTietGia, 150000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX057', 'HD20260613013131', 'VE20260625021334', 'KH20260506230134', ctg.maChiTietGia, 150000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1725,8 +1728,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260625021334'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260627030114: 2 ve ghe mem TUY20260510041702 SG->HN (1,100k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX058', 'HD20260613053530', 'VE20260625041533', ctg.maChiTietGia, 175000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX058', 'HD20260613053530', 'VE20260625041533', 'KH20260506230134', ctg.maChiTietGia, 175000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1736,8 +1739,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260625041533'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX059', 'HD20260613154526', 'VE20260625061732', ctg.maChiTietGia, 200000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX059', 'HD20260613154526', 'VE20260625061732', 'KH20260507030532', ctg.maChiTietGia, 200000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1748,8 +1751,8 @@ JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260625061732'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
 -- HD20260627050313: 2 ve ghe cung TUY20260509160507 DN->SG (450k/ve)
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX060', 'HD20260625102131', 'VE20260625081931', ctg.maChiTietGia, 225000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX060', 'HD20260625102131', 'VE20260625081931', 'KH20260615082509', ctg.maChiTietGia, 225000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1759,8 +1762,8 @@ JOIN ChiTietGia ctg ON ctg.maTuyen = l.maTuyen AND ctg.loaiGhe = toa.loaiGhe
 JOIN Gia g ON g.maGia = ctg.maGia
 WHERE v.maVe = 'VE20260625081931'
 ORDER BY g.trangThai DESC, g.thoiGianBatDau DESC;
-INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien)
-SELECT TOP 1 'CTHD_FIX061', 'HD20260625122330', 'VE20260621024013', ctg.maChiTietGia, 250000.00
+INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien)
+SELECT TOP 1 'CTHD_FIX061', 'HD20260625122330', 'VE20260621024013', 'KH20260615102708', ctg.maChiTietGia, 250000.00
 FROM Ve v
 JOIN Lich l ON l.maLich = v.maLich
 JOIN Ghe ghe ON ghe.maGhe = v.maGhe
@@ -1793,9 +1796,9 @@ INSERT INTO GiuCho VALUES ('GC20260704135601', 'NV20260505041951', 'LCH202606201
 INSERT INTO GiuCho VALUES ('GC20260704155800', 'NV20260505041951', 'LCH20260620183216', 'GHE20260514160219', '2026-07-01 16:00:00');
 INSERT INTO GiuCho VALUES ('GC20260704180000', 'NV20260506044341', 'LCH20260620203415', 'GHE20260517231946', '2026-07-08 09:00:00');
 
--- FK: NhanVien.gaLamViec -> Ga (them sau khi tat ca data da duoc insert)
+-- FK: NhanVien.maGaLamViec -> Ga (them sau khi tat ca data da duoc insert)
 ALTER TABLE NhanVien ADD CONSTRAINT FK_NhanVien_Ga
-    FOREIGN KEY (gaLamViec) REFERENCES Ga(maGa);
+    FOREIGN KEY (maGaLamViec) REFERENCES Ga(maGa);
 GO
 
 -- ============================================================
@@ -1820,3 +1823,5 @@ UNION ALL SELECT 'HoaDon', COUNT(*) FROM HoaDon
 UNION ALL SELECT 'ChiTietHoaDon', COUNT(*) FROM ChiTietHoaDon
 UNION ALL SELECT 'ApDungKM', COUNT(*) FROM ApDungKM
 UNION ALL SELECT 'GiuCho', COUNT(*) FROM GiuCho;
+
+

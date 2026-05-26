@@ -62,14 +62,10 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
 
     private JTable               table;
     private ChiTietGiaTableModel tableModel;
-    private int currentPage  = 1;
-    private int rowsPerPage  = 10;
     private int totalRecords = 0;
     private int hoveredRow   = -1;
-    private boolean isRefreshing = false;
 
     private JLabel lblPageInfo;
-    private JPanel paginationPanel;
     private List<ChiTietGia> allData      = new ArrayList<>();
     private List<ChiTietGia> filteredData = new ArrayList<>();
 
@@ -331,7 +327,7 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
 
         card.add(buildTableFilterBar(), BorderLayout.NORTH);
         card.add(buildTableSection(), BorderLayout.CENTER);
-        card.add(buildPaginationBar(), BorderLayout.SOUTH);
+        card.add(buildTableFooter(), BorderLayout.SOUTH);
 
         return card;
     }
@@ -369,6 +365,9 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
             }
         };
         txtFilterSearch.setFont(FONT_BODY);
+        txtFilterSearch.setColumns(1);
+        txtFilterSearch.setMinimumSize(new Dimension(0, 38));
+        txtFilterSearch.setPreferredSize(new Dimension(0, 38));
         txtFilterSearch.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         txtFilterSearch.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(OUTLINE, 1),
@@ -404,6 +403,7 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
         cboFilterLoaiGhe.setMaximumSize(new Dimension(200, 38));
         cboFilterLoaiGhe.setBackground(CARD_BG);
         cboFilterLoaiGhe.setBorder(BorderFactory.createLineBorder(OUTLINE, 1, true));
+        NotionTheme.applyComboBoxSelection(cboFilterLoaiGhe);
         cboFilterLoaiGhe.addActionListener(e -> applyFilter());
 
         JButton btnBoLoc = createSoftActionButton("Bỏ lọc", ON_SURFACE, CARD_BG, 82, 38);
@@ -447,7 +447,6 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
 
             if (matchKw && matchLg) filteredData.add(ct);
         }
-        currentPage = 1;
         refreshTable();
     }
 
@@ -511,35 +510,14 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
         JScrollPane sp = new JScrollPane(table);
         sp.setBorder(BorderFactory.createEmptyBorder());
         sp.getViewport().setBackground(CARD_BG);
-        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        sp.setWheelScrollingEnabled(false);
-
-        sp.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentResized(java.awt.event.ComponentEvent e) {
-                int newRows = calcRowsFromViewport();
-                if (newRows > 0 && newRows != rowsPerPage && !isRefreshing) {
-                    rowsPerPage = newRows;
-                    refreshTable();
-                }
-            }
-        });
+        sp.setWheelScrollingEnabled(true);
 
         return sp;
     }
 
-    private int calcRowsFromViewport() {
-        if (table == null || !(table.getParent() instanceof JViewport vp)) return 0;
-        int viewH   = vp.getHeight();
-        int rh      = table.getRowHeight() > 0 ? table.getRowHeight() : 52;
-        int headerH = table.getTableHeader().getHeight();
-        if (headerH <= 0) headerH = 40;
-        int avail = viewH - headerH;
-        return avail > 0 ? Math.max(1, avail / rh + 1) : 0;
-    }
-
-    private JPanel buildPaginationBar() {
+        private JPanel buildTableFooter() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createCompoundBorder(
@@ -551,11 +529,8 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
         lblPageInfo.setFont(FONT_SMALL);
         lblPageInfo.setForeground(ON_SURF_VAR);
 
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        paginationPanel.setOpaque(false);
 
         bar.add(lblPageInfo, BorderLayout.WEST);
-        bar.add(paginationPanel, BorderLayout.EAST);
         return bar;
     }
 
@@ -578,81 +553,20 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
     }
 
     private void refreshTable() {
-        isRefreshing = true;
-        try {
-            int vpRows = calcRowsFromViewport();
-            if (vpRows > 0) rowsPerPage = vpRows;
-            totalRecords = filteredData.size();
-            int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / rowsPerPage));
-            if (currentPage > totalPages) currentPage = totalPages;
-            int start = (currentPage - 1) * rowsPerPage;
-            int end   = Math.min(start + rowsPerPage, totalRecords);
-            tableModel.setData(filteredData.subList(start, end));
-            lblPageInfo.setText(totalRecords == 0
-                    ? "Không tìm thấy chi tiết nào"
-                    : "Hiển thị " + (start + 1) + " – " + end + " / " + totalRecords + " bản ghi");
-            rebuildPagination(totalPages);
-        } finally {
-            isRefreshing = false;
-        }
+        tableModel.setData(filteredData);
+        lblPageInfo.setText(totalRecords == 0
+                ? "Không tìm thấy bản ghi nào"
+                : "Hiển thị " + totalRecords + " bản ghi");
     }
 
-    private void rebuildPagination(int totalPages) {
-        paginationPanel.removeAll();
-        addNavBtn("‹", currentPage > 1, () -> { currentPage--; refreshTable(); });
-        for (int i = 1; i <= totalPages; i++) {
-            final int pg = i;
-            JButton btn = new JButton(String.valueOf(pg)) {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    if (pg == currentPage) {
-                        g2.setColor(PRIMARY);
-                        g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 8, 8));
-                    }
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            btn.setFont(FONT_HEADER);
-            btn.setPreferredSize(new Dimension(32, 32));
-            btn.setMargin(new Insets(0, 0, 0, 0));
-            btn.setFocusPainted(false);
-            btn.setBorderPainted(false);
-            btn.setContentAreaFilled(false);
-            btn.setForeground(pg == currentPage ? AppColors.SURFACE : ON_SURF_VAR);
-            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            btn.addActionListener(e -> { currentPage = pg; refreshTable(); });
-            paginationPanel.add(btn);
-        }
-        addNavBtn("›", currentPage < totalPages, () -> { currentPage++; refreshTable(); });
-        paginationPanel.revalidate();
-        paginationPanel.repaint();
-    }
 
-    private void addNavBtn(String sym, boolean enabled, Runnable action) {
-        JButton btn = new JButton(sym);
-        btn.setFont(FONT_BODY);
-        btn.setPreferredSize(new Dimension(32, 32));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setForeground(enabled ? ON_SURF_VAR : OUTLINE);
-        btn.setEnabled(enabled);
-        btn.setCursor(enabled ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
-        btn.addActionListener(e -> action.run());
-        paginationPanel.add(btn);
-    }
-
-    // =================================================================
+            // =================================================================
     //  ACTIONS
     // =================================================================
 
     private void openSuaThongTinGia() {
         Window owner = SwingUtilities.getWindowAncestor(this);
-        SuaGiaDialog dlg = new SuaGiaDialog(owner, gia, () -> {
+        GiaDialog dlg = new GiaDialog(owner, gia, () -> {
             lblInfoMoTa.setText(gia.getMoTa() != null ? gia.getMoTa() : "—");
             lblInfoBatDau.setText(gia.getThoiGianBatDau() != null ? gia.getThoiGianBatDau().format(DT_FMT) : "—");
             lblInfoKetThuc.setText(gia.getThoiGianKetThuc() != null ? gia.getThoiGianKetThuc().format(DT_FMT) : "—");
@@ -668,13 +582,22 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
     }
 
     private void confirmDelete(ChiTietGia ctg) {
-        int soldTicketCount = new DAO_Gia().countSoldTicketsUsingGia(gia.getMaGia());
+        DAO_Gia daoGia = new DAO_Gia();
+        int soldTicketCount = daoGia.countSoldTicketsUsingGia(gia.getMaGia());
         if (soldTicketCount > 0) {
-            NotionMessageDialog.showMessageDialog(this,
-                    "Kỳ giá này đã được áp dụng trên " + soldTicketCount
-                            + " vé đã bán nên không thể xóa chi tiết trực tiếp.\n"
-                            + "Hãy tạo bản giá mới nếu cần thay đổi cấu hình chi tiết.",
-                    "Chi tiết giá đã khóa", JOptionPane.WARNING_MESSAGE);
+            if (!confirmCloneUsedGiaDelete(soldTicketCount)) return;
+            String cloneMoTa = promptCloneMoTa(gia.getMoTa());
+            if (cloneMoTa == null) return;
+            boolean activateClone = confirmActivateClonedGiaDelete();
+            List<String> conflictsToDeactivate = new ArrayList<>();
+            if (activateClone) {
+                List<Gia> conflicts = daoGia.findOverlappingActive(gia.getMaGia(), gia.getThoiGianBatDau(), gia.getThoiGianKetThuc());
+                if (!conflicts.isEmpty()) {
+                    if (!confirmDeactivateConflicts(conflicts)) return;
+                    for (Gia conflict : conflicts) conflictsToDeactivate.add(conflict.getMaGia());
+                }
+            }
+            cloneGiaWithoutDetail(ctg, activateClone, conflictsToDeactivate, cloneMoTa);
             return;
         }
         int res = NotionMessageDialog.showConfirmDialog(this,
@@ -699,6 +622,91 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
         }.execute();
         // Handoff: khóa xóa chi tiết khi Gia đã được dùng để bảo toàn mapping giá lịch sử.
         // Rủi ro: data cũ chưa backfill maChiTietGia sẽ không được count chính xác cho usage lịch sử.
+    }
+
+    private void cloneGiaWithoutDetail(ChiTietGia ctg, boolean activateClone,
+                                       List<String> conflictsToDeactivate, String cloneMoTa) {
+        final boolean shouldActivateClone = activateClone;
+        final String newCloneMoTa = cloneMoTa;
+        final List<String> deactivateIds = List.copyOf(conflictsToDeactivate);
+        new SwingWorker<Boolean, Void>() {
+            @Override protected Boolean doInBackground() {
+                return new DAO_Gia().cloneGiaWithDetailsExcludingDetail(
+                        gia, ctg.getMaChiTietGia(), shouldActivateClone, deactivateIds, newCloneMoTa) != null;
+            }
+            @Override protected void done() {
+                try {
+                    if (get()) {
+                        loadData();
+                        NotionMessageDialog.showMessageDialog(ChinhSuaGiaModule.this,
+                                "Đã ngừng kỳ giá cũ và tạo kỳ giá mới không còn chi tiết "
+                                        + ctg.getMaChiTietGia()
+                                        + (shouldActivateClone ? " (đang hoạt động)." : " (chưa hoạt động)."),
+                                "Đã nhân bản kỳ giá", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        NotionMessageDialog.showMessageDialog(ChinhSuaGiaModule.this,
+                                "Không thể nhân bản kỳ giá để xóa chi tiết!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    NotionMessageDialog.showMessageDialog(ChinhSuaGiaModule.this,
+                            "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
+        // Handoff: xóa chi tiết đã bán sẽ clone Gia và bỏ chi tiết khỏi bản mới, không xóa dữ liệu lịch sử.
+        // Rủi ro: bản mới có thể thiếu tuyến/loại ghế nên bước bán vé sẽ không báo giá cho cấu hình đó.
+    }
+
+    private boolean confirmCloneUsedGiaDelete(int soldTicketCount) {
+        String message = "Chi tiết giá này thuộc kỳ giá đã được áp dụng trên " + soldTicketCount
+                + " vé đã bán nên không thể xóa trực tiếp.\n\n"
+                + "Bạn có muốn nhân bản kỳ giá này và bỏ chi tiết đang chọn khỏi bản mới không?\n"
+                + "Kỳ giá cũ sẽ ngừng hoạt động, còn kỳ giá mới sẽ hỏi xác nhận hoạt động ở bước tiếp theo.";
+        int choice = NotionMessageDialog.showConfirmDialog(this, message, "Chi tiết giá đã khóa",
+                JOptionPane.WARNING_MESSAGE, "Hủy", "Đồng ý");
+        return choice == JOptionPane.YES_OPTION;
+        // Handoff: dialog này giữ cùng mô hình quyết định với luồng sửa chi tiết đã bán.
+        // Rủi ro: người dùng có thể hiểu là xóa vật lý, nên message phải nhấn mạnh chỉ bỏ khỏi bản mới.
+    }
+
+    private String promptCloneMoTa(String defaultMoTa) {
+        JTextField field = new JTextField(defaultMoTa == null ? "" : defaultMoTa);
+        field.setFont(FONT_BODY);
+        field.setForeground(ON_SURFACE);
+        field.selectAll();
+        while (true) {
+            int choice = NotionMessageDialog.showConfirmDialog(this,
+                    new Object[]{"Nhập mô tả / tên cho kỳ giá mới:", field},
+                    "Tên kỳ giá mới", JOptionPane.QUESTION_MESSAGE, "Hủy", "Tiếp tục");
+            if (choice != JOptionPane.YES_OPTION) return null;
+            String value = field.getText().trim();
+            if (!value.isEmpty()) return value;
+            NotionMessageDialog.showMessageDialog(this,
+                    "Vui lòng nhập mô tả / tên kỳ giá mới.", "Thiếu tên kỳ giá", JOptionPane.WARNING_MESSAGE);
+        }
+        // Handoff: dùng riêng cho luồng xóa chi tiết đã bán để bản clone không mặc định trùng tên bản cũ.
+        // Rủi ro: hủy ở dialog này phải dừng toàn bộ thao tác xóa/clone.
+    }
+
+    private boolean confirmActivateClonedGiaDelete() {
+        int choice = NotionMessageDialog.showConfirmDialog(this,
+                "Bạn có muốn bật hoạt động cho kỳ giá mới vừa nhân bản không?\n"
+                        + "Nếu hủy, kỳ giá mới vẫn được tạo nhưng ở trạng thái ngừng hoạt động.",
+                "Bật kỳ giá mới", JOptionPane.QUESTION_MESSAGE, "Không bật", "Bật hoạt động");
+        return choice == JOptionPane.YES_OPTION;
+        // Handoff: tách xác nhận bật để người dùng kiểm soát việc thay kỳ giá active sau khi clone.
+        // Rủi ro: nếu không bật, danh sách bán vé vẫn tiếp tục dùng kỳ giá active khác hoặc không có giá mới.
+    }
+
+    private boolean confirmDeactivateConflicts(List<Gia> conflicts) {
+        String ids = conflicts.stream().map(Gia::getMaGia).collect(java.util.stream.Collectors.joining(", "));
+        int choice = NotionMessageDialog.showConfirmDialog(this,
+                "Kỳ giá muốn bật bị trùng thời gian với: " + ids + "\n\n"
+                        + "Bạn có muốn ngừng hoạt động các kỳ giá này để bật kỳ giá mới không?",
+                "Trùng kỳ giá", JOptionPane.WARNING_MESSAGE, "Hủy", "Ngừng kỳ trùng");
+        return choice == JOptionPane.YES_OPTION;
+        // Handoff: xử lý conflict giống luồng sửa để tránh có nhiều kỳ giá active trùng thời gian.
+        // Rủi ro: tắt nhầm kỳ giá conflict sẽ ảnh hưởng báo giá hiện hành của các tuyến còn lại.
     }
 
     // =================================================================
@@ -1002,7 +1010,6 @@ public class ChinhSuaGiaModule extends JPanel implements AppModule {
 
     @Override
     public void reset() {
-        currentPage = 1;
         if (txtFilterSearch != null) txtFilterSearch.setText("");
         if (cboFilterLoaiGhe != null) cboFilterLoaiGhe.setSelectedIndex(0);
         if (tableModel != null) applyFilter();

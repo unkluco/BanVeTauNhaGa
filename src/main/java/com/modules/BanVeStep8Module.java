@@ -51,9 +51,7 @@ public class BanVeStep8Module extends JPanel implements AppModule {
 
         JButton btnPrint = new JButton("In vé");
         styleBtn(btnPrint, false);
-        btnPrint.addActionListener(e -> NotionMessageDialog.showMessageDialog(this,
-                "Chức năng in vé đang được phát triển.",
-                "Thông báo", JOptionPane.INFORMATION_MESSAGE));
+        btnPrint.addActionListener(e -> exportInvoicePdf());
 
         btnPanel = BookingStepUi.createFooter();
         btnPanel.add(btnCancel);
@@ -127,6 +125,20 @@ public class BanVeStep8Module extends JPanel implements AppModule {
         JPanel invoice = ChiTietHoaDonDialog.createInvoiceView(hoaDon);
         invoice.setPreferredSize(new Dimension(1000, 560));
         return invoice;
+    }
+
+    private void exportInvoicePdf() {
+        if (hoaDon == null) {
+            NotionMessageDialog.showMessageDialog(this,
+                    "Không tìm thấy dữ liệu hóa đơn để in.",
+                    "In vé", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        JFrame frame = owner instanceof JFrame f ? f : null;
+        new ChiTietHoaDonDialog(frame, hoaDon).exportInvoicePdf();
+        // Handoff: nút In vé dùng lại layout PDF hóa đơn để dữ liệu khớp màn chi tiết hóa đơn.
+        // Cảnh báo: nếu tách mẫu in vé riêng, đổi tại đây thay vì gọi trực tiếp ChiTietHoaDonDialog.
     }
 
     private void styleBtn(JButton btn, boolean primary) {

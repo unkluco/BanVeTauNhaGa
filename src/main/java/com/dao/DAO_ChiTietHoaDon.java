@@ -11,6 +11,7 @@ import java.util.List;
 import com.connectDB.ConnectDB;
 import com.entity.ChiTietHoaDon;
 import com.entity.HoaDon;
+import com.entity.KhachHang;
 import com.entity.Ve;
 
 public class DAO_ChiTietHoaDon {
@@ -18,6 +19,7 @@ public class DAO_ChiTietHoaDon {
     private DAO_HoaDon daoHoaDon = new DAO_HoaDon();
     private DAO_Ve daoVe = new DAO_Ve();
     private DAO_ChiTietGia daoChiTietGia = new DAO_ChiTietGia();
+    private DAO_KhachHang daoKhachHang = new DAO_KhachHang();
 
     public List<ChiTietHoaDon> getAll() {
         List<ChiTietHoaDon> ds = new ArrayList<>();
@@ -94,18 +96,19 @@ public class DAO_ChiTietHoaDon {
     public boolean insert(ChiTietHoaDon cthd) {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
-        if (cthd == null || cthd.getChiTietGia() == null) {
-            System.err.println("Loi khi them chi tiet hoa don: thieu maChiTietGia");
+        if (cthd == null || cthd.getChiTietGia() == null || cthd.getKhachHang() == null) {
+            System.err.println("Loi khi them chi tiet hoa don: thieu maChiTietGia hoac maKhachHang");
             return false;
         }
 
-        String sql = "INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maChiTietGia, giaTien) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO ChiTietHoaDon (maChiTietHD, maHoaDon, maVe, maKhachHang, maChiTietGia, giaTien) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, cthd.getMaChiTietHD());
             ps.setString(2, cthd.getHoaDon().getMaHoaDon());
             ps.setString(3, cthd.getVe().getMaVe());
-            ps.setString(4, cthd.getChiTietGia() == null ? null : cthd.getChiTietGia().getMaChiTietGia());
-            ps.setBigDecimal(5, cthd.getGiaTien());
+            ps.setString(4, cthd.getKhachHang().getMaKhachHang());
+            ps.setString(5, cthd.getChiTietGia() == null ? null : cthd.getChiTietGia().getMaChiTietGia());
+            ps.setBigDecimal(6, cthd.getGiaTien());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Loi khi them chi tiet hoa don: " + e.getMessage());
@@ -149,13 +152,14 @@ public class DAO_ChiTietHoaDon {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;
 
-        String sql = "UPDATE ChiTietHoaDon SET maHoaDon = ?, maVe = ?, maChiTietGia = ?, giaTien = ? WHERE maChiTietHD = ?";
+        String sql = "UPDATE ChiTietHoaDon SET maHoaDon = ?, maVe = ?, maKhachHang = ?, maChiTietGia = ?, giaTien = ? WHERE maChiTietHD = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, cthd.getHoaDon().getMaHoaDon());
             ps.setString(2, cthd.getVe().getMaVe());
-            ps.setString(3, cthd.getChiTietGia() == null ? null : cthd.getChiTietGia().getMaChiTietGia());
-            ps.setBigDecimal(4, cthd.getGiaTien());
-            ps.setString(5, cthd.getMaChiTietHD());
+            ps.setString(3, cthd.getKhachHang() == null ? null : cthd.getKhachHang().getMaKhachHang());
+            ps.setString(4, cthd.getChiTietGia() == null ? null : cthd.getChiTietGia().getMaChiTietGia());
+            ps.setBigDecimal(5, cthd.getGiaTien());
+            ps.setString(6, cthd.getMaChiTietHD());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Loi khi cap nhat chi tiet hoa don: " + e.getMessage());
@@ -167,9 +171,10 @@ public class DAO_ChiTietHoaDon {
         String maChiTietHD = rs.getString("maChiTietHD");
         HoaDon hd = daoHoaDon.findById(rs.getString("maHoaDon"));
         Ve ve = daoVe.findById(rs.getString("maVe"));
+        KhachHang khachHang = daoKhachHang.findById(rs.getString("maKhachHang"));
         String maChiTietGia = rs.getString("maChiTietGia");
         BigDecimal giaTien = rs.getBigDecimal("giaTien");
-        return new ChiTietHoaDon(maChiTietHD, hd, ve,
+        return new ChiTietHoaDon(maChiTietHD, hd, ve, khachHang,
                 maChiTietGia == null ? null : daoChiTietGia.findById(maChiTietGia), giaTien);
     }
 }

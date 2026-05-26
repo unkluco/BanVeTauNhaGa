@@ -14,6 +14,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -46,10 +47,7 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
     private Consumer<Object> callback;
     private List<DauMay> allData      = new ArrayList<>();
     private List<DauMay> filteredData = new ArrayList<>();
-    private int currentPage  = 1;
-    private int rowsPerPage  = 12; // Grid items
     private int gridCols     = 3;
-    private boolean isRefreshing = false;
 
     // ── Widgets ───────────────────────────────────────────────────────────
     private JTextField txtSearch;
@@ -60,8 +58,8 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
     private JLabel     lblStatMaintenance;
     private JLabel     lblStatInactive;
     private JPanel     cardsPanel;
+    private JPanel     cardsHost;
     private JScrollPane scrollPane;
-    private JPanel     paginationPanel;
 
     public QuanLyDauMayModule() {
         setLayout(new BorderLayout());
@@ -79,7 +77,9 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         stats.setMaximumSize(new Dimension(Integer.MAX_VALUE, 92));
         JPanel filterCard = buildFilterBar();
         filterCard.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filterCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 172));
+        NotionTheme.lockMaxWidthToPreferredHeight(filterCard);
+        // Handoff: filter card tự lấy chiều cao preferred để tránh lún khi DPI/font khác máy.
+        // Cảnh báo: chỉ card ngoài adaptive, các row/control bên trong vẫn giữ nhịp UI cố định.
         top.add(header);
         top.add(Box.createVerticalStrut(16));
         top.add(stats);
@@ -233,11 +233,16 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         content.setOpaque(true);
         content.setBackground(SURFACE);
 
-        cardsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
+        cardsPanel = new JPanel(new GridLayout(0, gridCols, 15, 15));
         cardsPanel.setOpaque(true);
         cardsPanel.setBackground(SURFACE);
 
-        scrollPane = new JScrollPane(cardsPanel);
+        cardsHost = new JPanel(new BorderLayout());
+        cardsHost.setOpaque(true);
+        cardsHost.setBackground(SURFACE);
+        cardsHost.add(cardsPanel, BorderLayout.NORTH);
+
+        scrollPane = new JScrollPane(cardsHost);
         scrollPane.setOpaque(true);
         scrollPane.setBackground(SURFACE);
         scrollPane.getViewport().setOpaque(true);
@@ -246,37 +251,12 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         scrollPane.getVerticalScrollBar().setUnitIncrement(20);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-        scrollPane.addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                int w = scrollPane.getWidth();
-                int h = scrollPane.getHeight();
-                int cardW = 300;
-                int cols = Math.max(1, (w - 15) / (cardW + 15));
-                int rH = 214 + 15;
-                int rows = Math.max(2, h / rH);
-                int newItems = cols * rows;
-                
-                if (gridCols != cols) {
-                    gridCols = cols;
-                }
-                
-                if (newItems != rowsPerPage) {
-                    rowsPerPage = newItems;
-                    if (!isRefreshing) refreshCards();
-                } else if (!isRefreshing) {
-                    // Just update layout
-                    refreshCards();
-                }
-            }
+        scrollPane.getViewport().addComponentListener(new ComponentAdapter() {
+            @Override public void componentResized(ComponentEvent e) { updateGridColumns(); }
         });
 
         content.add(scrollPane, BorderLayout.CENTER);
         
-        paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
-        paginationPanel.setOpaque(true);
-        paginationPanel.setBackground(SURFACE);
-        content.add(paginationPanel, BorderLayout.SOUTH);
 
         return content;
     }
@@ -421,12 +401,11 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
             lblStatMaintenance.setText(String.valueOf(filteredData.stream().filter(dm -> STATUS_OPTIONS[1].equals(normalizeStatus(dm.getTrangThai()))).count()));
             lblStatInactive.setText(String.valueOf(filteredData.stream().filter(dm -> STATUS_OPTIONS[2].equals(normalizeStatus(dm.getTrangThai()))).count()));
         }
-        currentPage = 1;
         refreshCards();
     }
 
     private void refreshHangSanXuatFilter() {
-        // Combo hãng lấy từ dữ liệu hiện tại để lọc card mà không làm lệch search/pagination.
+        // Combo hãng lấy từ dữ liệu hiện tại để lọc card mà không làm lệch search.
         // Rủi ro: hãng trống được gom vào "Chưa cập nhật", nên cần normalize thống nhất với applyFilter.
         if (cboHangSanXuat == null) return;
         Object current = cboHangSanXuat.getSelectedItem();
@@ -448,42 +427,38 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
     }
 
     private void refreshCards() {
-        isRefreshing = true;
-        try {
-            int total = filteredData.size();
-            int totalPages = (total == 0) ? 1 : (int) Math.ceil((double) total / rowsPerPage);
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            int start = (currentPage - 1) * rowsPerPage;
-            int end   = Math.min(start + rowsPerPage, total);
-            List<DauMay> pageData = filteredData.subList(start, end);
-
-            // Calculate card width
-            int w = scrollPane.getWidth();
-            int cardW = 280;
-            if (gridCols > 0) {
-                // Adjust width to fill container better (optional)
-                cardW = (w - (gridCols + 1) * 15) / gridCols;
-                cardW = Math.max(cardW, 270);
+        updateGridColumns();
+        cardsPanel.removeAll();
+        if (filteredData.isEmpty()) {
+            cardsPanel.setLayout(new BorderLayout());
+            cardsPanel.add(buildEmptyState());
+        } else {
+            cardsPanel.setLayout(new GridLayout(0, gridCols, 15, 15));
+            for (DauMay m : filteredData) {
+                cardsPanel.add(buildDauMayCard(m, 300));
             }
-
-            cardsPanel.removeAll();
-            cardsPanel.setPreferredSize(new Dimension(w - 20, 0)); // force flow layout wrap
-            if (pageData.isEmpty()) {
-                cardsPanel.add(buildEmptyState());
-            } else {
-                for (DauMay m : pageData) {
-                    cardsPanel.add(buildDauMayCard(m, cardW));
-                }
-            }
-            cardsPanel.revalidate();
-            cardsPanel.repaint();
-
-            rebuildPagination(totalPages, total);
-        } finally {
-            isRefreshing = false;
         }
+        cardsPanel.revalidate();
+        cardsPanel.repaint();
+        cardsHost.revalidate();
+        cardsHost.repaint();
     }
+
+    private void updateGridColumns() {
+        if (cardsPanel == null || scrollPane == null) return;
+        if (filteredData.isEmpty()) return;
+        int width = Math.max(1, scrollPane.getViewport().getWidth());
+        int nextCols = Math.max(1, width / 330);
+        if (nextCols != gridCols || !(cardsPanel.getLayout() instanceof GridLayout)) {
+            gridCols = nextCols;
+            cardsPanel.setLayout(new GridLayout(0, gridCols, 15, 15));
+            cardsPanel.revalidate();
+        }
+        // Handoff: card đầu máy dùng lưới responsive + scroll dọc, không còn wrap/pagination.
+        // Rủi ro: nếu card width tối thiểu đổi, cập nhật divisor 330 để tránh card bị ép quá nhỏ.
+    }
+
+
 
     // ====================================================================
     //  CARD BUILDER
@@ -500,8 +475,10 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
                     @Override public void mouseEntered(MouseEvent e) { isHovered = true; repaint(); }
                     @Override public void mouseExited(MouseEvent e)  { isHovered = false; repaint(); }
                     @Override public void mouseClicked(MouseEvent e) {
-                        if (SwingUtilities.isLeftMouseButton(e)) openEditDauMayDialog(dm);
+                        if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2) openEditDauMayDialog(dm);
                     }
+                    @Override public void mousePressed(MouseEvent e) { showDauMayQuickActions(e, dm); }
+                    @Override public void mouseReleased(MouseEvent e) { showDauMayQuickActions(e, dm); }
                 });
             }
             @Override
@@ -525,11 +502,11 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
             }
         };
         card.setOpaque(false);
-        card.setPreferredSize(new Dimension(width, 214));
-        card.setMaximumSize(new Dimension(width, 214));
-        card.setBorder(new EmptyBorder(18, 22, 18, 18));
+        card.setPreferredSize(new Dimension(width, 126));
+        card.setMaximumSize(new Dimension(width, 126));
+        card.setBorder(new EmptyBorder(12, 20, 12, 12));
 
-        JPanel content = new JPanel(new BorderLayout(0, 16));
+        JPanel content = new JPanel(new BorderLayout());
         content.setOpaque(false);
 
         JPanel top = new JPanel(new BorderLayout());
@@ -537,11 +514,12 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
 
         JLabel lblCode = createCodeChip(dm.getMaDauMay());
 
-        JPanel topLeft = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        topLeft.setOpaque(false);
-        topLeft.add(lblCode);
-
-        JButton btnEdit = createCardTextActionButton("Chỉnh sửa");
+        JButton btnView = createCardActionButton(LineIcons.Name.SEARCH, "Xem chi tiết", PRIMARY_LIGHT);
+        btnView.addActionListener(e -> openChiTiet(dm));
+        btnView.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { e.consume(); }
+        });
+        JButton btnEdit = createCardActionButton(LineIcons.Name.EDIT, "Chỉnh sửa", PRIMARY_LIGHT);
         btnEdit.addActionListener(e -> openEditDauMayDialog(dm));
         btnEdit.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) { e.consume(); }
@@ -549,54 +527,61 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         actions.setOpaque(false);
+        actions.add(btnView);
         actions.add(btnEdit);
-        top.add(topLeft, BorderLayout.WEST);
+        top.add(lblCode, BorderLayout.WEST);
         top.add(actions, BorderLayout.EAST);
 
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         body.setOpaque(false);
 
-        JLabel lblMaker = new JLabel(ellipsize(
-                dm.getHangSanXuat() == null ? "CHƯA CẬP NHẬT HÃNG SẢN XUẤT" : dm.getHangSanXuat().toUpperCase(),
-                36));
-        lblMaker.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblMaker.setForeground(TEXT_MUTED);
-        lblMaker.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         JLabel lblName = new JLabel(ellipsize(dm.getTenDauMay(), 30));
-        lblName.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblName.setForeground(TEXT_MAIN);
+        lblName.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblName.setForeground(accent);
         lblName.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        String desc = dm.getMoTa() == null || dm.getMoTa().isBlank()
-                ? "Thông tin vận hành đang được cập nhật"
-                : dm.getMoTa();
+        String maker = dm.getHangSanXuat() == null || dm.getHangSanXuat().isBlank()
+                ? "Chưa cập nhật hãng" : dm.getHangSanXuat();
+        String desc = maker + " · " + (dm.getNamSanXuat() != null ? dm.getNamSanXuat() : "N/A");
         JLabel lblDesc = new JLabel(ellipsize(desc, 46));
         lblDesc.setFont(FONT_SMALL);
         lblDesc.setForeground(TEXT_MUTED);
         lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        body.add(lblMaker);
         body.add(Box.createVerticalStrut(8));
         body.add(lblName);
-        body.add(Box.createVerticalStrut(8));
+        body.add(Box.createVerticalStrut(4));
         body.add(lblDesc);
 
-        JPanel footer = new JPanel(new BorderLayout(10, 0));
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         footer.setOpaque(false);
-        JPanel chips = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        chips.setOpaque(false);
-        chips.add(createInfoChip(dm.getNamSanXuat() != null ? String.valueOf(dm.getNamSanXuat()) : "N/A", NotionTheme.CARD_MUTED, TEXT_MUTED));
-        chips.add(createInfoChip(dm.getCongSuatKw() != null ? dm.getCongSuatKw() + " kW" : "Chưa rõ kW", NotionTheme.SKY, new Color(0x00, 0x75, 0xDE)));
-        footer.add(chips, BorderLayout.WEST);
-        footer.add(createStatusBadge(status), BorderLayout.EAST);
+        footer.add(createStatusBadge(status));
+        footer.add(createInfoChip(dm.getCongSuatKw() != null ? dm.getCongSuatKw() + " kW" : "Chưa rõ kW", NotionTheme.SKY, new Color(0x00, 0x75, 0xDE)));
 
         content.add(top, BorderLayout.NORTH);
         content.add(body, BorderLayout.CENTER);
         content.add(footer, BorderLayout.SOUTH);
         card.add(content, BorderLayout.CENTER);
+        // Handoff: vùng card đầu máy chỉ mở sửa khi double-click để tránh thao tác vô tình.
+        // Các icon xem/sửa vẫn xử lý single-click vì đã có affordance riêng.
         return card;
+    }
+
+    private void openChiTiet(DauMay dm) {
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+        fields.put("Mã đầu máy", dm.getMaDauMay());
+        fields.put("Tên đầu máy", dm.getTenDauMay());
+        fields.put("Hãng sản xuất", dm.getHangSanXuat());
+        fields.put("Năm sản xuất", dm.getNamSanXuat() != null ? String.valueOf(dm.getNamSanXuat()) : null);
+        fields.put("Công suất", dm.getCongSuatKw() != null ? dm.getCongSuatKw() + " kW" : null);
+        fields.put("Trạng thái", normalizeStatus(dm.getTrangThai()));
+        fields.put("Mô tả", dm.getMoTa());
+        EntityDetailModule detail = new EntityDetailModule("Đầu máy", resolveStatusAccent(normalizeStatus(dm.getTrangThai())), dm.getTenDauMay(), dm.getMaDauMay(), fields);
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        ModuleLauncher.asDialog(detail, owner instanceof JFrame frame ? frame : null, ignored -> {});
+        // Handoff: action kính lúp mở detail dùng chung EntityDetailModule để giữ cấu trúc card gọn.
+        // Rủi ro: parent không phải JFrame sẽ cần overload launcher khác nếu nhúng module trong dialog.
     }
 
     private JLabel createCodeChip(String text) {
@@ -674,6 +659,22 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
     //  ACTIONS
     // ====================================================================
 
+    private void showDauMayQuickActions(MouseEvent e, DauMay dm) {
+        if (!e.isPopupTrigger()) return;
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem view = new JMenuItem("Xem chi tiết");
+        view.addActionListener(ev -> openChiTiet(dm));
+        JMenuItem edit = new JMenuItem("Sửa");
+        edit.addActionListener(ev -> openEditDauMayDialog(dm));
+        JMenuItem item = new JMenuItem("Đổi trạng thái hoạt động");
+        item.addActionListener(ev -> openChangeDauMayStatusDialog(dm));
+        menu.add(view);
+        menu.add(edit);
+        menu.addSeparator();
+        menu.add(item);
+        menu.show(e.getComponent(), e.getX(), e.getY());
+    }
+
     private void openEditDauMayDialog(DauMay dm) {
         Window owner = SwingUtilities.getWindowAncestor(this);
         DauMay editable = new DauMay(
@@ -721,6 +722,7 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
 
         JComboBox<String> cbo = new JComboBox<>(STATUS_OPTIONS);
         cbo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        NotionTheme.applyComboBoxSelection(cbo);
         cbo.setSelectedItem(normalizeStatus(dm.getTrangThai()));
 
         JPanel panel = new JPanel(new BorderLayout(0, 8));
@@ -778,99 +780,26 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         return ACTIVE_GREEN;
     }
 
-    // ====================================================================
-    //  PAGINATION
-    // ====================================================================
-
-    private void rebuildPagination(int totalPages, int total) {
-        paginationPanel.removeAll();
-
-        if (total > 0) {
-            JLabel info = new JLabel("Hiển thị trang " + currentPage + " / " + totalPages + " (" + total + " đầu máy)");
-            info.setFont(FONT_SMALL);
-            info.setForeground(TEXT_MUTED);
-            paginationPanel.add(info);
-            paginationPanel.add(Box.createHorizontalStrut(15));
-        }
-
-        if (totalPages > 1) {
-            JButton btnPrev = makePaginBtn("<");
-            btnPrev.setEnabled(currentPage > 1);
-            btnPrev.addActionListener(e -> { currentPage--; refreshCards(); });
-            paginationPanel.add(btnPrev);
-
-            int startP = Math.max(1, currentPage - 2);
-            int endP   = Math.min(totalPages, startP + 4);
-            for (int p = startP; p <= endP; p++) {
-                final int page = p;
-                JButton btn = makePaginBtn(String.valueOf(p));
-                if (p == currentPage) {
-                    btn.setForeground(AppColors.SURFACE);
-                    btn.putClientProperty("active", true);
-                }
-                btn.addActionListener(e -> { currentPage = page; refreshCards(); });
-                paginationPanel.add(btn);
-            }
-
-            JButton btnNext = makePaginBtn(">");
-            btnNext.setEnabled(currentPage < totalPages);
-            btnNext.addActionListener(e -> { currentPage++; refreshCards(); });
-            paginationPanel.add(btnNext);
-        }
-
-        paginationPanel.revalidate();
-        paginationPanel.repaint();
-    }
-
-    private JButton makePaginBtn(String label) {
-        JButton btn = new JButton(label) {
+    private JButton createCardActionButton(LineIcons.Name iconName, String toolTip, Color hoverBg) {
+        JButton btn = new JButton() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Object active = getClientProperty("active");
-                if (Boolean.TRUE.equals(active)) {
-                    g2.setColor(PRIMARY);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                } else if (getModel().isRollover()) {
-                    g2.setColor(OUTLINE);
+                if (getModel().isRollover() || getModel().isPressed()) {
+                    g2.setColor(hoverBg);
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 }
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        btn.setFont(FONT_BOLD);
-        btn.setForeground(TEXT_MAIN);
+        btn.setIcon(loadScaledIcon(iconName, 16));
+        btn.setPreferredSize(new Dimension(28, 28));
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setMargin(new Insets(0, 0, 0, 0));
-        btn.setPreferredSize(new Dimension(36, 36));
-        return btn;
-    }
-
-    private JButton createCardTextActionButton(String text) {
-        JButton btn = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() || getModel().isPressed() ? PRIMARY_LIGHT : NotionTheme.CARD_MUTED);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 9, 9);
-                g2.setColor(AppColors.withAlpha(PRIMARY, 70));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 9, 9);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btn.setForeground(PRIMARY);
-        btn.setPreferredSize(new Dimension(92, 30));
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setToolTipText(toolTip);
         return btn;
     }
 
@@ -920,6 +849,7 @@ public class QuanLyDauMayModule extends JPanel implements AppModule {
         combo.setBackground(CARD_BG);
         combo.setPreferredSize(new Dimension(210, 38));
         combo.setFocusable(false);
+        NotionTheme.applyComboBoxSelection(combo);
         return combo;
     }
 

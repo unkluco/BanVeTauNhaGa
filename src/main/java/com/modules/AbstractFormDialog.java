@@ -55,7 +55,7 @@ public abstract class AbstractFormDialog<T> extends JDialog {
         root.add(buildStandardBody(), BorderLayout.CENTER);
         root.add(buildStandardFooter(), BorderLayout.SOUTH);
 
-        setContentPane(ThemNhanVienDialog.buildShadowWrapper(root));
+        setContentPane(ModuleLauncher.buildShadowWrapper(root));
         getRootPane().registerKeyboardAction(
                 e -> onCancel(),
                 KeyStroke.getKeyStroke("ESCAPE"),
@@ -63,7 +63,7 @@ public abstract class AbstractFormDialog<T> extends JDialog {
         );
         pack();
         setMinimumSize(new Dimension(preferredDialogWidth(), getPreferredSize().height));
-        setLocationRelativeTo(owner);
+        ModuleLauncher.centerDialog(this, owner);
         // Handoff: AbstractFormDialog owns the common dialog chrome, footer actions, ESC, and form grid shell.
         // Risk: subclasses should only provide schema/extra content/validation, not rebuild the chrome.
     }
@@ -506,10 +506,13 @@ public abstract class AbstractFormDialog<T> extends JDialog {
             } else if (component instanceof JComboBox<?> comboBox) {
                 comboBox.setBackground(NotionTheme.CARD);
                 comboBox.setForeground(NotionTheme.TEXT);
+                NotionTheme.applyComboBoxSelection(comboBox);
                 comboBox.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(NotionTheme.BORDER, 1, true),
                         new EmptyBorder(4, 8, 4, 8)
                 ));
+                // Handoff: mọi combo trong form dialog dùng popup selection tím/chữ trắng từ theme chung.
+                // Rủi ro: renderer custom cần được wrap qua helper trước khi tự override màu selected.
             } else if (component instanceof JTextArea textArea) {
                 textArea.setBackground(NotionTheme.CARD);
                 textArea.setForeground(NotionTheme.TEXT);

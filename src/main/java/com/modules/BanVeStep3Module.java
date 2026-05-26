@@ -11,6 +11,7 @@ import java.awt.event.MouseEvent;
 import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Bước 3 Hợp nhất — Chọn Chỗ (Toa & Ghế).
@@ -32,8 +33,13 @@ public class BanVeStep3Module extends JPanel implements AppModule {
     private List<ChiTietDoanTau> ctdtList = new ArrayList<>();
     private final Map<String, List<Ghe>> wagonGheMap = new HashMap<>();
     private final Set<String> soldMaGhes = new HashSet<>();
+    private final Map<String, java.time.LocalDateTime> heldByOtherMaGhes = new HashMap<>();
+    private final Map<String, java.time.LocalDateTime> heldByMeMaGhes = new HashMap<>();
     private final Set<Ghe> selectedGhes = new LinkedHashSet<>();
     private ChiTietDoanTau activeCTDT = null;
+    private Function<Ghe, Boolean> holdSeatHandler = ghe -> true;
+    private Function<Ghe, Boolean> releaseSeatHandler = ghe -> true;
+    private javax.swing.Timer holdRefreshTimer;
 
     // UI Components
     private JPanel trainContainer;
@@ -70,6 +76,8 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         setBackground(SURFACE);
         buildUI();
         loadData();
+        holdRefreshTimer = new javax.swing.Timer(1000, e -> seatCanvas.repaint());
+        holdRefreshTimer.start();
         // Handoff: giữ constructor cũ để không phá nơi gọi khác; constructor mới chỉ thêm tooltip giá.
         // Risk: priceMap rỗng thì Step 3 vẫn hoạt động, tooltip báo chưa có giá.
     }
@@ -124,11 +132,16 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         seatCanvas = new ToaSeatDiagramPanel();
         seatCanvas.setSelectable(true);
         seatCanvas.setUnavailableResolver(ghe -> soldMaGhes.contains(ghe.getMaGhe()));
+        seatCanvas.setHeldByOtherResolver(ghe -> heldByOtherMaGhes.containsKey(ghe.getMaGhe()));
         seatCanvas.setSelectedResolver(selectedGhes::contains);
         seatCanvas.setPriceResolver(this::unitPriceForTooltip);
+        seatCanvas.setHoldTooltipResolver(this::holdTooltipForSeat);
         seatCanvas.setSeatClickHandler(ghe -> {
-            if (selectedGhes.contains(ghe)) selectedGhes.remove(ghe);
-            else selectedGhes.add(ghe);
+            if (selectedGhes.contains(ghe)) {
+                if (releaseSeatHandler.apply(ghe)) selectedGhes.remove(ghe);
+            } else if (holdSeatHandler.apply(ghe)) {
+                selectedGhes.add(ghe);
+            }
             updateGlobalSelection();
             seatCanvas.repaint();
         });
@@ -157,12 +170,16 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         styleBtn(btnSubmit, true);
         btnSubmit.setEnabled(false);
         btnSubmit.addActionListener(e -> {
+            stopHoldRefreshTimer();
             if (callback != null) callback.accept(new ArrayList<>(selectedGhes));
         });
 
         btnCancel = new JButton("← Quay lại");
         styleBtn(btnCancel, false);
-        btnCancel.addActionListener(e -> { if (callback != null) callback.accept(null); });
+        btnCancel.addActionListener(e -> {
+            stopHoldRefreshTimer();
+            if (callback != null) callback.accept(null);
+        });
 
         btnPanel = BookingStepUi.createFooter();
         btnPanel.add(btnCancel);
@@ -344,6 +361,56 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         // Risk: không dùng giá này để tính tiền; tính tiền chính vẫn ở BanVeModule/Step6.
     }
 
+    private String holdTooltipForSeat(Ghe ghe) {
+        java.time.LocalDateTime expireAt = ghe == null ? null : heldByMeMaGhes.get(ghe.getMaGhe());
+        String label = expireAt != null ? "Bạn đang giữ chỗ" : "Đã được giữ chỗ";
+        if (expireAt == null && ghe != null) expireAt = heldByOtherMaGhes.get(ghe.getMaGhe());
+        if (expireAt == null) return null;
+        long seconds = Math.max(0, java.time.Duration.between(java.time.LocalDateTime.now(), expireAt).getSeconds());
+        return label + " — còn " + formatHoldRemaining(seconds);
+    }
+
+    private String formatHoldRemaining(long seconds) {
+        long minutes = seconds / 60;
+        long remainSeconds = seconds % 60;
+        return minutes > 0 ? minutes + " phút " + remainSeconds + " giây" : remainSeconds + " giây";
+    }
+
+    public void setSeatHoldHandlers(Function<Ghe, Boolean> holdSeatHandler, Function<Ghe, Boolean> releaseSeatHandler) {
+        this.holdSeatHandler = holdSeatHandler == null ? ghe -> true : holdSeatHandler;
+        this.releaseSeatHandler = releaseSeatHandler == null ? ghe -> true : releaseSeatHandler;
+        // Handoff: module chỉ đổi UI sau khi callback nghiệp vụ giữ/bỏ giữ xác nhận thành công.
+        // Risk: nếu callback false, người dùng phải chọn ghế khác hoặc thử lại sau.
+    }
+
+    public void setHeldByOtherSeats(Map<String, java.time.LocalDateTime> heldSeats) {
+        heldByOtherMaGhes.clear();
+        if (heldSeats != null) heldByOtherMaGhes.putAll(heldSeats);
+        if (seatCanvas != null) seatCanvas.repaint();
+    }
+
+    public void setHeldByMeSeats(Map<String, java.time.LocalDateTime> heldSeats) {
+        heldByMeMaGhes.clear();
+        if (heldSeats != null) heldByMeMaGhes.putAll(heldSeats);
+        if (seatCanvas != null) seatCanvas.repaint();
+    }
+
+    public void markHeldByMe(Ghe ghe, java.time.LocalDateTime expireAt) {
+        if (ghe != null && expireAt != null) heldByMeMaGhes.put(ghe.getMaGhe(), expireAt);
+        if (seatCanvas != null) seatCanvas.repaint();
+    }
+
+    public void unmarkHeldByMe(Ghe ghe) {
+        if (ghe != null) heldByMeMaGhes.remove(ghe.getMaGhe());
+        if (seatCanvas != null) seatCanvas.repaint();
+        // Handoff: cache hạn giữ trong Step 3 chỉ phục vụ tooltip, DB vẫn là nguồn đúng.
+        // Risk: nếu DB bị dọn ngoài luồng, validate khi qua bước sẽ clear và yêu cầu chọn lại.
+    }
+
+    private void stopHoldRefreshTimer() {
+        if (holdRefreshTimer != null) holdRefreshTimer.stop();
+    }
+
     private void updateGlobalSelection() {
         btnSubmit.setEnabled(!selectedGhes.isEmpty());
         updateTrainSchematic();
@@ -358,6 +425,7 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         btnPanel.setVisible(cb != null);
     }
     @Override public void reset() {
+        stopHoldRefreshTimer();
         selectedGhes.clear();
         updateGlobalSelection();
     }

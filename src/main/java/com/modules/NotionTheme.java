@@ -21,6 +21,8 @@ public final class NotionTheme {
     public static final Color ACCENT = new Color(0x56, 0x45, 0xD4);
     public static final Color ACCENT_HOVER = new Color(0x45, 0x34, 0xB3);
     public static final Color ACCENT_SOFT = new Color(0xE6, 0xE0, 0xF5);
+    public static final Color POPUP_SELECTION = ACCENT;
+    public static final Color POPUP_SELECTION_TEXT = Color.WHITE;
     public static final Color TABLE_SELECTION = new Color(0xD9, 0xD1, 0xF4);
     public static final Color NAVY = new Color(0x0A, 0x15, 0x30);
     public static final Color PEACH = new Color(0xFF, 0xE8, 0xD4);
@@ -111,6 +113,39 @@ public final class NotionTheme {
         header.setForeground(TEXT_MUTED);
         header.setBackground(CARD_MUTED);
         header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER));
+    }
+
+    public static void applyListSelection(JList<?> list) {
+        list.setSelectionBackground(POPUP_SELECTION);
+        list.setSelectionForeground(POPUP_SELECTION_TEXT);
+        // Handoff: dùng cho popup/dropdown cần selection tím đậm và chữ trắng theo Notion accent.
+        // Rủi ro: custom renderer phải tôn trọng isSelected hoặc dùng applyComboBoxSelection để wrap renderer.
+    }
+
+    public static <T> void applyComboBoxSelection(JComboBox<T> comboBox) {
+        ListCellRenderer<? super T> renderer = comboBox.getRenderer();
+        comboBox.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            applyListSelection(list);
+            Component component = renderer.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (isSelected) applyPopupSelectionColors(component);
+            return component;
+        });
+    }
+
+    public static void applyPopupSelectionColors(Component component) {
+        component.setBackground(POPUP_SELECTION);
+        component.setForeground(POPUP_SELECTION_TEXT);
+        if (component instanceof JComponent jComponent) jComponent.setOpaque(true);
+        if (component instanceof Container container) {
+            for (Component child : container.getComponents()) applyPopupSelectionColors(child);
+        }
+    }
+
+    public static void lockMaxWidthToPreferredHeight(JComponent component) {
+        Dimension preferred = component.getPreferredSize();
+        component.setMaximumSize(new Dimension(Integer.MAX_VALUE, preferred.height));
+        // Handoff: dùng cho BoxLayout Y_AXIS để component rộng hết hàng nhưng không bị kẹp chiều cao hard-code.
+        // Rủi ro: gọi sau khi đã add đủ child/border; gọi quá sớm sẽ lấy preferred height chưa ổn định.
     }
 
     public static void paintCard(Graphics g, JComponent component, Color fill, Color stroke, int radius) {

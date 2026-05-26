@@ -1,6 +1,7 @@
 package com.modules;
 
 import com.dao.DAO_NhanVien;
+import com.entity.Ga;
 import com.entity.NhanVien;
 
 import javax.swing.*;
@@ -1034,10 +1035,13 @@ public class ThongTinCaNhanModule extends JPanel implements AppModule {
         };
     }
 
-    private String resolveGaName(String maGa) {
+    private String resolveGaName(Ga gaLamViec) {
+        String maGa = gaLamViec != null ? gaLamViec.getMaGa() : null;
         if (maGa == null || maGa.isEmpty()) return null;
         for (String[] ga : daoNV.getAllGa()) if (maGa.equals(ga[0])) return ga[1];
         return maGa;
+        // Handoff: resolver accepts Ga object but still tolerates code-only Ga from DAO.
+        // Risk: if DAO later hydrates tenGa, this lookup can be skipped for faster render.
     }
 
     @Override public String getTitle() { return "Thông tin cá nhân"; }

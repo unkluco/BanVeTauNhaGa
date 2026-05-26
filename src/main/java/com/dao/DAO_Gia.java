@@ -183,8 +183,30 @@ public class DAO_Gia {
         return cloneGiaWithDetailsReplacingDetail(editedGia, editedDetail, false, List.of());
     }
 
+    public Gia cloneGiaWithDetailsExcludingDetail(Gia editedGia, String excludedMaChiTietGia,
+                                                  boolean activateNew, List<String> conflictIdsToDeactivate) {
+        return cloneGiaWithDetailsExcludingDetail(editedGia, excludedMaChiTietGia, activateNew, conflictIdsToDeactivate, null);
+    }
+
+    public Gia cloneGiaWithDetailsExcludingDetail(Gia editedGia, String excludedMaChiTietGia,
+                                                  boolean activateNew, List<String> conflictIdsToDeactivate,
+                                                  String cloneMoTa) {
+        return cloneGiaWithDetailsInternal(editedGia, null, excludedMaChiTietGia, activateNew, conflictIdsToDeactivate, cloneMoTa);
+    }
+
     public Gia cloneGiaWithDetailsReplacingDetail(Gia editedGia, ChiTietGia editedDetail,
                                                   boolean activateNew, List<String> conflictIdsToDeactivate) {
+        return cloneGiaWithDetailsReplacingDetail(editedGia, editedDetail, activateNew, conflictIdsToDeactivate, null);
+    }
+
+    public Gia cloneGiaWithDetailsReplacingDetail(Gia editedGia, ChiTietGia editedDetail,
+                                                  boolean activateNew, List<String> conflictIdsToDeactivate,
+                                                  String cloneMoTa) {
+        return cloneGiaWithDetailsInternal(editedGia, editedDetail, null, activateNew, conflictIdsToDeactivate, cloneMoTa);
+    }
+
+    private Gia cloneGiaWithDetailsInternal(Gia editedGia, ChiTietGia editedDetail, String excludedMaChiTietGia,
+                                            boolean activateNew, List<String> conflictIdsToDeactivate, String cloneMoTa) {
         Connection con = ConnectDB.getCon();
         if (con == null || editedGia == null) return null;
 
@@ -199,13 +221,14 @@ public class DAO_Gia {
 
         String oldMaGia = editedGia.getMaGia();
         String newMaGia = MaTuDong.generate("GIA");
+        String newMoTa = (cloneMoTa != null && !cloneMoTa.trim().isEmpty()) ? cloneMoTa.trim() : editedGia.getMoTa();
         Gia cloned = new Gia(newMaGia, editedGia.getThoiGianBatDau(), editedGia.getThoiGianKetThuc(),
-                editedGia.getMoTa(), activateNew);
+                newMoTa, activateNew);
         try {
             updateTrangThaiGia(con, oldMaGia, false);
             deactivateGiaIds(con, conflictIdsToDeactivate);
             insertGia(con, cloned);
-            cloneChiTietGia(con, oldMaGia, newMaGia, editedDetail);
+            cloneChiTietGia(con, oldMaGia, newMaGia, editedDetail, excludedMaChiTietGia);
             con.commit();
             con.setAutoCommit(oldAutoCommit);
             return cloned;
@@ -215,6 +238,8 @@ public class DAO_Gia {
             System.err.println("Lỗi khi nhân bản giá đã áp dụng: " + e.getMessage());
         }
         return null;
+        // Handoff: internal clone gom cả sửa và xóa chi tiết để transaction luôn tắt kỳ cũ + tạo kỳ mới đồng bộ.
+        // Rủi ro: nếu generator mã tự động không an toàn trong batch, clone nhiều dòng cùng lúc có thể đụng mã.
     }
 
     private void updateGia(Connection con, Gia gia) throws SQLException {
@@ -257,18 +282,25 @@ public class DAO_Gia {
         }
     }
 
-    private void cloneChiTietGia(Connection con, String oldMaGia, String newMaGia, ChiTietGia editedDetail) throws SQLException {
+    private void cloneChiTietGia(Connection con, String oldMaGia, String newMaGia,
+                                 ChiTietGia editedDetail, String excludedMaChiTietGia) throws SQLException {
         String selectSql = "SELECT maChiTietGia, maTuyen, loaiGhe, giaNiemYet FROM ChiTietGia WHERE maGia = ?";
         String insertSql = "INSERT INTO ChiTietGia (maChiTietGia, maGia, maTuyen, loaiGhe, giaNiemYet) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement select = con.prepareStatement(selectSql);
              PreparedStatement insert = con.prepareStatement(insertSql)) {
             select.setString(1, oldMaGia);
             boolean replaced = editedDetail == null;
+            boolean excluded = excludedMaChiTietGia == null;
             Set<String> uniqueKeys = new HashSet<>();
             try (ResultSet rs = select.executeQuery()) {
                 while (rs.next()) {
+                    String currentMaChiTietGia = rs.getString("maChiTietGia");
+                    if (excludedMaChiTietGia != null && excludedMaChiTietGia.equals(currentMaChiTietGia)) {
+                        excluded = true;
+                        continue;
+                    }
                     boolean replace = editedDetail != null
-                            && editedDetail.getMaChiTietGia().equals(rs.getString("maChiTietGia"));
+                            && editedDetail.getMaChiTietGia().equals(currentMaChiTietGia);
                     if (replace) replaced = true;
                     String maTuyen = replace ? editedDetail.getTuyen().getMaTuyen() : rs.getString("maTuyen");
                     String loaiGhe = replace ? editedDetail.getLoaiGhe().toDbValue() : rs.getString("loaiGhe");
@@ -283,8 +315,11 @@ public class DAO_Gia {
                 }
             }
             if (!replaced) throw new SQLException("Không tìm thấy chi tiết giá cần thay trong kỳ giá cũ");
+            if (!excluded) throw new SQLException("Không tìm thấy chi tiết giá cần xóa trong kỳ giá cũ");
             insert.executeBatch();
         }
+        // Handoff: excludedMaChiTietGia chỉ bỏ dòng khỏi bản clone, không xóa dòng lịch sử đang được vé tham chiếu.
+        // Rủi ro: nếu xóa hết chi tiết, kỳ giá mới vẫn được tạo nhưng không còn dòng giá để bán vé.
     }
 
     private Gia mapRow(ResultSet rs) throws SQLException {

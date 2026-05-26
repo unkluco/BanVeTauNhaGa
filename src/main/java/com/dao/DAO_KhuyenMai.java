@@ -1,11 +1,11 @@
 package com.dao;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -80,8 +80,8 @@ public class DAO_KhuyenMai {
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, km.getMaKhuyenMai());
             ps.setNString(2, km.getTenKhuyenMai());
-            ps.setTimestamp(3, Timestamp.valueOf(km.getThoiGianBatDau()));
-            ps.setTimestamp(4, Timestamp.valueOf(km.getThoiGianKetThuc()));
+            ps.setDate(3, Date.valueOf(km.getThoiGianBatDau()));
+            ps.setDate(4, Date.valueOf(km.getThoiGianKetThuc()));
             ps.setNString(5, km.getMoTa());
             ps.setBoolean(6, km.isTrangThai());
             return ps.executeUpdate() > 0;
@@ -98,8 +98,8 @@ public class DAO_KhuyenMai {
         String sql = "UPDATE KhuyenMai SET tenKhuyenMai = ?, thoiGianBatDau = ?, thoiGianKetThuc = ?, moTa = ?, trangThai = ? WHERE maKhuyenMai = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setNString(1, km.getTenKhuyenMai());
-            ps.setTimestamp(2, Timestamp.valueOf(km.getThoiGianBatDau()));
-            ps.setTimestamp(3, Timestamp.valueOf(km.getThoiGianKetThuc()));
+            ps.setDate(2, Date.valueOf(km.getThoiGianBatDau()));
+            ps.setDate(3, Date.valueOf(km.getThoiGianKetThuc()));
             ps.setNString(4, km.getMoTa());
             ps.setBoolean(5, km.isTrangThai());
             ps.setString(6, km.getMaKhuyenMai());
@@ -129,27 +129,46 @@ public class DAO_KhuyenMai {
     }
 
     public KhuyenMai cloneKhuyenMaiWithDetails(KhuyenMai editedKm, boolean activateNew) {
-        return cloneKhuyenMaiWithDetails(editedKm, null, false, false, activateNew);
+        return cloneKhuyenMaiWithDetails(editedKm, activateNew, null);
+    }
+
+    public KhuyenMai cloneKhuyenMaiWithDetails(KhuyenMai editedKm, boolean activateNew, String cloneTenKhuyenMai) {
+        return cloneKhuyenMaiWithDetails(editedKm, null, false, false, activateNew, cloneTenKhuyenMai);
     }
 
     public KhuyenMai cloneKhuyenMaiWithDetailsReplacingDetail(KhuyenMai sourceKm, ChiTietKhuyenMai editedDetail,
                                                               boolean activateNew) {
-        return cloneKhuyenMaiWithDetails(sourceKm, editedDetail, true, false, activateNew);
+        return cloneKhuyenMaiWithDetailsReplacingDetail(sourceKm, editedDetail, activateNew, null);
+    }
+
+    public KhuyenMai cloneKhuyenMaiWithDetailsReplacingDetail(KhuyenMai sourceKm, ChiTietKhuyenMai editedDetail,
+                                                              boolean activateNew, String cloneTenKhuyenMai) {
+        return cloneKhuyenMaiWithDetails(sourceKm, editedDetail, true, false, activateNew, cloneTenKhuyenMai);
     }
 
     public KhuyenMai cloneKhuyenMaiWithDetailsRemovingDetail(KhuyenMai sourceKm, ChiTietKhuyenMai removedDetail,
                                                              boolean activateNew) {
-        return cloneKhuyenMaiWithDetails(sourceKm, removedDetail, false, true, activateNew);
+        return cloneKhuyenMaiWithDetailsRemovingDetail(sourceKm, removedDetail, activateNew, null);
+    }
+
+    public KhuyenMai cloneKhuyenMaiWithDetailsRemovingDetail(KhuyenMai sourceKm, ChiTietKhuyenMai removedDetail,
+                                                             boolean activateNew, String cloneTenKhuyenMai) {
+        return cloneKhuyenMaiWithDetails(sourceKm, removedDetail, false, true, activateNew, cloneTenKhuyenMai);
     }
 
     public KhuyenMai cloneKhuyenMaiWithDetailsAddingDetail(KhuyenMai sourceKm, ChiTietKhuyenMai addedDetail,
                                                            boolean activateNew) {
-        return cloneKhuyenMaiWithDetails(sourceKm, addedDetail, false, false, activateNew);
+        return cloneKhuyenMaiWithDetailsAddingDetail(sourceKm, addedDetail, activateNew, null);
+    }
+
+    public KhuyenMai cloneKhuyenMaiWithDetailsAddingDetail(KhuyenMai sourceKm, ChiTietKhuyenMai addedDetail,
+                                                           boolean activateNew, String cloneTenKhuyenMai) {
+        return cloneKhuyenMaiWithDetails(sourceKm, addedDetail, false, false, activateNew, cloneTenKhuyenMai);
     }
 
     private KhuyenMai cloneKhuyenMaiWithDetails(KhuyenMai sourceKm, ChiTietKhuyenMai changedDetail,
                                                 boolean replaceDetail, boolean removeDetail,
-                                                boolean activateNew) {
+                                                boolean activateNew, String cloneTenKhuyenMai) {
         Connection con = ConnectDB.getCon();
         if (con == null || sourceKm == null) return null;
         boolean oldAutoCommit;
@@ -162,7 +181,9 @@ public class DAO_KhuyenMai {
         }
         String oldMaKm = sourceKm.getMaKhuyenMai();
         String newMaKm = MaTuDong.generate("KM");
-        KhuyenMai cloned = new KhuyenMai(newMaKm, sourceKm.getTenKhuyenMai(), sourceKm.getThoiGianBatDau(),
+        String newTenKhuyenMai = (cloneTenKhuyenMai != null && !cloneTenKhuyenMai.trim().isEmpty())
+                ? cloneTenKhuyenMai.trim() : sourceKm.getTenKhuyenMai();
+        KhuyenMai cloned = new KhuyenMai(newMaKm, newTenKhuyenMai, sourceKm.getThoiGianBatDau(),
                 sourceKm.getThoiGianKetThuc(), sourceKm.getMoTa(), activateNew);
         try {
             updateTrangThaiKhuyenMai(con, oldMaKm, false);
@@ -176,6 +197,8 @@ public class DAO_KhuyenMai {
             try { con.setAutoCommit(oldAutoCommit); } catch (SQLException restoreEx) { System.err.println("Lỗi khôi phục transaction khuyến mãi: " + restoreEx.getMessage()); }
             System.err.println("Lỗi khi nhân bản khuyến mãi đã áp dụng: " + e.getMessage());
         }
+        // Handoff: tên clone được override từ UI để tránh bản khuyến mãi mới trùng tên bản cũ.
+        // Rủi ro: các overload cũ truyền null vẫn giữ hành vi cũ cho caller chưa cập nhật.
         return null;
     }
 
@@ -184,8 +207,8 @@ public class DAO_KhuyenMai {
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, km.getMaKhuyenMai());
             ps.setNString(2, km.getTenKhuyenMai());
-            ps.setTimestamp(3, Timestamp.valueOf(km.getThoiGianBatDau()));
-            ps.setTimestamp(4, Timestamp.valueOf(km.getThoiGianKetThuc()));
+            ps.setDate(3, Date.valueOf(km.getThoiGianBatDau()));
+            ps.setDate(4, Date.valueOf(km.getThoiGianKetThuc()));
             ps.setNString(5, km.getMoTa());
             ps.setBoolean(6, km.isTrangThai());
             if (ps.executeUpdate() == 0) throw new SQLException("Không thêm được khuyến mãi mới");
@@ -196,8 +219,8 @@ public class DAO_KhuyenMai {
         String sql = "UPDATE KhuyenMai SET tenKhuyenMai = ?, thoiGianBatDau = ?, thoiGianKetThuc = ?, moTa = ?, trangThai = ? WHERE maKhuyenMai = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setNString(1, km.getTenKhuyenMai());
-            ps.setTimestamp(2, Timestamp.valueOf(km.getThoiGianBatDau()));
-            ps.setTimestamp(3, Timestamp.valueOf(km.getThoiGianKetThuc()));
+            ps.setDate(2, Date.valueOf(km.getThoiGianBatDau()));
+            ps.setDate(3, Date.valueOf(km.getThoiGianKetThuc()));
             ps.setNString(4, km.getMoTa());
             ps.setBoolean(5, km.isTrangThai());
             ps.setString(6, km.getMaKhuyenMai());
@@ -281,10 +304,10 @@ public class DAO_KhuyenMai {
     private KhuyenMai mapRow(ResultSet rs) throws SQLException {
         String maKM = rs.getString("maKhuyenMai");
         String tenKM = rs.getNString("tenKhuyenMai");
-        Timestamp tsBD = rs.getTimestamp("thoiGianBatDau");
-        Timestamp tsKT = rs.getTimestamp("thoiGianKetThuc");
-        LocalDateTime bd = tsBD != null ? tsBD.toLocalDateTime() : null;
-        LocalDateTime kt = tsKT != null ? tsKT.toLocalDateTime() : null;
+        Date dBD = rs.getDate("thoiGianBatDau");
+        Date dKT = rs.getDate("thoiGianKetThuc");
+        LocalDate bd = dBD != null ? dBD.toLocalDate() : null;
+        LocalDate kt = dKT != null ? dKT.toLocalDate() : null;
         String moTa = rs.getNString("moTa");
         boolean trangThai = rs.getBoolean("trangThai");
         return new KhuyenMai(maKM, tenKM, bd, kt, moTa, trangThai);

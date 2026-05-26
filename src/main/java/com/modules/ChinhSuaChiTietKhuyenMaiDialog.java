@@ -143,12 +143,15 @@ public class ChinhSuaChiTietKhuyenMaiDialog extends AbstractFormDialog<ChiTietKh
         int kmUsage = daoKm.countAppliedUsage(khuyenMai.getMaKhuyenMai());
         boolean shouldClone = kmUsage > 0;
         boolean activateClone = false;
+        String cloneTenKhuyenMai = null;
         if (shouldClone) {
             if (!confirmCloneUsedKhuyenMaiDetail(kmUsage)) return;
+            cloneTenKhuyenMai = promptCloneTenKhuyenMai(khuyenMai.getTenKhuyenMai());
+            if (cloneTenKhuyenMai == null) return;
             activateClone = confirmActivateClonedKhuyenMai();
         }
         boolean ok = shouldClone
-                ? cloneFromDetailChange(daoKm, record, activateClone)
+                ? cloneFromDetailChange(daoKm, record, activateClone, cloneTenKhuyenMai)
                 : isAddMode ? new DAO_ChiTietKhuyenMai().insert(record) : new DAO_ChiTietKhuyenMai().update(record);
 
         if (ok) {
@@ -170,10 +173,10 @@ public class ChinhSuaChiTietKhuyenMaiDialog extends AbstractFormDialog<ChiTietKh
     }
 
     private boolean cloneFromDetailChange(DAO_KhuyenMai daoKm, ChiTietKhuyenMai record,
-                                          boolean activateClone) {
+                                          boolean activateClone, String cloneTenKhuyenMai) {
         KhuyenMai cloned = isAddMode
-                ? daoKm.cloneKhuyenMaiWithDetailsAddingDetail(khuyenMai, record, activateClone)
-                : daoKm.cloneKhuyenMaiWithDetailsReplacingDetail(khuyenMai, record, activateClone);
+                ? daoKm.cloneKhuyenMaiWithDetailsAddingDetail(khuyenMai, record, activateClone, cloneTenKhuyenMai)
+                : daoKm.cloneKhuyenMaiWithDetailsReplacingDetail(khuyenMai, record, activateClone, cloneTenKhuyenMai);
         return cloned != null;
     }
 
@@ -183,6 +186,24 @@ public class ChinhSuaChiTietKhuyenMaiDialog extends AbstractFormDialog<ChiTietKh
                         + "Bạn có muốn nhân bản khuyến mãi này với chi tiết vừa nhập không?",
                 "Chi tiết khuyến mãi đã khóa", JOptionPane.WARNING_MESSAGE, "Hủy", "Đồng ý");
         return choice == JOptionPane.YES_OPTION;
+    }
+
+    private String promptCloneTenKhuyenMai(String defaultTenKhuyenMai) {
+        JTextField field = createTextField();
+        field.setText(defaultTenKhuyenMai == null ? "" : defaultTenKhuyenMai);
+        field.selectAll();
+        while (true) {
+            int choice = NotionMessageDialog.showConfirmDialog(this,
+                    new Object[]{"Nhập tên cho khuyến mãi mới:", field},
+                    "Tên khuyến mãi mới", JOptionPane.QUESTION_MESSAGE, "Hủy", "Tiếp tục");
+            if (choice != JOptionPane.YES_OPTION) return null;
+            String value = field.getText().trim();
+            if (!value.isEmpty()) return value;
+            NotionMessageDialog.showMessageDialog(this,
+                    "Vui lòng nhập tên khuyến mãi mới.", "Thiếu tên khuyến mãi", JOptionPane.WARNING_MESSAGE);
+        }
+        // Handoff: clone detail KM hỏi tên mới trước khi bật hoạt động để người dùng phân biệt bản clone.
+        // Rủi ro: hủy ở đây bỏ toàn bộ thay đổi detail đang nhập.
     }
 
     private boolean confirmActivateClonedKhuyenMai() {
@@ -234,8 +255,8 @@ public class ChinhSuaChiTietKhuyenMaiDialog extends AbstractFormDialog<ChiTietKh
             label.setOpaque(true);
             label.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
             label.setFont(NotionTheme.BODY);
-            label.setBackground(isSelected ? NotionTheme.ACCENT_SOFT : NotionTheme.CARD);
-            label.setForeground(NotionTheme.TEXT);
+            label.setBackground(isSelected ? NotionTheme.POPUP_SELECTION : NotionTheme.CARD);
+            label.setForeground(isSelected ? NotionTheme.POPUP_SELECTION_TEXT : NotionTheme.TEXT);
             return label;
         });
         return combo;

@@ -77,6 +77,23 @@ public class DAO_Ve {
         return ds;
     }
 
+    public boolean existsSoldSeat(String maLich, String maGhe) {
+        Connection con = ConnectDB.getCon();
+        if (con == null || maLich == null || maGhe == null) return false;
+
+        String sql = "SELECT 1 FROM Ve WHERE maLich = ? AND maGhe = ? AND trangThai = 'DA_BAN'";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maLich);
+            ps.setString(2, maGhe);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi kiểm tra ghế đã bán: " + e.getMessage());
+        }
+        return false;
+    }
+
     public boolean insert(Ve ve) {
         Connection con = ConnectDB.getCon();
         if (con == null) return false;

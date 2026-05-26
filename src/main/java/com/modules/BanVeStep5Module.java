@@ -19,8 +19,6 @@ import java.util.function.Consumer;
 
 public class BanVeStep5Module extends JPanel implements AppModule {
 
-    private enum InputMode { REPRESENTATIVE, PER_SEAT }
-
     private Consumer<Object> callback;
     private final DAO_KhachHang daoKH = new DAO_KhachHang();
     private final List<Ghe> selectedSeats;
@@ -37,12 +35,9 @@ public class BanVeStep5Module extends JPanel implements AppModule {
 
     private JPanel contentPanel;
     private CardLayout contentLayout;
-    private JButton btnRepresentativeMode;
-    private JButton btnPerSeatMode;
     private JButton btnSubmit, btnCancel;
     private JPanel btnPanel;
 
-    private CustomerPicker representativePicker;
     private JPanel seatFormHolder;
     private CardLayout seatFormLayout;
     private JList<SeatEntry> seatList;
@@ -51,7 +46,6 @@ public class BanVeStep5Module extends JPanel implements AppModule {
     private JButton btnSaveSeatNext;
 
     private final List<SeatEntry> seatEntries = new ArrayList<>();
-    private InputMode currentMode;
     private int currentSeatIndex = 0;
 
     public BanVeStep5Module() {
@@ -71,8 +65,7 @@ public class BanVeStep5Module extends JPanel implements AppModule {
         contentLayout = new CardLayout();
         contentPanel = new JPanel(contentLayout);
         contentPanel.setBackground(SURFACE);
-        contentPanel.add(buildRepresentativeView(), InputMode.REPRESENTATIVE.name());
-        contentPanel.add(buildPerSeatView(), InputMode.PER_SEAT.name());
+        contentPanel.add(buildPerSeatView(), "PER_SEAT");
         add(contentPanel, BorderLayout.CENTER);
 
         btnSubmit = new JButton("Tiếp theo →");
@@ -89,7 +82,7 @@ public class BanVeStep5Module extends JPanel implements AppModule {
         btnPanel.setVisible(false);
         add(btnPanel, BorderLayout.SOUTH);
 
-        switchMode(selectedSeats.size() > 1 ? InputMode.PER_SEAT : InputMode.REPRESENTATIVE);
+        contentLayout.show(contentPanel, "PER_SEAT");
     }
 
     private JPanel buildHeader() {
@@ -105,35 +98,12 @@ public class BanVeStep5Module extends JPanel implements AppModule {
         titleBar.add(lbl);
         wrapper.add(titleBar, BorderLayout.NORTH);
 
-        JPanel modeBar = new JPanel(new GridLayout(1, 2, 12, 0));
-        modeBar.setBackground(SURFACE);
-        modeBar.setBorder(new EmptyBorder(16, 80, 8, 80));
-        btnRepresentativeMode = makeModeButton("Người đại diện", "Một người mua đại diện cho toàn bộ hóa đơn");
-        btnPerSeatMode = makeModeButton("Nhiều người theo ghế", "Chọn riêng người ngồi từng ghế đã đặt");
-        btnRepresentativeMode.addActionListener(e -> switchMode(InputMode.REPRESENTATIVE));
-        btnPerSeatMode.addActionListener(e -> switchMode(InputMode.PER_SEAT));
-        modeBar.add(btnRepresentativeMode);
-        modeBar.add(btnPerSeatMode);
-        wrapper.add(modeBar, BorderLayout.CENTER);
+        JLabel hint = new JLabel("Mỗi ghế/vé cần gắn đúng một khách hàng.");
+        hint.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        hint.setForeground(ON_SURF_VAR);
+        hint.setBorder(new EmptyBorder(10, 80, 8, 80));
+        wrapper.add(hint, BorderLayout.CENTER);
         return wrapper;
-    }
-
-    private JButton makeModeButton(String title, String subtitle) {
-        JButton btn = new JButton("<html><div style='text-align:left'><b>" + title + "</b><br><span style='font-size:10px'>" + subtitle + "</span></div></html>");
-        btn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        btn.setHorizontalAlignment(SwingConstants.LEFT);
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return btn;
-    }
-
-    private JPanel buildRepresentativeView() {
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(SURFACE);
-        outer.setBorder(new EmptyBorder(16, 80, 24, 80));
-        representativePicker = new CustomerPicker("Người đại diện mua vé", null);
-        outer.add(representativePicker, BorderLayout.NORTH);
-        return outer;
     }
 
     private JPanel buildPerSeatView() {
@@ -209,23 +179,6 @@ public class BanVeStep5Module extends JPanel implements AppModule {
         return panel;
     }
 
-    private void switchMode(InputMode mode) {
-        currentMode = mode;
-        contentLayout.show(contentPanel, mode.name());
-        styleModeButton(btnRepresentativeMode, mode == InputMode.REPRESENTATIVE);
-        styleModeButton(btnPerSeatMode, mode == InputMode.PER_SEAT);
-        if (mode == InputMode.PER_SEAT) selectSeat(Math.min(currentSeatIndex, Math.max(0, seatEntries.size() - 1)));
-    }
-
-    private void styleModeButton(JButton btn, boolean active) {
-        btn.setOpaque(true);
-        btn.setBackground(active ? PRIMARY : CARD_BG);
-        btn.setForeground(active ? AppColors.SURFACE : ON_SURF_VAR);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(active ? PRIMARY : OUTLINE, active ? 2 : 1),
-                new EmptyBorder(12, 16, 12, 16)));
-    }
-
     private void selectSeat(int index) {
         if (seatEntries.isEmpty()) return;
         currentSeatIndex = Math.max(0, Math.min(index, seatEntries.size() - 1));
@@ -256,17 +209,6 @@ public class BanVeStep5Module extends JPanel implements AppModule {
     }
 
     private void execute() {
-        if (currentMode == InputMode.REPRESENTATIVE) {
-            if (!representativePicker.hasCustomer()) {
-                representativePicker.showError("Vui lòng chọn hoặc tạo khách hàng đại diện");
-                return;
-            }
-            List<KhachHang> result = new ArrayList<>();
-            result.add(representativePicker.getCustomer());
-            if (callback != null) callback.accept(result);
-            return;
-        }
-
         int badIndex = -1;
         for (int i = 0; i < seatEntries.size(); i++) {
             if (!seatEntries.get(i).picker.hasCustomer()) {
@@ -351,10 +293,10 @@ public class BanVeStep5Module extends JPanel implements AppModule {
 
     @Override
     public void reset() {
-        representativePicker.resetPicker();
         for (SeatEntry entry : seatEntries) entry.picker.resetPicker();
         currentSeatIndex = 0;
-        switchMode(selectedSeats.size() > 1 ? InputMode.PER_SEAT : InputMode.REPRESENTATIVE);
+        contentLayout.show(contentPanel, "PER_SEAT");
+        selectSeat(Math.min(currentSeatIndex, Math.max(0, seatEntries.size() - 1)));
         refreshSeatList();
     }
 
@@ -413,6 +355,7 @@ public class BanVeStep5Module extends JPanel implements AppModule {
             center.add(searchField, BorderLayout.NORTH);
 
             searchList.setCellRenderer(new CustomerResultRenderer());
+            NotionTheme.applyListSelection(searchList);
             searchList.setFixedCellHeight(48);
             searchList.setVisibleRowCount(5);
             searchList.addMouseListener(new MouseAdapter() {
@@ -569,7 +512,7 @@ public class BanVeStep5Module extends JPanel implements AppModule {
         }
 
         private void openCreateCustomerDialog() {
-            ThemKhachHangDialog dlg = new ThemKhachHangDialog(ownerWindow(), () -> {});
+            KhachHangDialog dlg = KhachHangDialog.create(ownerWindow(), () -> {});
             dlg.setOnResult(result -> {
                 if (result instanceof KhachHang kh) selectCustomer(kh);
             });
@@ -578,7 +521,7 @@ public class BanVeStep5Module extends JPanel implements AppModule {
 
         private void openEditCustomerDialog() {
             if (selectedCustomer == null) return;
-            SuaKhachHangDialog dlg = new SuaKhachHangDialog(ownerWindow(), selectedCustomer, () -> {});
+            KhachHangDialog dlg = KhachHangDialog.edit(ownerWindow(), selectedCustomer, () -> {});
             dlg.setOnResult(result -> {
                 if (result instanceof KhachHang kh) selectCustomer(kh);
             });
@@ -742,11 +685,14 @@ public class BanVeStep5Module extends JPanel implements AppModule {
                 int index, boolean isSelected, boolean cellHasFocus) {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof KhachHang kh) {
+                String detailColor = isSelected ? "#FFFFFF" : "#5F6770";
                 setText("<html><b>" + safe(kh.getHoTen()) + "</b> &nbsp; " + safe(kh.getSoDienThoai())
-                        + "<br><span style='font-size:10px;color:#5F6770'>CCCD: " + safe(kh.getCccd())
+                        + "<br><span style='font-size:10px;color:" + detailColor + "'>CCCD: " + safe(kh.getCccd())
                         + " • " + safe(kh.getEmail()) + "</span></html>");
             }
             setBorder(new EmptyBorder(5, 10, 5, 10));
+            // Handoff: HTML detail color đổi theo selected để list tìm khách đồng bộ tím/chữ trắng.
+            // Rủi ro: nếu đổi sang renderer nhiều label thì bỏ inline HTML color để tránh lệch theme.
             return this;
         }
     }
