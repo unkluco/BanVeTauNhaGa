@@ -118,12 +118,6 @@ public class LoginModule extends JPanel implements AppModule {
         heroPanel.add(insightCard);
         heroPanel.add(Box.createVerticalStrut(10));
 
-        JLabel lblFooterHero = new JLabel("Hơn 500 nhân viên đang làm việc");
-        lblFooterHero.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblFooterHero.setForeground(ON_SURFACE_VAR);
-        lblFooterHero.setAlignmentX(Component.LEFT_ALIGNMENT);
-        heroPanel.add(lblFooterHero);
-
         // -------- RIGHT: Login form --------
         JPanel formWrapper = new JPanel(new GridBagLayout());
         formWrapper.setBackground(SURFACE);
@@ -255,11 +249,6 @@ public class LoginModule extends JPanel implements AppModule {
         formPanel.add(btnExit);
 
         formPanel.add(Box.createVerticalGlue());
-        JLabel lblFooter = new JLabel("© 2024 The Fluid Terminal Corporate");
-        lblFooter.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lblFooter.setForeground(OUTLINE);
-        lblFooter.setAlignmentX(Component.LEFT_ALIGNMENT);
-        formPanel.add(lblFooter);
 
         formWrapper.add(formPanel);
 
@@ -343,11 +332,11 @@ public class LoginModule extends JPanel implements AppModule {
         };
         icon.setOpaque(false);
         icon.setPreferredSize(new Dimension(64, 64));
-        JLabel iconText = new JLabel("OK");
+        JLabel iconText = new JLabel("^^");
         iconText.setFont(new Font("Segoe UI", Font.BOLD, 18));
         iconText.setForeground(PRIMARY);
         icon.add(iconText);
-        // Handoff: dùng ASCII OK để badge ca trực không phụ thuộc glyph đặc biệt của font máy.
+        // Handoff: dùng ASCII ^^ để badge ca trực không phụ thuộc glyph đặc biệt của font máy.
         // Cảnh báo: tránh ký tự biểu tượng như mũi tên/tick vì có máy hiển thị thành ô vuông tofu.
 
         JPanel text = new JPanel();
@@ -503,3 +492,4 @@ public class LoginModule extends JPanel implements AppModule {
         btnSubmit.setText("Đăng nhập");
     }
 }
+

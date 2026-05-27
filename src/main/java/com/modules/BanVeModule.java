@@ -33,8 +33,6 @@ public class BanVeModule extends JPanel implements AppModule {
 
     // --- UI ---
     private JPanel  stagePanel;
-    private JButton btnBack;
-    private JLabel  lblPageTitle;
     private JPanel  stepBarPanel;
 
     // --- Wizard context ---
@@ -151,29 +149,11 @@ public class BanVeModule extends JPanel implements AppModule {
             BorderFactory.createMatteBorder(0, 0, 1, 0, OUTLINE),
             new EmptyBorder(14, 24, 14, 24)
         ));
-
-        // Left: back button + title
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        left.setBackground(CARD_BG);
-
-        btnBack = new JButton("← Quay lại");
-        NotionTheme.styleSecondaryButton(btnBack);
-        btnBack.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnBack.setVisible(false);
-        btnBack.addActionListener(e -> goBack());
-
-        lblPageTitle = new JLabel("Bán vé mới");
-        lblPageTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblPageTitle.setForeground(ON_SURFACE);
-
-        left.add(btnBack);
-        left.add(lblPageTitle);
-
-        // Center: step progress blocks
+        // Handoff: header chỉ giữ tiến trình; tiêu đề và quay lại đã có ở layout/step footer.
+        // Risk: nếu thêm nút điều hướng mới, ưu tiên đặt trong từng step để tránh trùng UI.
         stepBarPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         stepBarPanel.setBackground(CARD_BG);
 
-        header.add(left, BorderLayout.WEST);
         header.add(stepBarPanel, BorderLayout.CENTER);
         return header;
     }
@@ -271,7 +251,6 @@ public class BanVeModule extends JPanel implements AppModule {
         currentStep = step;
         maxUnlockedStepIndex = Math.max(maxUnlockedStepIndex, stepToIndex(step));
         renderStep();
-        btnBack.setVisible(!stepHistory.isEmpty());
         refreshStepBar();
     }
 
@@ -279,7 +258,6 @@ public class BanVeModule extends JPanel implements AppModule {
         if (stepHistory.isEmpty()) return;
         currentStep = stepHistory.pop();
         renderStep();
-        btnBack.setVisible(!stepHistory.isEmpty());
         refreshStepBar();
     }
 
@@ -288,7 +266,6 @@ public class BanVeModule extends JPanel implements AppModule {
         currentStep = step;
         rebuildHistoryBefore(step);
         renderStep();
-        btnBack.setVisible(!stepHistory.isEmpty());
         refreshStepBar();
     }
 
@@ -985,3 +962,6 @@ public class BanVeModule extends JPanel implements AppModule {
         navigateTo(STEP_1, false);
     }
 }
+
+
+

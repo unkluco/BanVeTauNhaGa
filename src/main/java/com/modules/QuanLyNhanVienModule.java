@@ -29,7 +29,8 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     private JTextField        txtSearch;
     private JComboBox<String> cboVaiTro;
     private JComboBox<String> cboTrangThai;
-    private JButton           btnAddNew;
+        private JComboBox<String> cboGaLamViec;
+private JButton           btnAddNew;
     private JTable            table;
     private NhanVienTableModel tableModel;
 
@@ -46,7 +47,8 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
     private List<NhanVien> allData      = new ArrayList<>();
     private List<NhanVien> filteredData = new ArrayList<>();
 
-    // --- Design tokens ---
+        private String[] gaFilterKeys = new String[]{null};
+// --- Design tokens ---
     private static final Color PRIMARY       = NotionTheme.ACCENT;
     private static final Color PRIMARY_LIGHT = AppColors.ACTION_SOFT_BG;
     private static final Color SURFACE       = NotionTheme.PAGE;
@@ -359,6 +361,7 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         btnReset.addActionListener(e -> {
             cboVaiTro.setSelectedIndex(0);
             cboTrangThai.setSelectedIndex(0);
+            cboGaLamViec.setSelectedIndex(0);
             applyFilter();
         });
 
@@ -382,6 +385,9 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         });
         cboTrangThai.addActionListener(e -> applyFilter());
 
+        cboGaLamViec = createFilterCombo(loadGaFilterItems());
+        cboGaLamViec.addActionListener(e -> applyFilter());
+
         JPanel optionRow = new JPanel(new GridBagLayout());
         optionRow.setOpaque(false);
         optionRow.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -396,10 +402,12 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         filterGbc.gridx = 1;
         optionRow.add(createFilterGroup("Trạng thái", cboTrangThai), filterGbc);
         filterGbc.gridx = 2;
+        optionRow.add(createFilterGroup("Ga làm việc", cboGaLamViec), filterGbc);
+        filterGbc.gridx = 3;
         filterGbc.weightx = 0.0;
         filterGbc.insets = new Insets(0, 0, 0, 0);
         optionRow.add(FilterActionGroup.wrap(btnReset), filterGbc);
-        // Handoff: filter row dùng grid để bộ phận/trạng thái/nút không bị lệch.
+        // Handoff: filter row dùng grid để bộ phận/trạng thái/ga/nút không bị lệch.
         // Cảnh báo: search clear X vẫn là cơ chế xóa riêng của thanh tìm kiếm.
         wrapper.add(optionRow);
 
@@ -572,6 +580,23 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         return btn;
     }
 
+    private String[] loadGaFilterItems() {
+        List<String[]> gaList = new DAO_NhanVien().getAllGa();
+        List<String> labels = new ArrayList<>();
+        List<String> keys = new ArrayList<>();
+        labels.add("Tất cả ga làm việc");
+        keys.add(null);
+        for (String[] ga : gaList) {
+            if (ga == null || ga.length == 0 || ga[0] == null || ga[0].isBlank()) continue;
+            String tenGa = ga.length > 1 && ga[1] != null && !ga[1].isBlank() ? ga[1] : ga[0];
+            labels.add(tenGa);
+            keys.add(ga[0]);
+        }
+        gaFilterKeys = keys.toArray(new String[0]);
+        return labels.toArray(new String[0]);
+        // Handoff: combo hiển thị tên ga nhưng filter theo maGa để không phụ thuộc text UI.
+        // Risk: nếu danh sách ga thay đổi runtime, mở lại module hoặc reload filter để cập nhật labels.
+    }
     private JComboBox<String> createFilterCombo(String[] items) {
         JComboBox<String> cbo = new JComboBox<>(items);
         cbo.setFont(FONT_BODY);
@@ -636,10 +661,16 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         lblAdminCount.setText(String.valueOf(inactive));
     }
 
+    private String selectedGaFilterKey() {
+        if (cboGaLamViec == null || gaFilterKeys == null) return null;
+        int index = cboGaLamViec.getSelectedIndex();
+        return index > 0 && index < gaFilterKeys.length ? gaFilterKeys[index] : null;
+    }
     private void applyFilter() {
         String keyword = txtSearch.getText().trim().toLowerCase();
         int vaiTroIdx = cboVaiTro.getSelectedIndex();
         int trangThaiIdx = cboTrangThai.getSelectedIndex();
+        String selectedMaGa = selectedGaFilterKey();
 
         filteredData = new ArrayList<>();
         for (NhanVien nv : allData) {
@@ -662,7 +693,9 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
                 default -> true;
             });
 
-            if (matchKw && matchVt && matchTt) {
+            boolean matchGa = selectedMaGa == null || selectedMaGa.equals(nv.getMaGaLamViec());
+
+            if (matchKw && matchVt && matchTt && matchGa) {
                 filteredData.add(nv);
             }
         }
@@ -967,8 +1000,11 @@ public class QuanLyNhanVienModule extends JPanel implements AppModule {
         txtSearch.setText("");
         cboVaiTro.setSelectedIndex(0);
         cboTrangThai.setSelectedIndex(0);
+        cboGaLamViec.setSelectedIndex(0);
         loadData();
     }
 }
+
+
 
 

@@ -177,9 +177,9 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
         lblStatTotal = new JLabel("0");
         lblStatTickets = new JLabel("0");
         lblStatRevenue = new JLabel("0 ₫");
-        row.add(buildStatCard("Hóa đơn hiện tại", lblStatTotal, PRIMARY, NotionTheme.ACCENT_SOFT));
-        row.add(buildStatCard("Tổng số vé", lblStatTickets, PRIMARY, NotionTheme.ACCENT_SOFT));
-        row.add(buildStatCard("Tổng doanh thu", lblStatRevenue, AMOUNT_COLOR, NotionTheme.MINT));
+        row.add(buildStatCard("Hóa đơn", lblStatTotal, AppColors.PRIMARY, NotionTheme.SKY));
+        row.add(buildStatCard("Số vé đã bán", lblStatTickets, AppColors.WARNING_DARK, NotionTheme.YELLOW));
+        row.add(buildStatCard("Doanh thu", lblStatRevenue, AppColors.SUCCESS_DARK, NotionTheme.MINT));
         return row;
     }
 
@@ -188,9 +188,9 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(tint);
+                g2.setColor(AppColors.withAlpha(tint, 190));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                g2.setColor(AppColors.withAlpha(accent, 80));
+                g2.setColor(AppColors.withAlpha(accent, 55));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
                 g2.dispose();
                 super.paintComponent(g);
@@ -472,8 +472,22 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
         refreshTable();
     }
 
+    private void updateStats(List<HoaDonRow> source) {
+        int totalInvoices = source.size();
+        int totalTickets = source.stream().mapToInt(HoaDonRow::soVe).sum();
+        BigDecimal totalRevenue = source.stream()
+                .map(HoaDonRow::tongTien)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        lblStatTotal.setText(String.valueOf(totalInvoices));
+        lblStatTickets.setText(String.valueOf(totalTickets));
+        lblStatRevenue.setText(VND_FMT.format(totalRevenue) + " ₫");
+        // Handoff: thống kê phản ánh đúng danh sách đang lọc, không chỉ toàn bộ hóa đơn.
+        // Risk: tongTien lấy từ ChiTietHoaDon; nếu dữ liệu chi tiết thiếu thì doanh thu về 0 cho hóa đơn đó.
+    }
     private void refreshTable() {
         tableModel.setData(filteredData);
+        updateStats(filteredData);
         int total = filteredData.size();
         lblPageInfo.setText(total == 0
                 ? "Không tìm thấy hóa đơn nào"
@@ -775,4 +789,6 @@ public class QuanLyHoaDonModule extends JPanel implements AppModule {
     }
     @Override public void reset() { txtSearch.setText(""); loadData(); }
 }
+
+
 

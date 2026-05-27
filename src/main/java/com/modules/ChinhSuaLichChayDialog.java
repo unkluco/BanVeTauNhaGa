@@ -7,6 +7,7 @@ import com.entity.DoanTau;
 import com.entity.Lich;
 import com.entity.Tuyen;
 
+import com.util.MaTuDong;
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
@@ -70,11 +71,9 @@ public class ChinhSuaLichChayDialog extends AbstractFormDialog<Lich> {
     @Override
     protected FormSchema buildFormSchema() {
         txtMaLich = createTextField();
-        if (isEditMode) {
-            txtMaLich.setText(original.getMaLich());
-            txtMaLich.setEditable(false);
-            txtMaLich.setFont(NotionTheme.BODY_BOLD);
-        }
+        txtMaLich.setText(isEditMode ? original.getMaLich() : MaTuDong.generate("LCH"));
+        txtMaLich.setEditable(false);
+        txtMaLich.setFont(NotionTheme.BODY_BOLD);
 
         cboTuyen = createTuyenCombo();
         cboDoanTau = createDoanTauCombo();
@@ -92,8 +91,8 @@ public class ChinhSuaLichChayDialog extends AbstractFormDialog<Lich> {
                 .columns(2)
                 .gap(16, 14)
                 .field(FieldSpec.of("maLich", "M\u00e3 l\u1ecbch ch\u1ea1y", txtMaLich)
-                        .grid(0, 0).required(!isEditMode)
-                        .hint(isEditMode ? "Kh\u00f4ng th\u1ec3 thay \u0111\u1ed5i m\u00e3 l\u1ecbch." : null)
+                        .grid(0, 0).required(true)
+                        .hint("Mã lịch được hệ thống tự sinh, không thể chỉnh sửa.")
                         .build())
                 .field(FieldSpec.of("trangThai", "Tr\u1ea1ng th\u00e1i", cboTrangThai)
                         .grid(0, 1).build())
@@ -160,8 +159,8 @@ public class ChinhSuaLichChayDialog extends AbstractFormDialog<Lich> {
     @Override
     protected List<ValidationError> validateForm(FormValues values) {
         java.util.ArrayList<ValidationError> errors = new java.util.ArrayList<>();
-        if (!isEditMode && txtMaLich.getText().trim().isEmpty()) {
-            errors.add(new ValidationError("maLich", "Vui l\u00f2ng nh\u1eadp m\u00e3 l\u1ecbch"));
+        if (txtMaLich.getText().trim().isEmpty()) {
+            errors.add(new ValidationError("maLich", "Không thể phát sinh mã lịch. Vui lòng mở lại form."));
         }
         if (cboTuyen.getSelectedItem() == null) {
             errors.add(new ValidationError("tuyen", "Vui l\u00f2ng ch\u1ecdn tuy\u1ebfn"));
@@ -190,7 +189,7 @@ public class ChinhSuaLichChayDialog extends AbstractFormDialog<Lich> {
     protected Lich collectResult(FormValues values) {
         LocalDate dateVal = dpBatDau.getValue();
         LocalDateTime batDau = LocalDateTime.of(dateVal, readTime(timePickerBatDau));
-        Lich lich = new Lich(isEditMode ? original.getMaLich() : txtMaLich.getText().trim(),
+        Lich lich = new Lich(txtMaLich.getText().trim(),
                 (Tuyen) cboTuyen.getSelectedItem(),
                 (DoanTau) cboDoanTau.getSelectedItem(),
                 batDau,
@@ -309,3 +308,4 @@ public class ChinhSuaLichChayDialog extends AbstractFormDialog<Lich> {
         };
     }
 }
+

@@ -2,9 +2,11 @@ package com.modules;
 
 import com.dao.DAO_Ve;
 import com.dao.DAO_ChiTietHoaDon;
+import com.dao.DAO_Ga;
 import com.entity.KhachHang;
 import com.entity.Ve;
 import com.entity.ChiTietHoaDon;
+import com.entity.Ga;
 import com.entity.Lich;
 import com.entity.Tuyen;
 import com.enums.TrangThaiVe;
@@ -23,8 +25,12 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -36,6 +42,12 @@ public class QuanLyVeModule extends JPanel implements AppModule {
 
     // --- UI ---
     private JTextField   txtSearchKeyword;
+    private SearchableComboBox<Ga> filterGaDi;
+    private SearchableComboBox<Ga> filterGaDen;
+    private DatePickerField dateFrom;
+    private DatePickerField dateTo;
+    private JSpinner timeFrom;
+    private JSpinner timeTo;
     private JTable       table;
     private VeTableModel tableModel;
 
@@ -46,6 +58,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     private List<Ve> filteredData = new ArrayList<>();
     private List<VeTableModel.VeRow> allRows = new ArrayList<>();
     private DAO_ChiTietHoaDon   daoChiTietHoaDon = new DAO_ChiTietHoaDon();
+    private final DAO_Ga daoGa = new DAO_Ga();
 
     // --- Stats ---
     private JLabel lblStatTongHoaDon;
@@ -99,6 +112,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         setBorder(new EmptyBorder(28, 36, 28, 36));
         btnPanel.setVisible(false);
         buildUI();
+        loadGaFilters();
         loadData();
     }
 
@@ -308,12 +322,87 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         bgPanel.add(searchPanel, gbc);
+        JButton btnResetAll = new JButton("Bỏ lọc");
+        NotionTheme.styleSecondaryButton(btnResetAll);
+        btnResetAll.setPreferredSize(new Dimension(104, 40));
+        btnResetAll.addActionListener(e -> {
+            if (filterGaDi != null) filterGaDi.clearSelection();
+            if (filterGaDen != null) filterGaDen.clearSelection();
+            if (dateFrom != null) dateFrom.setValue(null);
+            if (dateTo != null) dateTo.setValue(null);
+            if (timeFrom != null) setSpinnerTime(timeFrom, 0, 0);
+            if (timeTo != null) setSpinnerTime(timeTo, 23, 59);
+            applyFilter();
+        });
+
+        JPanel filterRow = new JPanel(new GridBagLayout());
+        filterRow.setOpaque(false);
+        GridBagConstraints filterGbc = new GridBagConstraints();
+        filterGbc.gridy = 0;
+        filterGbc.fill = GridBagConstraints.HORIZONTAL;
+        filterGbc.anchor = GridBagConstraints.NORTHWEST;
+        filterGbc.weightx = 1.0;
+        filterGbc.insets = new Insets(0, 0, 0, 12);
+
+        filterGaDi = new SearchableComboBox<>(
+                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
+        filterGaDi.setPlaceholder("Tất cả ga đi");
+        filterGaDi.setPreferredSize(new Dimension(220, 38));
+        filterGaDi.setOnChanged(this::applyFilter);
+        filterGbc.gridx = 0;
+        filterRow.add(buildFilterGroupVe("Ga đi", filterGaDi), filterGbc);
+
+        filterGaDen = new SearchableComboBox<>(
+                ga -> ga.getTenGa() + " (" + ga.getMaGa() + ")",
+                (ga, q) -> ga.getTenGa().toLowerCase().contains(q) || ga.getMaGa().toLowerCase().contains(q));
+        filterGaDen.setPlaceholder("Tất cả ga đến");
+        filterGaDen.setPreferredSize(new Dimension(220, 38));
+        filterGaDen.setOnChanged(this::applyFilter);
+        filterGbc.gridx = 1;
+        filterRow.add(buildFilterGroupVe("Ga đến", filterGaDen), filterGbc);
+
+        timeFrom = createTimeSpinner(0, 0);
+        timeFrom.addChangeListener(e -> applyFilter());
+        filterGbc.gridx = 2;
+        filterGbc.weightx = 0.45;
+        filterRow.add(buildFilterGroupVe("Từ giờ", timeFrom), filterGbc);
+
+        dateFrom = new DatePickerField();
+        dateFrom.setPreferredSize(new Dimension(150, 38));
+        dateFrom.addPropertyChangeListener("value", e -> applyFilter());
+        filterGbc.gridx = 3;
+        filterGbc.weightx = 0.7;
+        filterRow.add(buildFilterGroupVe("Từ ngày", dateFrom), filterGbc);
+
+        timeTo = createTimeSpinner(23, 59);
+        timeTo.addChangeListener(e -> applyFilter());
+        filterGbc.gridx = 4;
+        filterGbc.weightx = 0.45;
+        filterRow.add(buildFilterGroupVe("Đến giờ", timeTo), filterGbc);
+
+        dateTo = new DatePickerField();
+        dateTo.setPreferredSize(new Dimension(150, 38));
+        dateTo.addPropertyChangeListener("value", e -> applyFilter());
+        filterGbc.gridx = 5;
+        filterGbc.weightx = 0.7;
+        filterRow.add(buildFilterGroupVe("Đến ngày", dateTo), filterGbc);
+
+        filterGbc.gridx = 6;
+        filterGbc.weightx = 0.0;
+        filterGbc.insets = new Insets(0, 0, 0, 0);
+        filterRow.add(FilterActionGroup.wrap(btnResetAll), filterGbc);
+
 
         // Handoff: tìm kiếm vé gom về một keyword chung để đồng bộ UX với các module quản lý khác.
         // Rủi ro: lọc theo hóa đơn/khách cần gọi DAO phụ nên danh sách lớn có thể cần cache row về sau.
 
         wrapper.add(header, BorderLayout.NORTH);
-        wrapper.add(bgPanel, BorderLayout.CENTER);
+        JPanel center = new JPanel(new BorderLayout(0, 12));
+        center.setOpaque(false);
+        center.add(bgPanel, BorderLayout.NORTH);
+        center.add(filterRow, BorderLayout.CENTER);
+        wrapper.add(center, BorderLayout.CENTER);
         return wrapper;
     }
 
@@ -605,6 +694,53 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     //  DATA
     // =================================================================
 
+
+    private JPanel buildFilterGroupVe(String labelText, JComponent field) {
+        JPanel group = new JPanel(new BorderLayout(0, 6));
+        group.setOpaque(false);
+        JLabel lbl = new JLabel(labelText + ":");
+        lbl.setFont(FONT_HEADER);
+        lbl.setForeground(ON_SURF_VAR);
+        group.add(lbl, BorderLayout.NORTH);
+        group.add(field, BorderLayout.CENTER);
+        return group;
+    }
+
+    private void loadGaFilters() {
+        List<Ga> gaList = daoGa.getAll();
+        if (filterGaDi != null) filterGaDi.setItems(gaList);
+        if (filterGaDen != null) filterGaDen.setItems(gaList);
+    }
+
+    private JSpinner createTimeSpinner(int hour, int minute) {
+        SpinnerDateModel model = new SpinnerDateModel();
+        JSpinner spinner = new JSpinner(model);
+        spinner.setEditor(new JSpinner.DateEditor(spinner, "HH:mm"));
+        spinner.setFont(FONT_BODY);
+        spinner.setPreferredSize(new Dimension(92, 38));
+        spinner.setToolTipText("Dùng nút tăng/giảm hoặc nhập giờ dạng HH:mm. Giờ chỉ áp dụng khi ngày tương ứng được chọn.");
+        setSpinnerTime(spinner, hour, minute);
+        return spinner;
+    }
+
+    private void setSpinnerTime(JSpinner spinner, int hour, int minute) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        spinner.setValue(calendar.getTime());
+    }
+
+    private LocalTime readSpinnerTime(JSpinner spinner) {
+        if (spinner == null) return LocalTime.MIN;
+        try { spinner.commitEdit(); } catch (java.text.ParseException ignored) {}
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime((java.util.Date) spinner.getValue());
+        return LocalTime.of(calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE));
+        // Handoff: filter giờ dùng JSpinner giống quản lý lịch để có nút tăng/giảm bằng chuột.
+        // Risk: giờ chỉ được áp dụng khi ngày từ/đến tương ứng có giá trị.
+    }
     private void loadData() {
         SwingWorker<List<Ve>, Void> worker = new SwingWorker<>() {
             @Override
@@ -644,6 +780,12 @@ public class QuanLyVeModule extends JPanel implements AppModule {
 
     private void applyFilter() {
         String keyword = txtSearchKeyword.getText().trim().toLowerCase();
+        Ga selGaDi = filterGaDi != null ? filterGaDi.getSelectedItem() : null;
+        Ga selGaDen = filterGaDen != null ? filterGaDen.getSelectedItem() : null;
+        LocalDate fromDate = dateFrom != null ? dateFrom.getValue() : null;
+        LocalDate toDate = dateTo != null ? dateTo.getValue() : null;
+        LocalDateTime fromDateTime = fromDate == null ? null : LocalDateTime.of(fromDate, readSpinnerTime(timeFrom));
+        LocalDateTime toDateTime = toDate == null ? null : LocalDateTime.of(toDate, readSpinnerTime(timeTo));
 
         filteredData = new ArrayList<>();
         List<VeTableModel.VeRow> rows = new ArrayList<>();
@@ -652,6 +794,7 @@ public class QuanLyVeModule extends JPanel implements AppModule {
             if (activeTabIndex == 1 && ve.getTrangThai() != TrangThaiVe.DA_BAN) continue;
             if (activeTabIndex == 2 && ve.getTrangThai() != TrangThaiVe.DA_HUY) continue;
             if (!keyword.isEmpty() && !matchesKeyword(row, keyword)) continue;
+            if (!matchesRouteAndDeparture(ve, selGaDi, selGaDen, fromDateTime, toDateTime)) continue;
 
             filteredData.add(ve);
             rows.add(row);
@@ -661,6 +804,25 @@ public class QuanLyVeModule extends JPanel implements AppModule {
         // Rủi ro: cache row được rebuild khi loadData, nếu dữ liệu liên quan đổi ngoài module cần load lại để đồng bộ.
     }
 
+    private boolean matchesRouteAndDeparture(Ve ve, Ga selGaDi, Ga selGaDen,
+                                             LocalDateTime fromDateTime, LocalDateTime toDateTime) {
+        Lich lich = ve != null ? ve.getLich() : null;
+        Tuyen tuyen = lich != null ? lich.getTuyen() : null;
+        if (selGaDi != null) {
+            String maGaDi = tuyen != null && tuyen.getGaDi() != null ? tuyen.getGaDi().getMaGa() : null;
+            if (!selGaDi.getMaGa().equals(maGaDi)) return false;
+        }
+        if (selGaDen != null) {
+            String maGaDen = tuyen != null && tuyen.getGaDen() != null ? tuyen.getGaDen().getMaGa() : null;
+            if (!selGaDen.getMaGa().equals(maGaDen)) return false;
+        }
+        LocalDateTime khoiHanh = lich != null ? lich.getThoiGianBatDau() : null;
+        if (fromDateTime != null && (khoiHanh == null || khoiHanh.isBefore(fromDateTime))) return false;
+        if (toDateTime != null && (khoiHanh == null || khoiHanh.isAfter(toDateTime))) return false;
+        return true;
+        // Handoff: filter vé dùng cùng tuyến/thời gian khởi hành từ Lich như quản lý lịch chạy.
+        // Risk: vé thiếu Lich/Tuyen sẽ bị loại khi người dùng chọn filter liên quan.
+    }
     private boolean matchesKeyword(VeTableModel.VeRow row, String keyword) {
         Ve ve = row.ve();
         String trangThai = ve.getTrangThai() != null ? ve.getTrangThai().toString() : "";
@@ -1116,8 +1278,21 @@ public class QuanLyVeModule extends JPanel implements AppModule {
     }
     @Override public void reset() {
         txtSearchKeyword.setText("");
+        if (filterGaDi != null) filterGaDi.clearSelection();
+        if (filterGaDen != null) filterGaDen.clearSelection();
+        if (dateFrom != null) dateFrom.setValue(null);
+        if (dateTo != null) dateTo.setValue(null);
+        if (timeFrom != null) setSpinnerTime(timeFrom, 0, 0);
+        if (timeTo != null) setSpinnerTime(timeTo, 23, 59);
         activeTabIndex = 0;
         loadData();
     }
 }
+
+
+
+
+
+
+
 

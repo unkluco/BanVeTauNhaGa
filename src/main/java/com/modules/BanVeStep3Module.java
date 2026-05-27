@@ -145,10 +145,15 @@ public class BanVeStep3Module extends JPanel implements AppModule {
             updateGlobalSelection();
             seatCanvas.repaint();
         });
-        JScrollPane seatScroll = new JScrollPane(seatCanvas);
+        JPanel seatCanvasCenter = new JPanel(new GridBagLayout());
+        seatCanvasCenter.setBackground(CARD_BG);
+        seatCanvasCenter.add(seatCanvas, new GridBagConstraints());
+        JScrollPane seatScroll = new JScrollPane(seatCanvasCenter);
         seatScroll.setBorder(BorderFactory.createLineBorder(OUTLINE, 1));
         seatScroll.getViewport().setBackground(CARD_BG);
         bottomPanel.add(seatScroll, BorderLayout.CENTER);
+        // Handoff: wrapper GridBagLayout giữ sơ đồ ghế ở giữa khi viewport rộng/cao hơn canvas.
+        // Risk: nếu canvas lớn hơn màn hình, JScrollPane vẫn chịu trách nhiệm cuộn bình thường.
 
         // Assembler
         JPanel centerContent = new JPanel(new BorderLayout());
@@ -430,4 +435,5 @@ public class BanVeStep3Module extends JPanel implements AppModule {
         updateGlobalSelection();
     }
 }
+
 

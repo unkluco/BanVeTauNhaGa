@@ -42,7 +42,7 @@ public class ThongKeModule extends JPanel implements AppModule {
     private Consumer<Object> callback;
 
     // Controls
-    private JComboBox<Integer> cboYear;
+    private JComboBox<YearMonth> cboMonth;
     private JButton btnExportReport;
     private volatile boolean loadingData = false;
 
@@ -55,6 +55,10 @@ public class ThongKeModule extends JPanel implements AppModule {
     private ChartPanel chartHoaDonNgay;
 
     // Summary labels
+    private JLabel lblAllDoanhThu;
+    private JLabel lblAllVe;
+    private JLabel lblAllHoaDon;
+    private JLabel lblAllVeHuy;
     private JLabel lblTongDoanhThu;
     private JLabel lblTongVe;
     private JLabel lblTongHoaDon;
@@ -101,24 +105,73 @@ public class ThongKeModule extends JPanel implements AppModule {
     private void buildUI() {
         add(buildHeaderPanel(), BorderLayout.NORTH);
 
-        JPanel mainArea = new JPanel(new BorderLayout());
-        mainArea.setOpaque(false);
-        mainArea.add(buildSummaryRow(), BorderLayout.NORTH);
-
-        JPanel chartsGrid = buildChartsGrid();
-        JScrollPane scroll = new JScrollPane(chartsGrid);
+        JPanel dashboard = buildDashboardContent();
+        JScrollPane scroll = new JScrollPane(dashboard);
         scroll.setBorder(null);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
-        mainArea.add(scroll, BorderLayout.CENTER);
-
-        add(mainArea, BorderLayout.CENTER);
+        add(scroll, BorderLayout.CENTER);
 
         SwingUtilities.invokeLater(this::loadAllData);
     }
 
+    private JPanel buildDashboardContent() {
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.add(buildSectionTitle("Thống kê toàn thời gian", "Tổng quan dài hạn, cơ cấu trạng thái và tuyến doanh thu cao nhất."));
+        content.add(buildAllTimeSummaryRow());
+        content.add(buildAllTimeChartsGrid());
+        content.add(buildSectionTitle("Thống kê theo tháng", "Dữ liệu chi tiết theo tháng đang chọn ở góc phải."));
+        content.add(buildSummaryRow());
+        content.add(buildMonthlyChartsGrid());
+        return content;
+        // Handoff: dashboard chia rõ phần toàn thời gian và phần theo tháng để tránh hiểu nhầm phạm vi số liệu.
+        // Risk: nếu thêm chart mới, đặt vào đúng section theo phạm vi truy vấn SQL.
+    }
+
+    private JPanel buildSectionTitle(String title, String desc) {
+        JPanel panel = new JPanel(new BorderLayout(8, 0));
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(18, 24, 8, 24));
+        JLabel lblTitle = new JLabel(title);
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblTitle.setForeground(TEXT_DARK);
+        JLabel lblDesc = new JLabel(desc);
+        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblDesc.setForeground(TEXT_MUTED);
+        panel.add(lblTitle, BorderLayout.WEST);
+        panel.add(lblDesc, BorderLayout.EAST);
+        return panel;
+    }
+
+    private JPanel buildAllTimeSummaryRow() {
+        JPanel row = new JPanel(new GridLayout(1, 4, 12, 0));
+        row.setOpaque(false);
+        row.setBorder(new EmptyBorder(0, 24, 8, 24));
+        lblAllDoanhThu = new JLabel("...");
+        lblAllVe = new JLabel("...");
+        lblAllHoaDon = new JLabel("...");
+        lblAllVeHuy = new JLabel("...");
+        row.add(buildKpiCard("Tổng doanh thu", lblAllDoanhThu, PRIMARY));
+        row.add(buildKpiCard("Tổng vé đã bán", lblAllVe, ACCENT1));
+        row.add(buildKpiCard("Tổng hóa đơn", lblAllHoaDon, ACCENT2));
+        row.add(buildKpiCard("Tổng vé đã hủy", lblAllVeHuy, ACCENT4));
+        return row;
+    }
+
+    private JPanel buildAllTimeChartsGrid() {
+        JPanel grid = new JPanel(new GridLayout(1, 2, 14, 14));
+        grid.setOpaque(false);
+        grid.setBorder(new EmptyBorder(8, 24, 8, 24));
+        chartTrangThaiVe = emptyChartPanel(emptyRingChart());
+        grid.add(buildChartCard("Cơ cấu trạng thái vé", chartTrangThaiVe));
+        chartDoanhThuTuyen = emptyChartPanel(emptyHorizontalBarChart("Triệu ₫", "Tuyến"));
+        grid.add(buildChartCard("Top tuyến theo doanh thu", chartDoanhThuTuyen));
+        return grid;
+    }
     private JPanel buildHeaderPanel() {
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(AppColors.SURFACE);
@@ -134,24 +187,29 @@ public class ThongKeModule extends JPanel implements AppModule {
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         controls.setOpaque(false);
 
-        JLabel lblYear = new JLabel("Năm:");
+        JLabel lblYear = new JLabel("Tháng:");
         lblYear.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblYear.setForeground(TEXT_MUTED);
 
-        int cur = LocalDate.now().getYear();
-        Integer[] years = new Integer[6];
-        for (int i = 0; i < 6; i++) years[i] = cur - i;
-        cboYear = new JComboBox<>(years);
-        cboYear.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cboYear.setPreferredSize(new Dimension(90, 32));
-        NotionTheme.applyComboBoxSelection(cboYear);
-        cboYear.addActionListener(e -> loadAllData());
+        cboMonth = new JComboBox<>();
+        cboMonth.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cboMonth.setPreferredSize(new Dimension(150, 32));
+        cboMonth.setRenderer(new DefaultListCellRenderer() {
+            @Override public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected, boolean focus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, selected, focus);
+                if (value instanceof YearMonth ym) label.setText("Tháng " + ym.getMonthValue() + "/" + ym.getYear());
+                return label;
+            }
+        });
+        NotionTheme.applyComboBoxSelection(cboMonth);
+        cboMonth.addActionListener(e -> loadAllData());
+        loadAvailableMonths();
 
         btnExportReport = createExportButton("Xuất báo cáo");
         btnExportReport.addActionListener(e -> openExportReportDialog());
 
         controls.add(lblYear);
-        controls.add(cboYear);
+        controls.add(cboMonth);
         controls.add(Box.createHorizontalStrut(4));
         controls.add(btnExportReport);
 
@@ -170,10 +228,10 @@ public class ThongKeModule extends JPanel implements AppModule {
         lblTongHoaDon   = new JLabel("...");
         lblVeHuy        = new JLabel("...");
 
-        row.add(buildKpiCard("Tổng doanh thu (năm)", lblTongDoanhThu, PRIMARY));
-        row.add(buildKpiCard("Vé đã bán (năm)",      lblTongVe,       ACCENT1));
-        row.add(buildKpiCard("Hóa đơn (năm)",             lblTongHoaDon,   ACCENT2));
-        row.add(buildKpiCard("Vé đã hủy (năm)",       lblVeHuy,        ACCENT4));
+        row.add(buildKpiCard("Doanh thu (tháng)", lblTongDoanhThu, PRIMARY));
+        row.add(buildKpiCard("Vé đã bán (tháng)",      lblTongVe,       ACCENT1));
+        row.add(buildKpiCard("Hóa đơn (tháng)",             lblTongHoaDon,   ACCENT2));
+        row.add(buildKpiCard("Vé đã hủy (tháng)",       lblVeHuy,        ACCENT4));
         return row;
     }
 
@@ -205,34 +263,26 @@ public class ThongKeModule extends JPanel implements AppModule {
         return card;
     }
 
-    private JPanel buildChartsGrid() {
-        JPanel grid = new JPanel(new GridLayout(3, 2, 14, 14));
+    private JPanel buildMonthlyChartsGrid() {
+        JPanel grid = new JPanel(new GridLayout(2, 2, 14, 14));
         grid.setOpaque(false);
         grid.setBorder(new EmptyBorder(8, 24, 24, 24));
 
         // 1 ─ Monthly revenue bar chart
-        chartDoanhThuThang = emptyChartPanel(emptyBarChart("Triệu ₫", "Tháng"));
-        grid.add(buildChartCard("Doanh thu theo tháng", chartDoanhThuThang));
+        chartDoanhThuThang = emptyChartPanel(emptyBarChart("Triệu ₫", "Ngày"));
+        grid.add(buildChartCard("Doanh thu theo ngày", chartDoanhThuThang));
 
         // 2 ─ Monthly tickets grouped bar
-        chartVeThang = emptyChartPanel(emptyBarChart("Số vé", "Tháng"));
-        grid.add(buildChartCard("Số vé bán / hủy theo tháng", chartVeThang));
-
-        // 3 ─ Ticket status ring chart
-        chartTrangThaiVe = emptyChartPanel(emptyRingChart());
-        grid.add(buildChartCard("Tỷ lệ trạng thái vé (toàn thời gian)", chartTrangThaiVe));
-
-        // 4 ─ Revenue by route horizontal bar
-        chartDoanhThuTuyen = emptyChartPanel(emptyHorizontalBarChart("Triệu ₫", "Tuyến"));
-        grid.add(buildChartCard("Top tuyến theo doanh thu", chartDoanhThuTuyen));
+        chartVeThang = emptyChartPanel(emptyBarChart("Số vé", "Ngày"));
+        grid.add(buildChartCard("Số vé bán / hủy theo ngày", chartVeThang));
 
         // 5 ─ Top employees bar chart
         chartTopNhanVien = emptyChartPanel(emptyBarChart("Triệu ₫", "Nhân viên"));
-        grid.add(buildChartCard("Top 5 nhân viên (doanh thu năm)", chartTopNhanVien));
+        grid.add(buildChartCard("Top 5 nhân viên trong tháng", chartTopNhanVien));
 
         // 6 ─ Daily invoices current month line chart
         chartHoaDonNgay = emptyChartPanel(emptyLineChart("Số hóa đơn", "Ngày"));
-        grid.add(buildChartCard("Hóa đơn theo ngày (tháng hiện tại)", chartHoaDonNgay));
+        grid.add(buildChartCard("Hóa đơn theo ngày", chartHoaDonNgay));
 
         return grid;
     }
@@ -356,21 +406,46 @@ public class ThongKeModule extends JPanel implements AppModule {
 
     // ── Data loading ──────────────────────────────────────────────────────
 
+    private void loadAvailableMonths() {
+        if (cboMonth == null) return;
+        java.util.List<YearMonth> months = fetchAvailableMonths();
+        DefaultComboBoxModel<YearMonth> model = new DefaultComboBoxModel<>();
+        for (YearMonth month : months) model.addElement(month);
+        cboMonth.setModel(model);
+        if (model.getSize() > 0) cboMonth.setSelectedIndex(0);
+        // Handoff: danh sách tháng lấy từ HoaDon.ngayLap, không hard-code năm/tháng không có dữ liệu.
+        // Risk: khi thêm hóa đơn ở tháng mới trong runtime, mở lại module hoặc gọi loadAvailableMonths để thấy tháng mới.
+    }
+
+    private java.util.List<YearMonth> fetchAvailableMonths() {
+        java.util.List<YearMonth> months = new ArrayList<>();
+        Connection con = ConnectDB.getCon();
+        if (con == null) return months;
+        String sql = "SELECT DISTINCT YEAR(ngayLap) AS nam, MONTH(ngayLap) AS thang FROM HoaDon ORDER BY nam DESC, thang DESC";
+        try (PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) months.add(YearMonth.of(rs.getInt("nam"), rs.getInt("thang")));
+        } catch (SQLException e) {
+            System.err.println("[ThongKe] fetchAvailableMonths: " + e.getMessage());
+        }
+        if (months.isEmpty()) months.add(YearMonth.now());
+        return months;
+    }
+
     private void loadAllData() {
-        if (cboYear == null || cboYear.getSelectedItem() == null) return;
-        int year = (Integer) cboYear.getSelectedItem();
+        if (chartDoanhThuThang == null || cboMonth == null || cboMonth.getSelectedItem() == null) return;
+        YearMonth month = (YearMonth) cboMonth.getSelectedItem();
         setLoadingState(true);
 
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
-                loadDoanhThuThang(year);
-                loadVeThang(year);
-                loadTrangThaiVe();
-                loadDoanhThuTuyen();
-                loadTopNhanVien(year);
-                loadHoaDonNgay();
-                loadSummaryStats(year);
+                loadDoanhThuThang(month);
+                loadVeThang(month);
+                loadTrangThaiVe(month);
+                loadDoanhThuTuyen(month);
+                loadTopNhanVien(month);
+                loadHoaDonNgay(month);
+                loadSummaryStats(month);
                 return null;
             }
 
@@ -384,39 +459,39 @@ public class ThongKeModule extends JPanel implements AppModule {
 
     private void setLoadingState(boolean loading) {
         loadingData = loading;
-        if (cboYear != null) cboYear.setEnabled(!loading);
+        if (cboMonth != null) cboMonth.setEnabled(!loading);
         if (btnExportReport != null) btnExportReport.setEnabled(!loading);
     }
 
     // Chart 1: Monthly revenue
-    private void loadDoanhThuThang(int year) {
+    private void loadDoanhThuThang(YearMonth month) {
         Connection con = ConnectDB.getCon();
         if (con == null) return;
 
-        double[] vals = new double[12];
+        double[] vals = new double[month.lengthOfMonth()];
         String sql =
-            "SELECT MONTH(hd.ngayLap) AS thang, COALESCE(SUM(ct.giaTien),0) AS tong " +
+            "SELECT DAY(hd.ngayLap) AS ngay, COALESCE(SUM(ct.giaTien),0) AS tong " +
             "FROM HoaDon hd JOIN ChiTietHoaDon ct ON hd.maHoaDon = ct.maHoaDon " +
-            "WHERE YEAR(hd.ngayLap) = ? " +
-            "GROUP BY MONTH(hd.ngayLap)";
+            "WHERE hd.ngayLap >= ? AND hd.ngayLap < ? " +
+            "GROUP BY DAY(hd.ngayLap)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, year);
+            ps.setTimestamp(1, Timestamp.valueOf(month.atDay(1).atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(month.plusMonths(1).atDay(1).atStartOfDay()));
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                int m = rs.getInt("thang");
+                int d = rs.getInt("ngay");
                 double t = rs.getBigDecimal("tong").doubleValue() / 1_000_000.0;
-                if (m >= 1 && m <= 12) vals[m - 1] = t;
+                if (d >= 1 && d <= vals.length) vals[d - 1] = t;
             }
         } catch (SQLException e) {
             System.err.println("[ThongKe] loadDoanhThuThang: " + e.getMessage());
         }
 
         DefaultCategoryDataset ds = new DefaultCategoryDataset();
-        String[] months = {"T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"};
-        for (int i = 0; i < 12; i++) ds.addValue(vals[i], "Doanh thu", months[i]);
+        for (int i = 0; i < vals.length; i++) ds.addValue(vals[i], "Doanh thu", String.valueOf(i + 1));
 
         JFreeChart chart = ChartFactory.createBarChart(
-            "", "Tháng", "Triệu ₫", ds,
+            "", "Ngày", "Triệu ₫", ds,
             PlotOrientation.VERTICAL, false, true, false);
         applyBarStyle(chart, false, new Color[]{PALETTE[0]});
         chart.getPlot().setBackgroundPaint(CARD_BG);
@@ -424,29 +499,30 @@ public class ThongKeModule extends JPanel implements AppModule {
     }
 
     // Chart 2: Tickets sold/cancelled per month
-    private void loadVeThang(int year) {
+    private void loadVeThang(YearMonth month) {
         Connection con = ConnectDB.getCon();
         if (con == null) return;
 
-        double[] ban = new double[12];
-        double[] huy = new double[12];
+        double[] ban = new double[month.lengthOfMonth()];
+        double[] huy = new double[month.lengthOfMonth()];
         String sql =
-            "SELECT MONTH(hd.ngayLap) AS thang, v.trangThai, COUNT(v.maVe) AS soVe " +
+            "SELECT DAY(hd.ngayLap) AS ngay, v.trangThai, COUNT(v.maVe) AS soVe " +
             "FROM Ve v " +
             "JOIN ChiTietHoaDon ct ON v.maVe = ct.maVe " +
             "JOIN HoaDon hd ON ct.maHoaDon = hd.maHoaDon " +
-            "WHERE YEAR(hd.ngayLap) = ? " +
-            "GROUP BY MONTH(hd.ngayLap), v.trangThai";
+            "WHERE hd.ngayLap >= ? AND hd.ngayLap < ? " +
+            "GROUP BY DAY(hd.ngayLap), v.trangThai";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, year);
+            ps.setTimestamp(1, Timestamp.valueOf(month.atDay(1).atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(month.plusMonths(1).atDay(1).atStartOfDay()));
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                int m = rs.getInt("thang");
+                int d = rs.getInt("ngay");
                 String tt = rs.getString("trangThai");
                 int cnt = rs.getInt("soVe");
-                if (m >= 1 && m <= 12) {
-                    if ("DA_BAN".equalsIgnoreCase(tt))  ban[m - 1] = cnt;
-                    else if ("DA_HUY".equalsIgnoreCase(tt)) huy[m - 1] = cnt;
+                if (d >= 1 && d <= ban.length) {
+                    if ("DA_BAN".equalsIgnoreCase(tt)) ban[d - 1] = cnt;
+                    else if ("DA_HUY".equalsIgnoreCase(tt)) huy[d - 1] = cnt;
                 }
             }
         } catch (SQLException e) {
@@ -454,14 +530,14 @@ public class ThongKeModule extends JPanel implements AppModule {
         }
 
         DefaultCategoryDataset ds = new DefaultCategoryDataset();
-        String[] months = {"T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"};
-        for (int i = 0; i < 12; i++) {
-            ds.addValue(ban[i], "Đã bán", months[i]);
-            ds.addValue(huy[i], "Đã hủy", months[i]);
+        for (int i = 0; i < ban.length; i++) {
+            String day = String.valueOf(i + 1);
+            ds.addValue(ban[i], "Đã bán", day);
+            ds.addValue(huy[i], "Đã hủy", day);
         }
 
         JFreeChart chart = ChartFactory.createBarChart(
-            "", "Tháng", "Số vé", ds,
+            "", "Ngày", "Số vé", ds,
             PlotOrientation.VERTICAL, true, true, false);
         applyBarStyle(chart, true, new Color[]{PALETTE[0], PALETTE[4]});
         chart.getPlot().setBackgroundPaint(CARD_BG);
@@ -473,14 +549,19 @@ public class ThongKeModule extends JPanel implements AppModule {
     }
 
     // Chart 3: Ticket status distribution (ring chart)
-    private void loadTrangThaiVe() {
+    private void loadTrangThaiVe(YearMonth month) {
         Connection con = ConnectDB.getCon();
         if (con == null) return;
 
         DefaultPieDataset<String> ds = new DefaultPieDataset<>();
-        String sql = "SELECT trangThai, COUNT(*) AS soLuong FROM Ve GROUP BY trangThai";
-        try (PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        String sql = "SELECT v.trangThai, COUNT(*) AS soLuong FROM Ve v " +
+            "JOIN ChiTietHoaDon ct ON v.maVe = ct.maVe " +
+            "JOIN HoaDon hd ON ct.maHoaDon = hd.maHoaDon " +
+            "WHERE hd.ngayLap >= ? AND hd.ngayLap < ? GROUP BY v.trangThai";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(month.atDay(1).atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(month.plusMonths(1).atDay(1).atStartOfDay()));
+            ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 String tt = rs.getString("trangThai");
                 int cnt = rs.getInt("soLuong");
@@ -517,7 +598,7 @@ public class ThongKeModule extends JPanel implements AppModule {
     }
 
     // Chart 4: Revenue by route (horizontal)
-    private void loadDoanhThuTuyen() {
+    private void loadDoanhThuTuyen(YearMonth month) {
         Connection con = ConnectDB.getCon();
         if (con == null) return;
 
@@ -532,10 +613,14 @@ public class ThongKeModule extends JPanel implements AppModule {
             "JOIN Tuyen t ON l.maTuyen = t.maTuyen " +
             "JOIN Ga g1 ON t.gaDi = g1.maGa " +
             "JOIN Ga g2 ON t.gaDen = g2.maGa " +
+            "JOIN HoaDon hd ON ct.maHoaDon = hd.maHoaDon " +
+            "WHERE hd.ngayLap >= ? AND hd.ngayLap < ? " +
             "GROUP BY g1.tenGa, g2.tenGa " +
             "ORDER BY tong DESC";
-        try (PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(month.atDay(1).atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(month.plusMonths(1).atDay(1).atStartOfDay()));
+            ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 String tuyen = rs.getString("tenTuyen");
                 double tong = rs.getBigDecimal("tong").doubleValue() / 1_000_000.0;
@@ -554,7 +639,7 @@ public class ThongKeModule extends JPanel implements AppModule {
     }
 
     // Chart 5: Top employees by revenue
-    private void loadTopNhanVien(int year) {
+    private void loadTopNhanVien(YearMonth month) {
         Connection con = ConnectDB.getCon();
         if (con == null) return;
 
@@ -564,11 +649,12 @@ public class ThongKeModule extends JPanel implements AppModule {
             "FROM HoaDon hd " +
             "JOIN NhanVien nv ON hd.maNV = nv.maNV " +
             "JOIN ChiTietHoaDon ct ON hd.maHoaDon = ct.maHoaDon " +
-            "WHERE YEAR(hd.ngayLap) = ? " +
+            "WHERE hd.ngayLap >= ? AND hd.ngayLap < ? " +
             "GROUP BY nv.hoTen " +
             "ORDER BY tong DESC";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, year);
+            ps.setTimestamp(1, Timestamp.valueOf(month.atDay(1).atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(month.plusMonths(1).atDay(1).atStartOfDay()));
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 String hoTen = rs.getString("hoTen");
@@ -593,19 +679,21 @@ public class ThongKeModule extends JPanel implements AppModule {
     }
 
     // Chart 6: Daily invoice count for current month (line chart)
-    private void loadHoaDonNgay() {
+    private void loadHoaDonNgay(YearMonth month) {
         Connection con = ConnectDB.getCon();
         if (con == null) return;
 
-        int daysInMonth = LocalDate.now().lengthOfMonth();
+        int daysInMonth = month.lengthOfMonth();
         int[] vals = new int[daysInMonth];
         String sql =
             "SELECT DAY(ngayLap) AS ngay, COUNT(*) AS soHD " +
             "FROM HoaDon " +
-            "WHERE MONTH(ngayLap) = MONTH(GETDATE()) AND YEAR(ngayLap) = YEAR(GETDATE()) " +
+            "WHERE ngayLap >= ? AND ngayLap < ? " +
             "GROUP BY DAY(ngayLap)";
-        try (PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(month.atDay(1).atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(month.plusMonths(1).atDay(1).atStartOfDay()));
+            ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 int d = rs.getInt("ngay");
                 if (d >= 1 && d <= daysInMonth) vals[d - 1] = rs.getInt("soHD");
@@ -627,8 +715,48 @@ public class ThongKeModule extends JPanel implements AppModule {
         SwingUtilities.invokeLater(() -> chartHoaDonNgay.setChart(chart));
     }
 
+
+    private void loadAllTimeStats() {
+        Connection con = ConnectDB.getCon();
+        if (con == null) return;
+        BigDecimal doanhThu = BigDecimal.ZERO;
+        int tongVe = 0, tongHD = 0, veHuy = 0;
+        try (PreparedStatement ps = con.prepareStatement(
+                "SELECT COALESCE(SUM(ct.giaTien),0) AS tong FROM ChiTietHoaDon ct");
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next() && rs.getBigDecimal("tong") != null) doanhThu = rs.getBigDecimal("tong");
+        } catch (SQLException e) { System.err.println("[ThongKe] all-time DT: " + e.getMessage()); }
+
+        try (PreparedStatement ps = con.prepareStatement("SELECT trangThai, COUNT(*) AS cnt FROM Ve GROUP BY trangThai");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                int count = rs.getInt("cnt");
+                if ("DA_HUY".equalsIgnoreCase(rs.getString("trangThai"))) veHuy += count;
+                else tongVe += count;
+            }
+        } catch (SQLException e) { System.err.println("[ThongKe] all-time Ve: " + e.getMessage()); }
+
+        try (PreparedStatement ps = con.prepareStatement("SELECT COUNT(*) AS cnt FROM HoaDon");
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) tongHD = rs.getInt("cnt");
+        } catch (SQLException e) { System.err.println("[ThongKe] all-time HD: " + e.getMessage()); }
+
+        NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));
+        String sDT = nf.format(doanhThu) + " ₫";
+        String sVe = nf.format(tongVe) + " vé";
+        String sHD = nf.format(tongHD) + " đơn";
+        String sHuy = nf.format(veHuy) + " vé";
+        SwingUtilities.invokeLater(() -> {
+            lblAllDoanhThu.setText(sDT);
+            lblAllVe.setText(sVe);
+            lblAllHoaDon.setText(sHD);
+            lblAllVeHuy.setText(sHuy);
+        });
+        // Handoff: KPI toàn thời gian không phụ thuộc bộ chọn tháng; chart trạng thái/tuyến cũng dùng phạm vi này.
+        // Risk: tổng doanh thu lấy trực tiếp từ ChiTietHoaDon nên phản ánh toàn bộ chi tiết đã ghi nhận.
+    }
     // Summary KPI stats
-    private void loadSummaryStats(int year) {
+    private void loadSummaryStats(YearMonth month) {
         Connection con = ConnectDB.getCon();
         if (con == null) {
             SwingUtilities.invokeLater(() -> {
@@ -646,9 +774,10 @@ public class ThongKeModule extends JPanel implements AppModule {
         String sqlDT =
             "SELECT COALESCE(SUM(ct.giaTien),0) AS tong " +
             "FROM HoaDon hd JOIN ChiTietHoaDon ct ON hd.maHoaDon = ct.maHoaDon " +
-            "WHERE YEAR(hd.ngayLap) = ?";
+            "WHERE hd.ngayLap >= ? AND hd.ngayLap < ?";
         try (PreparedStatement ps = con.prepareStatement(sqlDT)) {
-            ps.setInt(1, year);
+            ps.setTimestamp(1, Timestamp.valueOf(month.atDay(1).atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(month.plusMonths(1).atDay(1).atStartOfDay()));
             ResultSet rs = ps.executeQuery();
             if (rs.next()) doanhThu = rs.getBigDecimal("tong");
         } catch (SQLException e) {
@@ -659,9 +788,10 @@ public class ThongKeModule extends JPanel implements AppModule {
             "SELECT v.trangThai, COUNT(*) AS cnt " +
             "FROM Ve v JOIN ChiTietHoaDon ct ON v.maVe = ct.maVe " +
             "JOIN HoaDon hd ON ct.maHoaDon = hd.maHoaDon " +
-            "WHERE YEAR(hd.ngayLap) = ? GROUP BY v.trangThai";
+            "WHERE hd.ngayLap >= ? AND hd.ngayLap < ? GROUP BY v.trangThai";
         try (PreparedStatement ps = con.prepareStatement(sqlVe)) {
-            ps.setInt(1, year);
+            ps.setTimestamp(1, Timestamp.valueOf(month.atDay(1).atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(month.plusMonths(1).atDay(1).atStartOfDay()));
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 int c = rs.getInt("cnt");
@@ -672,9 +802,10 @@ public class ThongKeModule extends JPanel implements AppModule {
             System.err.println("[ThongKe] summary Ve: " + e.getMessage());
         }
 
-        String sqlHD = "SELECT COUNT(*) AS cnt FROM HoaDon WHERE YEAR(ngayLap) = ?";
+        String sqlHD = "SELECT COUNT(*) AS cnt FROM HoaDon WHERE ngayLap >= ? AND ngayLap < ?";
         try (PreparedStatement ps = con.prepareStatement(sqlHD)) {
-            ps.setInt(1, year);
+            ps.setTimestamp(1, Timestamp.valueOf(month.atDay(1).atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(month.plusMonths(1).atDay(1).atStartOfDay()));
             ResultSet rs = ps.executeQuery();
             if (rs.next()) tongHD = rs.getInt("cnt");
         } catch (SQLException e) {
@@ -706,9 +837,9 @@ public class ThongKeModule extends JPanel implements AppModule {
             return;
         }
 
-        Integer yearValue = (Integer) cboYear.getSelectedItem();
-        if (yearValue == null) return;
-        int year = yearValue;
+        YearMonth selectedMonth = (YearMonth) cboMonth.getSelectedItem();
+        if (selectedMonth == null) return;
+        int year = selectedMonth.getYear();
 
         Window owner = SwingUtilities.getWindowAncestor(this);
         JDialog dialog = new JDialog(owner, "Xuất báo cáo thống kê", Dialog.ModalityType.APPLICATION_MODAL);
@@ -777,7 +908,7 @@ public class ThongKeModule extends JPanel implements AppModule {
         JPanel optionGrid = new JPanel(new GridLayout(3, 2, 10, 10));
         optionGrid.setOpaque(false);
         optionGrid.add(createExportOptionCard(chkSummary, "Tổng quan KPI", "Doanh thu, vé, hóa đơn, vé hủy trong năm."));
-        optionGrid.add(createExportOptionCard(chkMonthlyRevenue, "Doanh thu theo tháng", "Theo dõi biến động doanh thu toàn năm."));
+        optionGrid.add(createExportOptionCard(chkMonthlyRevenue, "Doanh thu theo ngày", "Theo dõi biến động doanh thu toàn năm."));
         optionGrid.add(createExportOptionCard(chkMonthlyTickets, "Vé bán / hủy theo tháng", "So sánh số lượng bán và hủy từng tháng."));
         optionGrid.add(createExportOptionCard(chkRoutes, "Top tuyến doanh thu", "Xếp hạng tuyến có doanh thu cao nhất."));
         optionGrid.add(createExportOptionCard(chkEmployees, "Top nhân viên", "Xếp hạng nhân viên theo doanh thu năm."));
@@ -1503,7 +1634,7 @@ public class ThongKeModule extends JPanel implements AppModule {
 
         createSingleSeriesBarChart(
             sheet,
-            "Doanh thu theo tháng",
+            "Doanh thu theo ngày",
             "Doanh thu",
             "Triệu ₫",
             firstDataRow,
@@ -1996,3 +2127,20 @@ public class ThongKeModule extends JPanel implements AppModule {
     @Override public void setOnResult(Consumer<Object> cb) { this.callback = cb; }
     @Override public void reset() { loadAllData(); }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
